@@ -1,8 +1,16 @@
 import re
 
+from bs4 import BeautifulSoup
 from typing import List, Dict, Optional, Set
-from util import parse_mp_name, extract_name_from_speaker_text, clean_html_for_display, strip_all_html
+from util import parse_mp_name, extract_name_from_speaker_text, clean_html_for_display, strip_all_html, extract_name_from_br_text
 
+# OA: Oral Answers to Oral Questions
+# WANA: Written Answers to Oral Questions not answered by end of Question Time
+# WA: Written Answer
+# OS: Oral Statement
+# BP: Bill
+# WS: Written Statement
+# BI: 
 QUESTION_SECTION_TYPES = {'OA', 'WA', 'WANA'}
 
 
@@ -122,20 +130,78 @@ class ParliamentSession:
         # No match found - could be external speaker or parsing issue
         return None
 
-    def _extract_speakers_from_html(self, html_content: str) -> Set[str]:
-        """Extract speaker text from <strong> tags in HTML."""
-        speakers = set()
-        pattern = r'<strong>\s*(.+?)\s*</strong>'
-        matches = re.finditer(pattern, html_content)
+    def set_attendance_from_html(self, html_content: str):
+        """Parse attendance from 'PRESENT:' and 'ABSENT:' sections in HTML."""
         
-        for match in matches:
-            speaker = match.group(1).strip()
-            # Clean up common HTML entities
-            speaker = speaker.replace('&nbsp;', ' ')
-            speaker = speaker.replace('\\t', '')
-            speaker = re.sub(r'\s+', ' ', speaker)
-            if speaker and len(speaker) > 1:
-                speakers.add(speaker)
+        # Split by <br> tags (case insensitive)
+        lines = re.split(r'<(?:br|BR)\s*/?>', html_content)
+        
+        current_list = None  # None, 'present', 'absent'
+        present_mps = []
+        absent_mps = []
+        
+        for line in lines:
+            text = strip_all_html(line).strip()
+            # Clean up weird whitespace
+            text = re.sub(r'\s+', ' ', text)
+            
+            if not text:
+                continue
+            
+            # Detect section headers
+            if 'PRESENT:' in text:
+                current_list = 'present'
+                continue
+            elif 'ABSENT:' in text:
+                current_list = 'absent'
+                continue
+            elif 'PERMISSION TO MEMBERS TO BE ABSENT' in text:
+                # End of attendance list usually
+                break
+                
+            # If we are in a list, try to parse MP details
+            if current_list:
+                # Filter out obvious non-MP lines
+                if len(text) < 5 or text.startswith('Column:'):
+                    continue
+                    
+                mp_details = extract_name_from_br_text(text)
+                if mp_details:
+                    name, constituency, appointment = mp_details
+                    # Sanity check: name should shouldn't constitute a sentence
+                    if len(name.split()) > 10:
+                        continue
+                        
+                    mp = MP(name, constituency, appointment)
+                    
+                    if current_list == 'present':
+                        present_mps.append(mp)
+                    else:
+                        absent_mps.append(mp)
+        
+        self.present_members = present_mps
+        self.absent_members = absent_mps
+        self._build_name_index()
+
+    def _extract_speakers_from_html(self, html_content: str) -> Set[str]:
+        """Extract speaker text from <strong> or <b> tags in HTML."""
+        speakers = set()
+        # Pattern for new format: <strong>Name</strong>
+        pattern_strong = r'<strong>\s*(.+?)\s*</strong>'
+        # Pattern for old format: <b>Name</b>
+        pattern_bold = r'<b>\s*(.+?)\s*</b>'
+        
+        for pattern in [pattern_strong, pattern_bold]:
+            matches = re.finditer(pattern, html_content)
+            for match in matches:
+                speaker = match.group(1).strip()
+                speaker = speaker.replace('&nbsp;', ' ')
+                speaker = re.sub(r'\s+', ' ', speaker)
+                # Remove trailing colon often found in old format e.g. "<b>Name:</b>"
+                speaker = re.sub(r':$', '', speaker)
+                
+                if speaker and len(speaker) > 1:
+                    speakers.add(speaker)
         
         return speakers
 

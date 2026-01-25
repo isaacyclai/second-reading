@@ -7,8 +7,17 @@ from typing import List, Dict, Optional, Tuple
 SALUTATIONS = [
     "Assoc Prof Dr",
     "Assoc Prof",
+    "Assoc. Prof. Dr.",
+    "Assoc. Prof.",
     "Prof",
+    "Prof.",
+    "BG",
+    "BG [NS]",
+    "RAdm",
+    "RAdm [NS]",
     "Dr",
+    "Encik",
+    "Mdm",
     "Mrs",
     "Miss",
     "Ms",
@@ -138,6 +147,24 @@ def clean_html_for_display(html_content: str) -> str:
     # Convert to formatted text preserving structure
     # This keeps speaker names bold
     return str(soup)
+
+
+def extract_name_from_br_text(text: str) -> Optional[Tuple[str, Optional[str], Optional[str]]]:
+    """
+    Extract MP details from a line in the attendance list (old format).
+    e.g. "Mr Abdullah Tarmugi (East Coast), Minister for..."
+    """
+    clean_text = text.strip()
+    # Remove leading <br> or other tags if they leaked in
+    clean_text = re.sub(r'^\s*<[^>]+>\s*', '', clean_text)
+    
+    # Remove trailing period or colon
+    clean_text = re.sub(r'[:.]\s*$', '', clean_text)
+    
+    if not clean_text or len(clean_text) < 3:
+        return None
+        
+    return parse_mp_name(clean_text)
 
 def strip_all_html(html: str) -> str:
     if not html:
