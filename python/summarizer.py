@@ -12,7 +12,7 @@ def get_gemini_client():
 
 def generate_session_summary(session_id):
     sections = execute_query(
-        '''SELECT s.section_type, s.section_title, s.summary, m.acronym as ministry
+        '''SELECT s.section_type, s.section_title, m.acronym as ministry
            FROM sections s
            LEFT JOIN ministries m ON s.ministry_id = m.id
            WHERE s.session_id = %s
@@ -28,16 +28,18 @@ def generate_session_summary(session_id):
     section_summaries = []
     for s in sections:
         ministry_tag = f"[{s['ministry']}] " if s['ministry'] else ""
-        section_summaries.append(f"- {ministry_tag}{s['section_title'][:60]}: {s['summary'] or 'No summary'}")
+        section_summaries.append(f"- {ministry_tag}{s['section_title']}")
     
     context = "\n".join(section_summaries)
     
-    prompt = f"""You are summarizing a Singapore Parliament session. Based on these section summaries, write a 2-3 paragraph executive briefing of the key topics discussed and decisions made.
+    prompt = f"""You are reporting writing a summary of the Singapore Parliament session. Based on the sections, 
+                write a page-long executive briefing of the key topics discussed and decisions made.
 
                 Sections:
                 {context}
 
-                Write a concise, informative summary suitable for someone who wants to quickly understand what happened in this session. Focus on the most significant topics and any notable outcomes."""
+                Write a concise, informative summary suitable for someone who wants to quickly understand 
+                what happened in this session. Focus on the most significant topics and any notable outcomes."""
 
     client = get_gemini_client()
     try:
@@ -71,7 +73,7 @@ def generate_member_summary(member_id):
     member_name = member[0]['name']
     
     activity = execute_query(
-        '''SELECT s.section_title, s.summary, s.section_type, m.acronym as ministry,
+        '''SELECT s.section_title, s.section_type, m.acronym as ministry,
                   ss.designation, sess.date
            FROM section_speakers ss
            JOIN sections s ON ss.section_id = s.id
@@ -92,7 +94,7 @@ def generate_member_summary(member_id):
     activity_lines = []
     for a in activity:
         ministry_tag = f"[{a['ministry']}] " if a['ministry'] else ""
-        activity_lines.append(f"- {a['date']}: {ministry_tag}{a['section_title'][:50]} - {a['summary'] or 'No summary'}")
+        activity_lines.append(f"- {a['date']}: {ministry_tag}{a['section_title'][:80]}")
     
     context = "\n".join(activity_lines)
     
