@@ -14,12 +14,14 @@ interface QuestionCardProps {
     question: Section
     showSpeakers?: boolean
     showContent?: boolean
+    showDate?: boolean
 }
 
 export default function QuestionCard({
     question,
     showSpeakers = true,
-    showContent = false
+    showContent = false,
+    showDate = true
 }: QuestionCardProps) {
     const speakerNames = Array.isArray(question.speakers)
         ? question.speakers.map((s) => (typeof s === 'string' ? s : s.name))
@@ -41,13 +43,15 @@ export default function QuestionCard({
                         {question.ministry}
                     </span>
                 )}
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {new Date(question.sessionDate).toLocaleDateString('en-SG', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                    })}
-                </span>
+                {showDate && question.sessionDate && (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {new Date(question.sessionDate).toLocaleDateString('en-SG', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                        })}
+                    </span>
+                )}
             </div>
             <h3 className="mb-2 font-semibold text-zinc-900 dark:text-white">
                 {question.sectionTitle}

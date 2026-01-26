@@ -8,6 +8,7 @@ export default function Navbar() {
 
     const navLinks = [
         { href: '/', label: 'Questions' },
+        { href: '/sessions', label: 'Sessions' },
         { href: '/members', label: 'Members' },
         { href: '/ministries', label: 'Ministries' },
     ]

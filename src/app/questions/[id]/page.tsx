@@ -125,9 +125,12 @@ export default function QuestionDetailPage({
 
                 {/* Summary placeholder */}
                 <section className="mb-6 rounded-lg bg-amber-50 p-4 dark:bg-amber-900/20">
-                    <h2 className="mb-2 text-sm font-semibold uppercase text-amber-700 dark:text-amber-400">
-                        Summary
-                    </h2>
+                    <div className="mb-2 flex items-center justify-between">
+                        <h2 className="text-sm font-semibold uppercase text-amber-700 dark:text-amber-400">
+                            Summary
+                        </h2>
+                        <span className="text-xs text-amber-500 dark:text-amber-400">✨ AI Generated</span>
+                    </div>
                     <p className="text-sm italic text-amber-600 dark:text-amber-300">
                         Summary will be added in a future update.
                     </p>
