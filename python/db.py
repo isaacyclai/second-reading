@@ -66,9 +66,6 @@ def add_session_attendance(session_id, member_id, present=True, constituency=Non
     )
 
 def find_or_create_bill(title, ministry_id=None, first_reading_date=None, first_reading_session_id=None):
-    """Find or create a bill by title. Updates first reading info if this is a first reading.
-    first_reading_date should be in DD-MM-YYYY format.
-    """
     result = execute_query(
         'SELECT id, first_reading_date, ministry_id FROM bills WHERE title = %s',
         (title,),

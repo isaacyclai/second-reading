@@ -1,26 +1,26 @@
+import re
 import sys
 
 from db import execute_query, find_or_create_member, find_ministry_by_acronym, add_section_speaker, add_session_attendance, find_or_create_bill
 from hansard_api import HansardAPI
 
 DESIGNATION_TO_MINISTRY = {
-    'prime minister': 'PMO',
-    'culture': 'MCCY', 'community': 'MCCY', 'youth': 'MCCY',
-    'defence': 'MINDEF',
-    'digital': 'MDDI', 'information': 'MDDI',
-    'education': 'MOE',
-    'finance': 'MOF',
-    'foreign affairs': 'MFA',
-    'health': 'MOH',
-    'home affairs': 'MHA',
-    'law': 'MINLAW',
-    'manpower': 'MOM',
-    'national development': 'MND',
-    'social': 'MSF', 'family': 'MSF',
-    'sustainability': 'MSE', 'environment': 'MSE',
-    'trade': 'MTI', 'industry': 'MTI',
-    'transport': 'MOT',
-    'speaker': 'PARL', 'parliament': 'PARL'
+    'Minister in the Prime Minister\'s Office': 'PMO',
+    'Minister for Culture, Community and Youth': 'MCCY',
+    'Minister for Defence': 'MINDEF',
+    'Minister for Digital Development and Information': 'MDDI',
+    'Minister for Education': 'MOE',
+    'Minister for Finance': 'MOF',
+    'Minister for Foreign Affairs': 'MFA',
+    'Minister for Health': 'MOH',
+    'Minister for Home Affairs': 'MHA',
+    'Minister for Law': 'MINLAW',
+    'Minister for Manpower': 'MOM',
+    'Minister for National Development': 'MND',
+    'Minister for Social and Family Development': 'MSF',
+    'Minister for Sustainability and the Environment': 'MSE',
+    'Minister for Trade and Industry': 'MTI',
+    'Minister for Transport': 'MOT',
 }
 
 def detect_ministry_from_designation(designation):
@@ -32,7 +32,23 @@ def detect_ministry_from_designation(designation):
             return acronym
     return None
 
+def detect_ministry_from_content(content_plain):
+    """Extract ministry by searching for full ministry titles in the question preamble."""
+    if not content_plain:
+        return None
+    
+    # Look in the first 500 chars (the question preamble)
+    preamble = content_plain[:500]
+    
+    # Search for each ministry designation in the content
+    for designation, acronym in DESIGNATION_TO_MINISTRY.items():
+        if designation in preamble:
+            return acronym
+    
+    return None
+
 def detect_ministry_from_speakers(speakers):
+    """Fallback: detect ministry from speaker's designation."""
     for speaker in speakers:
         designation = getattr(speaker, 'appointment', None)
         if designation and 'minister' in designation.lower():
@@ -40,6 +56,16 @@ def detect_ministry_from_speakers(speakers):
             if ministry:
                 return ministry
     return None
+
+def detect_ministry(section):
+    """Detect ministry - first from content text, then fallback to speakers."""
+    # Try content-based detection first (more accurate)
+    ministry = detect_ministry_from_content(section.get('content_plain', ''))
+    if ministry:
+        return ministry
+    
+    # Fallback to speaker designation
+    return detect_ministry_from_speakers(section.get('speakers', []))
 
 def process_hansard_by_date(date_str: str): 
     print(f'Processing Hansard for {date_str}')
@@ -124,7 +150,7 @@ def process_hansard_by_date(date_str: str):
         print(f'   [{idx+1}/{len(sections)}] {section["title"][:50]}...')
         print(f'      Speakers: {", ".join(speaker_names[:3])}{"..." if len(speaker_names) > 3 else ""}')
         
-        ministry_acronym = detect_ministry_from_speakers(speakers)
+        ministry_acronym = detect_ministry(section)
         if ministry_acronym:
             print(f'      Ministry: {ministry_acronym}')
         
