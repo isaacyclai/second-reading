@@ -37,9 +37,12 @@ export default function MembersPage() {
     return (
         <div>
             <section className="mb-8">
-                <h1 className="mb-4 text-3xl font-bold text-zinc-900 dark:text-white">
+                <h1 className="mb-2 text-3xl font-bold text-zinc-900 dark:text-white">
                     Members of Parliament
                 </h1>
+                <p className="mb-4 text-zinc-600 dark:text-zinc-400">
+                    Browse profiles of Members of Parliament. (Placeholder)
+                </p>
                 <SearchBar
                     placeholder="Search members by name..."
                     onSearch={handleSearch}

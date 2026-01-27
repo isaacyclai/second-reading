@@ -33,9 +33,14 @@ export default function MinistriesPage() {
 
     return (
         <div>
-            <h1 className="mb-8 text-3xl font-bold text-zinc-900 dark:text-white">
-                Ministries
-            </h1>
+            <header className="mb-8">
+                <h1 className="mb-2 text-3xl font-bold text-zinc-900 dark:text-white">
+                    Ministries
+                </h1>
+                <p className="text-zinc-600 dark:text-zinc-400">
+                    Browse government ministries and their work. (Placeholder)
+                </p>
+            </header>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {ministries.map((ministry) => (
                     <Link

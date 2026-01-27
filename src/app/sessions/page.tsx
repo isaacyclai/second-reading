@@ -51,9 +51,12 @@ export default function SessionsPage() {
 
     return (
         <div>
-            <h1 className="mb-6 text-3xl font-bold text-zinc-900 dark:text-white">
+            <h1 className="mb-2 text-3xl font-bold text-zinc-900 dark:text-white">
                 Parliament Sessions
             </h1>
+            <p className="mb-6 text-zinc-600 dark:text-zinc-400">
+                Browse parliamentary sessions and their readings. (Placeholder)
+            </p>
 
             {/* Date Range Filter */}
             <div className="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
