@@ -1,5 +1,3 @@
-// Types matching the current database schema
-
 export interface Session {
     id: string
     date: string
@@ -17,6 +15,8 @@ export interface Member {
     name: string
     summary?: string | null
     sectionCount?: number
+    constituency?: string | null
+    designation?: string | null
 }
 
 export interface Ministry {

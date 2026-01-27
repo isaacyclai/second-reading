@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
+import Link from 'next/link'
 import QuestionCard from '@/components/QuestionCard'
 import type { Section } from '@/types'
 
@@ -8,6 +9,8 @@ interface MemberDetail {
     id: string
     name: string
     summary: string | null
+    constituency: string | null
+    designation: string | null
     sections: Section[]
 }
 
@@ -55,12 +58,30 @@ export default function MemberDetailPage({
 
     return (
         <div>
+            <Link href="/members" className="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline dark:text-blue-400">
+                ← Back to Members
+            </Link>
+
             <section className="mb-8">
                 <h1 className="mb-2 text-3xl font-bold text-zinc-900 dark:text-white">
                     {member.name}
                 </h1>
+                {(member.designation || member.constituency) && (
+                    <div className="mb-3 flex flex-wrap items-center gap-3">
+                        {member.designation && (
+                            <span className="text-lg text-zinc-600 dark:text-zinc-400">
+                                {member.designation}
+                            </span>
+                        )}
+                        {member.constituency && (
+                            <span className="rounded bg-zinc-100 px-2 py-1 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                                {member.constituency}
+                            </span>
+                        )}
+                    </div>
+                )}
                 {member.summary && (
-                    <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                    <p className="text-zinc-600 dark:text-zinc-400">
                         {member.summary}
                     </p>
                 )}

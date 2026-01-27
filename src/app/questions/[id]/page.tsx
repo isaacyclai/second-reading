@@ -4,7 +4,6 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import type { Section, Speaker } from '@/types'
 
-// Map abbreviations to full names
 const QUESTION_TYPE_LABELS: Record<string, string> = {
     'OA': 'Oral Answer to Oral Question',
     'WA': 'Written Answer',
