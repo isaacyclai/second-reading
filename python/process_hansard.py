@@ -64,6 +64,7 @@ def process_hansard_by_date(date_str: str):
     
     # 2. Create session
     print('2. Creating session in Supabase...')
+    session_url = f"https://sprs.parl.gov.sg/search/#/fullreport?sittingdate={date_str}"
     session_result = execute_query(
         '''INSERT INTO sessions (date, sitting_no, parliament, session_no, volume_no, format, url)
            VALUES (TO_DATE(%s, 'DD-MM-YYYY'), %s, %s, %s, %s, %s, %s)
@@ -76,7 +77,7 @@ def process_hansard_by_date(date_str: str):
             metadata.get('session_no'),
             metadata.get('volume_no'),
             metadata.get('format'),
-            f"API:{date_str}"
+            session_url
         ),
         fetch=True
     )
@@ -132,8 +133,8 @@ def process_hansard_by_date(date_str: str):
         section_result = execute_query(
             '''INSERT INTO sections 
                (session_id, ministry_id, section_type, section_title, 
-                content_html, content_plain, section_order)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)
+                content_html, content_plain, section_order, source_url)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                RETURNING id''',
             (
                 session_id,
@@ -142,7 +143,8 @@ def process_hansard_by_date(date_str: str):
                 section['title'],
                 section['content_html'],
                 section['content_plain'],
-                section['order']
+                section['order'],
+                section.get('source_url')
             ),
             fetch=True
         )

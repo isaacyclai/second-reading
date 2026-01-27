@@ -137,9 +137,21 @@ export default function QuestionDetailPage({
 
                 {/* Full Content */}
                 <section>
-                    <h2 className="mb-3 text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                        Full Transcript
-                    </h2>
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                            Full Transcript
+                        </h2>
+                        {question.sourceUrl && (
+                            <a
+                                href={question.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                                View Original Hansard ↗
+                            </a>
+                        )}
+                    </div>
                     <div
                         className="transcript-content prose prose-zinc max-w-none dark:prose-invert"
                         dangerouslySetInnerHTML={{ __html: question.contentHtml }}

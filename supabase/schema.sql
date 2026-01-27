@@ -65,6 +65,7 @@ CREATE TABLE sections (
     content_html TEXT NOT NULL,
     content_plain TEXT NOT NULL,
     section_order INTEGER NOT NULL,
+    source_url TEXT, -- Link to original Hansard
     created_at TIMESTAMP DEFAULT NOW()
 );
 

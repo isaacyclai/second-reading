@@ -208,13 +208,19 @@ class ParliamentSession:
             content_display = clean_html_for_display(content_html)
             content_plain = strip_all_html(content_html)
             
+            # Construct source URL
+            # Format: https://sprs.parl.gov.sg/search/sprs3topic?reportid=<sectionId>
+            section_id = section.get('sectionId')
+            source_url = f"https://sprs.parl.gov.sg/search/sprs3topic?reportid={section_id}" if section_id else None
+            
             self.sections.append({
                 "section_type": section_type,
                 "title": title,
                 "speakers": matched_speakers,
                 "content_html": content_display,
                 "content_plain": content_plain,
-                "order": idx
+                "order": idx,
+                "source_url": source_url
             })
 
     def get_sections(self):

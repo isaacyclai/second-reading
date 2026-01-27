@@ -11,36 +11,37 @@ export async function GET(
     try {
         const result = await query(
             `SELECT 
-        s.id,
-        s.session_id as "sessionId",
-        s.section_type as "sectionType",
-        s.section_title as "sectionTitle",
-        s.content_html as "contentHtml",
-        s.content_plain as "contentPlain",
-        s.section_order as "sectionOrder",
-        m.acronym as ministry,
-        m.name as "ministryName",
-        sess.date as "sessionDate",
-        sess.sitting_no as "sittingNo",
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'memberId', mem.id,
-              'name', mem.name,
-              'constituency', ss.constituency,
-              'designation', ss.designation
-            ) ORDER BY mem.name
-          ) FILTER (WHERE mem.id IS NOT NULL),
-          '[]'
-        ) as speakers
-       FROM sections s
-       JOIN sessions sess ON s.session_id = sess.id
-       LEFT JOIN ministries m ON s.ministry_id = m.id
-       LEFT JOIN section_speakers ss ON s.id = ss.section_id
-       LEFT JOIN members mem ON ss.member_id = mem.id
-       WHERE s.id = $1
-       GROUP BY s.id, s.session_id, s.section_type, s.section_title, s.content_html,
-                s.content_plain, s.section_order, m.acronym, m.name, sess.date, sess.sitting_no`,
+              s.id,
+              s.session_id as "sessionId",
+              s.section_type as "sectionType",
+              s.section_title as "sectionTitle",
+              s.content_html as "contentHtml",
+              s.content_plain as "contentPlain",
+              s.section_order as "sectionOrder",
+              s.source_url as "sourceUrl",
+              m.acronym as ministry,
+              m.name as "ministryName",
+              sess.date as "sessionDate",
+              sess.sitting_no as "sittingNo",
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'memberId', mem.id,
+                    'name', mem.name,
+                    'constituency', ss.constituency,
+                    'designation', ss.designation
+                  ) ORDER BY mem.name
+                ) FILTER (WHERE mem.id IS NOT NULL),
+                '[]'
+              ) as speakers
+            FROM sections s
+            JOIN sessions sess ON s.session_id = sess.id
+            LEFT JOIN ministries m ON s.ministry_id = m.id
+            LEFT JOIN section_speakers ss ON s.id = ss.section_id
+            LEFT JOIN members mem ON ss.member_id = mem.id
+            WHERE s.id = $1
+            GROUP BY s.id, s.session_id, s.section_type, s.section_title, s.content_html,
+                     s.content_plain, s.section_order, s.source_url, m.acronym, m.name, sess.date, sess.sitting_no`,
             [id]
         )
 
