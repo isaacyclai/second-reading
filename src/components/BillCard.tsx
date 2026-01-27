@@ -65,7 +65,7 @@ export default function BillCard({ bill, showDate = true }: BillCardProps) {
                 </div>
 
                 {/* Title */}
-                <h3 className="mb-2 line-clamp-2 font-medium text-zinc-900 group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400">
+                <h3 className="mb-2 line-clamp-2 font-semibold text-zinc-900 group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400">
                     {bill.sectionTitle}
                 </h3>
 

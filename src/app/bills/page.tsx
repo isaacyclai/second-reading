@@ -82,7 +82,7 @@ export default function BillsPage() {
                                 </div>
 
                                 {/* Title */}
-                                <h3 className="mb-3 line-clamp-2 font-medium text-zinc-900 group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400">
+                                <h3 className="mb-3 line-clamp-2 font-semibold text-zinc-900 group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400">
                                     {bill.title}
                                 </h3>
 
