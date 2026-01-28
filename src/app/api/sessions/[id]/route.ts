@@ -103,6 +103,7 @@ export async function GET(
               s.content_plain as "contentPlain",
               s.section_order as "sectionOrder",
               s.summary,
+              s.category,
               m.acronym as ministry,
               COALESCE(
                 json_agg(
@@ -118,8 +119,8 @@ export async function GET(
             LEFT JOIN ministries m ON s.ministry_id = m.id
             LEFT JOIN section_speakers ss ON s.id = ss.section_id
             LEFT JOIN members mem ON ss.member_id = mem.id
-            WHERE s.session_id = $1 AND s.category = 'statement'
-            GROUP BY s.id, s.section_type, s.section_title, s.content_plain, s.section_order, s.summary, m.acronym
+            WHERE s.session_id = $1 AND s.category IN ('statement', 'motion', 'adjournment_motion', 'clarification')
+            GROUP BY s.id, s.section_type, s.section_title, s.content_plain, s.section_order, s.summary, s.category, m.acronym
             ORDER BY s.section_order ASC`,
       [id]
     )

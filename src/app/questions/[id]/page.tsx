@@ -9,7 +9,7 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
     'OA': 'Oral Answer to Oral Question',
     'WA': 'Written Answer',
     'WANA': 'Written Answer to Oral Question not answered by end of Question Time',
-    'OS': 'Oral Statement',
+    'OS': 'Motion',
     'BP': 'Bill',
 }
 
@@ -65,19 +65,28 @@ export default function QuestionDetailPage({
     const typeLabel = QUESTION_TYPE_LABELS[question.sectionType] || question.sectionType
     const speakers = Array.isArray(question.speakers) ? question.speakers : []
 
+    const isMotion = question.category === 'motion' || question.category === 'statement' || (!question.category && question.sectionType === 'OS')
+    const isBill = ['BP', 'BI'].includes(question.sectionType)
+
+    let badgeColorClass = "bg-blue-100 text-blue-700"
+    if (isMotion) badgeColorClass = "bg-pink-100 text-pink-700"
+    else if (isBill) badgeColorClass = "bg-purple-100 text-purple-700"
+
     return (
         <div className="mx-auto max-w-4xl">
-            <Link href="/questions" className="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
-                ← Back to Questions
+            <Link href={`/sessions/${question.sessionId}`} className="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
+                ← Back to Session
             </Link>
 
             <article className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
                 {/* Header */}
                 <header className="mb-6">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <span className="rounded bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-                            {typeLabel}
-                        </span>
+                        {!['adjournment_motion', 'clarification'].includes(question.category || '') && (
+                            <span className={`rounded px-3 py-1 text-sm font-medium ${badgeColorClass}`}>
+                                {typeLabel}
+                            </span>
+                        )}
                         {question.ministry && question.ministryId && (
                             <Link
                                 href={`/ministries/${question.ministryId}`}
@@ -85,6 +94,16 @@ export default function QuestionDetailPage({
                             >
                                 {question.ministryName || question.ministry}
                             </Link>
+                        )}
+                        {question.category === 'adjournment_motion' && (
+                            <span className="rounded bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700">
+                                Adjournment Motion
+                            </span>
+                        )}
+                        {question.category === 'clarification' && (
+                            <span className="rounded bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-700">
+                                Clarification
+                            </span>
                         )}
                         <Link
                             href={`/sessions/${question.sessionId}`}
@@ -132,7 +151,7 @@ export default function QuestionDetailPage({
                 {/* Summary */}
                 <div className="mb-6">
                     <AISummaryCard
-                        title="Question Summary"
+                        title={question.category === 'question' ? "Question Summary" : "Summary"}
                         content={question.summary}
                         fallbackMessage="Summary will be added in a future update."
                     />

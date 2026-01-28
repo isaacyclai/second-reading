@@ -220,14 +220,29 @@ class ParliamentSession:
             
             # For statements (OS, WS), filter out procedural/short content
             if section_type in STATEMENT_TYPES:
-                # Check minimum length
-                if len(content_plain) < MIN_CONTENT_LENGTH:
+                # Check minimum length (except if it's explicitly adjournment motion)
+                # Adjournment motions can be short but meaningful
+                report_type = section.get('reportType', '')
+                is_adjournment = report_type == 'Matter Raised On Adjournment Motion'
+                
+                if not is_adjournment and len(content_plain) < MIN_CONTENT_LENGTH:
                     continue
                 
                 # Check for procedural keywords in title
                 title_lower = title.lower()
-                if any(keyword in title_lower for keyword in PROCEDURAL_KEYWORDS):
-                    continue
+                extended_keywords = PROCEDURAL_KEYWORDS + [
+                    'administration of oaths',
+                    'personal explanation',
+                    'time limit',
+                    'commencement of business',
+                    'order of business',
+                    'adjournment' # careful with adjournment *motion* vs adjournment of sitting
+                ]
+                
+                # Exclude if meaningful
+                if not is_adjournment and any(keyword in title_lower for keyword in extended_keywords):
+                     # Double check it's not an adjournment motion titled "Adjournment" (unlikely given reportType check)
+                     continue
             
             # Extract and match speakers
             raw_speakers = self._extract_speakers_from_html(content_html)
@@ -245,25 +260,51 @@ class ParliamentSession:
             source_url = f"https://sprs.parl.gov.sg/search/sprs3topic?reportid={section_id}" if section_id else None
             
             # Determine category
-            if section_type in QUESTION_SECTION_TYPES:
+            report_type = section.get('reportType', '')
+            
+            if 'clarification' in title.lower():
+                category = 'clarification'
+            elif report_type == 'Matter Raised On Adjournment Motion':
+                category = 'adjournment_motion'
+            elif section_type in QUESTION_SECTION_TYPES:
                 category = 'question'
             elif section_type in BILL_TYPES:
                 category = 'bill'
             elif section_type in STATEMENT_TYPES:
-                category = 'statement'
+                category = 'motion' # Renamed from statement to motion
             else:
                 category = 'other'
             
-            self.sections.append({
-                "section_type": section_type,
-                "category": category,
-                "title": title,
-                "speakers": matched_speakers,
-                "content_html": content_display,
-                "content_plain": content_plain,
-                "order": idx,
-                "source_url": source_url
-            })
+            # MERGING LOGIC: Check if we already have a section with this title
+            existing_index = next((i for i, s in enumerate(self.sections) if s['title'] == title), None)
+            
+            if existing_index is not None:
+                # Merge into existing section
+                existing_section = self.sections[existing_index]
+                existing_section['content_html'] += "<br><hr><br>" + content_display
+                existing_section['content_plain'] += "\n\n" + content_plain
+                
+                # Merge speakers (avoid duplicates)
+                current_speaker_names = {s.name for s in existing_section['speakers']}
+                for mp in matched_speakers:
+                    if mp.name not in current_speaker_names:
+                        existing_section['speakers'].append(mp)
+                        current_speaker_names.add(mp.name)
+                        
+                # Keep the original order/id/url (or update if needed, but keeping separate is complex)
+                # We assume the first occurrence is the main one.
+            else:
+                # Add new section
+                self.sections.append({
+                    "section_type": section_type,
+                    "category": category,
+                    "title": title,
+                    "speakers": matched_speakers,
+                    "content_html": content_display,
+                    "content_plain": content_plain,
+                    "order": idx,
+                    "source_url": source_url
+                })
 
 
     def get_sections(self):

@@ -53,7 +53,13 @@ export default function MinistryDetailPage({
 
     // Use ministry data directly as it's now filtered on the server
     const filteredBills = ministry?.bills || []
-    const filteredQuestions = ministry?.questions || []
+    const allQuestions = ministry?.questions || []
+
+    const motions = allQuestions.filter(q =>
+        ['motion', 'statement', 'adjournment_motion', 'clarification'].includes(q.category || '') ||
+        (!q.category && q.sectionType === 'OS')
+    )
+    const questions = allQuestions.filter(q => !motions.includes(q))
 
     if (loading) {
         return (
@@ -128,17 +134,32 @@ export default function MinistryDetailPage({
             )}
 
             {/* Questions Section */}
+            {/* Motions Section */}
+            {motions.length > 0 && (
+                <section className="mb-8">
+                    <h2 className="mb-4 text-xl font-semibold text-zinc-900">
+                        Motions ({motions.length})
+                    </h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {motions.map((motion) => (
+                            <QuestionCard key={motion.id} question={motion} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Questions Section */}
             <section>
                 <h2 className="mb-4 text-xl font-semibold text-zinc-900">
-                    Related Questions ({filteredQuestions.length || 0})
+                    Related Questions ({questions.length || 0})
                 </h2>
-                {filteredQuestions.length === 0 ? (
+                {questions.length === 0 ? (
                     <p className="py-8 text-center text-zinc-500">
                         {searchQuery ? 'No results found matching your search' : 'No questions found for this ministry'}
                     </p>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
-                        {filteredQuestions.map((question) => (
+                        {questions.map((question) => (
                             <QuestionCard key={question.id} question={question} />
                         ))}
                     </div>

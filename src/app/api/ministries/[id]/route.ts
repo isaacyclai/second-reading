@@ -29,6 +29,7 @@ export async function GET(
         s.section_type as "sectionType",
         s.section_title as "sectionTitle",
         s.content_plain as "contentPlain",
+        s.category,
         sess.date as "sessionDate",
         ARRAY_AGG(DISTINCT mem.name ORDER BY mem.name) as speakers
        FROM sections s
@@ -49,7 +50,7 @@ export async function GET(
             qParamCount += 2
         }
 
-        questionsSql += ` GROUP BY s.id, s.section_type, s.section_title, s.content_plain, sess.date, s.section_order
+        questionsSql += ` GROUP BY s.id, s.section_type, s.section_title, s.content_plain, s.category, sess.date, s.section_order
        ORDER BY sess.date DESC, s.section_order ASC
        LIMIT 100`
 

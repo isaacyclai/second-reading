@@ -79,7 +79,7 @@ export default function BillsPage() {
                                     {/* Header */}
                                     <div className="mb-2 flex flex-wrap items-center gap-2">
                                         {bill.ministry && (
-                                            <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                                            <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                                                 {bill.ministry}
                                             </span>
                                         )}

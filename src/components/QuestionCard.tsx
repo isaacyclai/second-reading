@@ -6,7 +6,7 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
     'OA': 'Oral Answer to Oral Question',
     'WA': 'Written Answer',
     'WANA': 'Written Answer to Oral Question not answered by end of Question Time',
-    'OS': 'Oral Statement',
+    'OS': 'Motion',
     'BP': 'Bill',
 }
 
@@ -32,18 +32,48 @@ export default function QuestionCard({
 
     const typeLabel = QUESTION_TYPE_LABELS[question.sectionType] || question.sectionType
 
+    const isMotion = question.category === 'motion' || question.category === 'statement' || (!question.category && question.sectionType === 'OS')
+    const isBill = ['BP', 'BI'].includes(question.sectionType)
+
+    let badgeColorClass = "bg-blue-100 text-blue-700"
+    let hoverBorderClass = "hover:border-blue-300"
+
+    if (isMotion) {
+        badgeColorClass = "bg-pink-100 text-pink-700"
+        hoverBorderClass = "hover:border-pink-300"
+    }
+    else if (isBill) {
+        badgeColorClass = "bg-purple-100 text-purple-700"
+        hoverBorderClass = "hover:border-purple-300"
+    }
+
+    if (question.category === 'adjournment_motion') hoverBorderClass = "hover:border-orange-300"
+    else if (question.category === 'clarification') hoverBorderClass = "hover:border-yellow-300"
+
     return (
         <Link
             href={`/questions/${question.id}`}
-            className="block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
+            className={`block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all ${hoverBorderClass} hover:shadow-md`}
         >
             <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                    {typeLabel}
-                </span>
+                {!['adjournment_motion', 'clarification'].includes(question.category || '') && (
+                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${badgeColorClass}`}>
+                        {typeLabel}
+                    </span>
+                )}
                 {question.ministry && (
                     <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                         {question.ministry}
+                    </span>
+                )}
+                {question.category === 'adjournment_motion' && (
+                    <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                        Adjournment Motion
+                    </span>
+                )}
+                {question.category === 'clarification' && (
+                    <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
+                        Clarification
                     </span>
                 )}
                 {showDate && question.sessionDate && (

@@ -73,6 +73,7 @@ export async function GET(
               s.section_type as "sectionType",
               s.section_title as "sectionTitle",
               s.content_plain as "contentPlain",
+              s.category,
               m.acronym as ministry,
               sess.date as "sessionDate",
               ss.designation,

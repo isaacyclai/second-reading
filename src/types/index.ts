@@ -48,6 +48,7 @@ export interface Section {
     speakers: Speaker[] | string[]
     sourceUrl?: string | null
     summary?: string | null
+    category?: string | null
 }
 
 export interface FilterState {

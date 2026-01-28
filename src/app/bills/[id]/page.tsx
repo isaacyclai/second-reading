@@ -90,10 +90,18 @@ export default function BillDetailPage({
         speaker && index === self.findIndex(s => s && s.memberId === speaker.memberId)
     )
 
+    // Group unique second reading timelines
+    const secondReadingTimelines = bill.secondReadings.reduce((acc, curr) => {
+        if (!acc.find(item => item.sessionDate === curr.sessionDate)) {
+            acc.push({ sessionDate: curr.sessionDate, sessionId: curr.sessionId });
+        }
+        return acc;
+    }, [] as { sessionDate: string, sessionId: string }[]);
+
     return (
         <div className="mx-auto max-w-4xl">
-            <Link href="/bills" className="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
-                ← Back to Bills
+            <Link href={`/sessions/${bill.firstReadingSessionId || bill.sections[0]?.sessionId}`} className="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
+                ← Back to Session
             </Link>
 
             <article className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
@@ -103,7 +111,7 @@ export default function BillDetailPage({
                         {bill.ministry && (
                             <Link
                                 href={`/ministries/${bill.ministryId}`}
-                                className="rounded bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200"
+                                className="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 transition-colors hover:bg-green-200"
                             >
                                 {bill.ministry}
                             </Link>
@@ -147,19 +155,22 @@ export default function BillDetailPage({
                                 </Link>
                             </div>
                         )}
-                        {bill.secondReadingDates && bill.secondReadingDates.map((date, idx) => (
+                        {secondReadingTimelines.map((session, idx) => (
                             <div key={idx} className="flex items-center gap-3">
                                 <span className="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700">
-                                    Second Reading{bill.secondReadingDates.length > 1 ? ` (${idx + 1})` : ''}
+                                    Second Reading{secondReadingTimelines.length > 1 ? ` (${idx + 1})` : ''}
                                 </span>
-                                <span className="text-sm text-zinc-700">
-                                    {new Date(date).toLocaleDateString('en-SG', {
+                                <Link
+                                    href={`/sessions/${session.sessionId}`}
+                                    className="text-sm text-zinc-700 hover:text-purple-600 hover:underline"
+                                >
+                                    {new Date(session.sessionDate).toLocaleDateString('en-SG', {
                                         weekday: 'long',
                                         year: 'numeric',
                                         month: 'long',
                                         day: 'numeric',
                                     })}
-                                </span>
+                                </Link>
                             </div>
                         ))}
                     </div>

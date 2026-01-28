@@ -57,7 +57,13 @@ export default function MemberDetailPage({
 
     // Use member data directly as it's now filtered on the server
     const filteredBills = member?.bills || []
-    const filteredQuestions = member?.questions || []
+    const allQuestions = member?.questions || []
+
+    const motions = allQuestions.filter(q =>
+        ['motion', 'statement', 'adjournment_motion', 'clarification'].includes(q.category || '') ||
+        (!q.category && q.sectionType === 'OS')
+    )
+    const questions = allQuestions.filter(q => !motions.includes(q))
 
     if (loading) {
         return (
@@ -132,7 +138,7 @@ export default function MemberDetailPage({
                                             Bill
                                         </span>
                                         {bill.ministry && (
-                                            <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                                            <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                                                 {bill.ministry}
                                             </span>
                                         )}
@@ -155,17 +161,32 @@ export default function MemberDetailPage({
             )}
 
             {/* Questions Section */}
+            {/* Motions Section */}
+            {motions.length > 0 && (
+                <section className="mb-8">
+                    <h2 className="mb-4 text-xl font-semibold text-zinc-900">
+                        Motions ({motions.length})
+                    </h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {motions.map((motion) => (
+                            <QuestionCard key={motion.id} question={motion} showSpeakers={false} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Questions Section */}
             <section>
                 <h2 className="mb-4 text-xl font-semibold text-zinc-900">
-                    Parliamentary Questions ({filteredQuestions.length || 0})
+                    Parliamentary Questions ({questions.length || 0})
                 </h2>
-                {filteredQuestions.length === 0 ? (
+                {questions.length === 0 ? (
                     <p className="py-8 text-center text-zinc-500">
                         {searchQuery ? 'No results found matching your search' : 'No recorded questions'}
                     </p>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
-                        {filteredQuestions.map((question) => (
+                        {questions.map((question) => (
                             <QuestionCard key={question.id} question={question} showSpeakers={false} />
                         ))}
                     </div>
