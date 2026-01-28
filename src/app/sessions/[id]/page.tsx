@@ -222,6 +222,7 @@ export default function SessionDetailPage({
                 <SearchBar
                     placeholder="Search bills and questions..."
                     onSearch={setSearchQuery}
+                    defaultValue={searchQuery}
                 />
             </div>
 

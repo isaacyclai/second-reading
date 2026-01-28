@@ -120,6 +120,7 @@ export default function MemberDetailPage({
                 <SearchBar
                     placeholder="Search bills and questions..."
                     onSearch={setSearchQuery}
+                    defaultValue={searchQuery}
                 />
             </div>
 

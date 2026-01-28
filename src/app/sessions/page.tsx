@@ -87,7 +87,10 @@ export default async function SessionsPage({
                 Browse parliamentary sessions and their readings.
             </p>
 
-            <SessionFilters initialStartDate={startDate} initialEndDate={endDate} />
+            <SessionFilters
+                initialStartDate={startDate}
+                initialEndDate={endDate}
+            />
 
             <div className="grid gap-4">
                 {sessions.length === 0 ? (
