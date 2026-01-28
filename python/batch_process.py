@@ -14,6 +14,8 @@ from db_async import (
     add_section_speaker, add_session_attendance, find_or_create_bill,
     refresh_member_list_view, get_pool, close_pool
 )
+from parliament_session import QUESTION_SECTION_TYPES, BILL_TYPES, STATEMENT_TYPES
+from process_hansard import detect_ministry
 
 # Load environment variables
 load_dotenv()
@@ -145,9 +147,6 @@ async def process_attendance(session_id, mp, present):
         )
 
 async def process_section(session_id, idx, section, date_str):
-    from parliament_session import QUESTION_SECTION_TYPES, BILL_TYPES, STATEMENT_TYPES
-    from process_hansard import detect_ministry
-    
     # Detect ministry
     ministry_acronym = detect_ministry(section)
     ministry_id = await find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
@@ -245,6 +244,8 @@ async def generate_single_section_summary(section):
     
     Write a concise 1-paragraph summary of the key points discussed, questions asked, and answers given. 
     Focus on facts and policy details. Avoid "The member asked..." and just state the question/issue directly.
+
+    DO NOT include any information that is not included in the text.
     """
     
     summary = await generate_summary(
@@ -287,6 +288,8 @@ async def generate_session_summary(session_id):
     
     Write a structured summary highlighting the key bills passed, major questions answered, and significant speeches.
     Use nested bullet points.
+
+    DO NOT include any information that is not included in the text.
     """
     
     summary = await generate_summary(context, prompt)
@@ -327,6 +330,8 @@ async def generate_bill_summaries():
         1. The Bill's purpose
         2. Key concerns raised by MPs
         3. The Minister's response/justifications
+
+        DO NOT include any information that is not included in the text.
         """
         
         summary = await generate_summary(
@@ -385,6 +390,7 @@ async def generate_member_summaries():
             Identify the main topics and concerns raised by this member.
             Format the output as a concise bulleted list (3-5 points).
             Start each point with a bolded topic (e.g. **Topic**: Details).
+            DO NOT include any information that is not included in the text.
             """
             
             summary = await generate_summary(context, prompt, model='gemini-2.5-flash-lite')
@@ -470,14 +476,24 @@ async def batch_process(start_date_str, end_date_str, skip_summaries=False, summ
     await close_pool()
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: python batch_process.py START_DATE END_DATE [--skip-summaries | --summaries-only]")
-        print("Example: python batch_process.py 01-10-2024 31-01-2025")
+    if len(sys.argv) < 2:
+        print("Usage: python batch_process.py START_DATE [END_DATE] [--skip-summaries | --summaries-only]")
+        print("Example: python batch_process.py 01-10-2024")
         sys.exit(1)
         
-    start = sys.argv[1]
-    end = sys.argv[2]
-    skip_sum = '--skip-summaries' in sys.argv
-    sum_only = '--summaries-only' in sys.argv
+    # Separate dates and flags
+    args = sys.argv[1:]
+    dates = [arg for arg in args if not arg.startswith('--')]
+    flags = [arg for arg in args if arg.startswith('--')]
+    
+    if not dates:
+        print("Error: Start date required")
+        sys.exit(1)
+        
+    start = dates[0]
+    end = dates[1] if len(dates) > 1 else start
+    
+    skip_sum = '--skip-summaries' in flags
+    sum_only = '--summaries-only' in flags
     
     asyncio.run(batch_process(start, end, skip_sum, sum_only))
