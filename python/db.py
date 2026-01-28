@@ -103,13 +103,33 @@ def find_or_create_bill(title, ministry_id=None, first_reading_date=None, first_
     )
     return result[0]['id']
 
+def refresh_member_list_view():
+    """Refresh the materialized view for member list data.
+    
+    Call this after ingesting new hansard data to update the pre-computed
+    member information (constituency, designation, section counts).
+    Uses CONCURRENTLY to avoid locking reads during refresh.
+    """
+    print('Refreshing member_list_view...')
+    execute_query('REFRESH MATERIALIZED VIEW CONCURRENTLY member_list_view')
+    print('Done!')
+
 if __name__ == '__main__':
-    try:
-        result = execute_query('SELECT NOW()', fetch=True)
-        print('Connected to Supabase')
-        print(f'Current time: {result[0]["now"]}')
-        
-        moh = find_ministry_by_acronym('MOH')
-        print(f'MOH ministry id: {moh}')
-    except Exception as e:
-        print(f'Connection failed: {e}')
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == 'refresh':
+        # Refresh materialized views
+        refresh_member_list_view()
+    else:
+        # Default: test database connection
+        try:
+            result = execute_query('SELECT NOW()', fetch=True)
+            print('Connected to Supabase')
+            print(f'Current time: {result[0]["now"]}')
+            
+            moh = find_ministry_by_acronym('MOH')
+            print(f'MOH ministry id: {moh}')
+            
+            print('\nUsage: python db.py refresh  (to refresh materialized views)')
+        except Exception as e:
+            print(f'Connection failed: {e}')

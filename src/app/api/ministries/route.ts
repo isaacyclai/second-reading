@@ -15,7 +15,11 @@ export async function GET() {
       GROUP BY m.id, m.name, m.acronym
       ORDER BY m.name ASC
     `)
-        return NextResponse.json(result.rows)
+        return NextResponse.json(result.rows, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400'
+            }
+        })
     } catch (error) {
         console.error('Database error:', error)
         return NextResponse.json(

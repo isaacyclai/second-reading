@@ -99,6 +99,10 @@ export async function GET(
       questions: questionsResult.rows,
       bills: billsResult.rows,
       attendees: attendanceResult.rows
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+      }
     })
   } catch (error) {
     console.error('Database error:', error)

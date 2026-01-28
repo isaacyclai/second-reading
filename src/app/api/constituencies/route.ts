@@ -14,7 +14,11 @@ export async function GET() {
     `
         const result = await query(sql)
         const constituencies = result.rows.map(row => row.constituency)
-        return NextResponse.json(constituencies)
+        return NextResponse.json(constituencies, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400'
+            }
+        })
     } catch (error) {
         console.error('Database error:', error)
         return NextResponse.json(

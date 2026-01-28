@@ -1,7 +1,7 @@
 import re
 import sys
 
-from db import execute_query, find_or_create_member, find_ministry_by_acronym, add_section_speaker, add_session_attendance, find_or_create_bill
+from db import execute_query, find_or_create_member, find_ministry_by_acronym, add_section_speaker, add_session_attendance, find_or_create_bill, refresh_member_list_view
 from hansard_api import HansardAPI
 
 DESIGNATION_TO_MINISTRY = {
@@ -207,6 +207,9 @@ def process_hansard_by_date(date_str: str):
         processed += 1
     
     print(f'Complete! Processed {processed} sections')
+    
+    # Refresh materialized view for fast member list queries
+    refresh_member_list_view()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
