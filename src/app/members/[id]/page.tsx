@@ -124,6 +124,20 @@ export default function MemberDetailPage({
                 />
             </div>
 
+            {/* Motions Section */}
+            {motions.length > 0 && (
+                <section className="mb-8">
+                    <h2 className="mb-4 text-xl font-semibold text-zinc-900">
+                        Motions ({motions.length})
+                    </h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {motions.map((motion) => (
+                            <QuestionCard key={motion.id} question={motion} showSpeakers={false} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {/* Bills Section */}
             {filteredBills.length > 0 && (
                 <section className="mb-8">
@@ -161,20 +175,6 @@ export default function MemberDetailPage({
                 </section>
             )}
 
-            {/* Questions Section */}
-            {/* Motions Section */}
-            {motions.length > 0 && (
-                <section className="mb-8">
-                    <h2 className="mb-4 text-xl font-semibold text-zinc-900">
-                        Motions ({motions.length})
-                    </h2>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {motions.map((motion) => (
-                            <QuestionCard key={motion.id} question={motion} showSpeakers={false} />
-                        ))}
-                    </div>
-                </section>
-            )}
 
             {/* Questions Section */}
             <section>

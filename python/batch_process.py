@@ -281,7 +281,7 @@ async def generate_section_summaries_for_session(session_id):
     sections = await execute(
         '''SELECT id, section_title, content_plain, category, section_type 
            FROM sections 
-           WHERE session_id = $1 AND summary IS NULL AND length(content_plain) > 500''',
+           WHERE session_id = $1 AND summary IS NULL AND length(content_plain) > 20''',
         session_id,
         fetch=True
     )
@@ -321,7 +321,7 @@ async def generate_question_summary(section):
     """
     
     summary = await generate_summary(
-        section['content_plain'][:15000], 
+        section['content_plain'][:20000], 
         prompt.replace('{title}', section['section_title'])
     )
     
@@ -342,7 +342,7 @@ async def generate_section_summary(section):
     """
     
     summary = await generate_summary(
-        section['content_plain'][:15000], 
+        section['content_plain'][:20000], 
         prompt.replace('{title}', section['section_title'])
     )
     
@@ -350,11 +350,20 @@ async def generate_section_summary(section):
         await execute('UPDATE sections SET summary = $1 WHERE id = $2', summary, section['id'])
 
 
-async def generate_bill_summaries():
+async def generate_bill_summaries_for_session(session_id):
     bills = await execute(
-        'SELECT id, title FROM bills WHERE summary IS NULL',
+        '''SELECT DISTINCT b.id, b.title 
+           FROM bills b
+           JOIN sections s ON b.id = s.bill_id
+           WHERE s.session_id = $1''',
+        session_id,
         fetch=True
     )
+    
+    if not bills:
+        return
+        
+    logger.info(f"Generating summaries for {len(bills)} bills in session {session_id}")
     
     for bill in bills:
         # Get all readings/debates for this bill
@@ -371,24 +380,35 @@ async def generate_bill_summaries():
             
         full_text = "\n\n".join([s['content_plain'] for s in sections])
         
+        # Skip if text is too short
+        if len(full_text) < 500:
+            continue
+        
         prompt = """You are summarizing a debate on a bill from the Singapore Parliament hansard.
         Title: {title}
         
         Content:
         {text}
         
-        Write a concise 1-paragraph summary of the key points discussed in this section. Do not just reproduce what
-        the questions and answers are. 
+        Write a concise summary of the key points discussed in this section. Do not just reproduce what the questions and answers are. 
         
-        Your summary should have three sections. Firstly, state the bill's purpose. Secondly, list the key concerns raised by MPs. 
-        Thirdly, list the Minister's response/justifications. Each section should be no longer than a few lines. The sections
-        should be delineated using markdown headers.
+        Return strictly 3 bullet points in the following Markdown format:
+        
+        - **Purpose**: Brief description of the bill's purpose.
+        
+        - **Key Concerns raised by MPs**: Brief description of the key concerns raised by MPs.
+        
+        - **Minister's Responses**: Brief description of the Minister's responses and justifications.
 
-        DO NOT include any information that is not included in the text, such as any comments or descriptions of instructions from this prompt.
+        Rules:
+        1. Always use bold for the title of each point.
+        2. Ensure there is a blank line between each bullet point.
+        3. Do not include any intro or outro text.
+        4. DO NOT include any information that is not included in the text, such as any comments or descriptions of instructions from this prompt.
         """
         
         summary = await generate_summary(
-            full_text,
+            full_text[:100000], # Limit context window just in case
             prompt.replace('{title}', bill['title'])
         )
         
@@ -435,10 +455,21 @@ async def generate_member_summaries():
         Recent Activity (Last 20 items):
         {{text}}
         
-        Identify the 3 topics most representative of their involvement in parliament, and write these out in 3 bullet points. For each topic, write a brief description
-        a no more than a few lines long that covers what they have asked..
-
-        DO NOT include any information that is not included in the text, such as any comments or descriptions of instructions from this prompt.
+        Identify the 3 general topics most representative of their involvement. Return strictly 3 bullet points in the following Markdown format:
+        
+        - **Topic Title**: Brief description of the questions raised without mentioning the member's name or role.
+        
+        - **Another Topic**: Another description...
+        
+        - **Final Topic**: Final description...
+        
+        Rules:
+        1. Always use bold for the topic title.
+        2. Ensure there is a blank line between each bullet point.
+        3. Do NOT mention the member's name, "the MP", "the member", or their designation in the descriptions. Focus ONLY on the issues.
+        4. Group related questions under general topics (e.g., "Public Transport" instead of specific bus routes).
+        5. Do not include any intro or outro text.
+        6. DO NOT include any information that is not included in the text, such as any comments or descriptions of instructions from this prompt.
         """
         
         summary = await generate_summary(context, prompt, model='llama-3.1-8b-instant')
@@ -454,11 +485,17 @@ async def generate_member_summaries():
     for m in members:
         tasks.append(process_member(m))
         
-    await asyncio.gather(*tasks)
+        # Batch concurrent requests
+        if len(tasks) >= 5:
+            await asyncio.gather(*tasks)
+            tasks = []
+            
+    if tasks:
+        await asyncio.gather(*tasks)
     logger.info("Member summaries complete")
 
 
-async def batch_process(start_date_str, end_date_str, no_summaries=False, only_summaries=False, only_blank_summaries=False):
+async def batch_process(start_date_str, end_date_str, no_summaries=False, only_summaries=False, only_blank_summaries=False, summarize_members=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y')
     end_date = datetime.strptime(end_date_str, '%d-%m-%Y')
     
@@ -473,7 +510,7 @@ async def batch_process(start_date_str, end_date_str, no_summaries=False, only_s
     ingested_session_ids = []
     
     # 1. Ingest Data (Parallel chunks)
-    if not (only_summaries or only_blank_summaries):
+    if not (only_summaries or only_blank_summaries or summarize_members):
         # Process in chunks to be polite to the Hansard API
         chunk_size = 5
         for i in range(0, len(dates), chunk_size):
@@ -495,41 +532,46 @@ async def batch_process(start_date_str, end_date_str, no_summaries=False, only_s
         # If summaries_only is True, we need to fetch relevant session IDs
         session_ids_to_process = ingested_session_ids
         
-        if only_summaries:
-            # Fetch sessions in date range
-            rows = await execute(
-            'SELECT id FROM sessions WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
-            start_date_str, end_date_str,
+        if not summarize_members:
+            if only_summaries:
+                # Fetch sessions in date range
+                rows = await execute(
+                'SELECT id FROM sessions WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
+                start_date_str, end_date_str,
             fetch=True
             )
-        elif only_blank_summaries:
-            rows = await execute(
-            'SELECT sessions.id FROM sessions JOIN sections ON sessions.id = sections.session_id \
-            WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\') AND sections.summary IS NULL',
-            start_date_str, end_date_str,
-            fetch=True
-            )
-        session_ids_to_process = [r['id'] for r in rows]
-             
-        logger.info(f"Generating summaries for {len(session_ids_to_process)} sessions...")
-        
-        # A. Section Summaries (Parallel)
-        for sid in session_ids_to_process:
-            await generate_section_summaries_for_session(sid)
+            elif only_blank_summaries:
+                rows = await execute(
+                    '''
+                    SELECT DISTINCT s.id 
+                    FROM sessions s
+                    JOIN sections sec ON s.id = sec.session_id
+                    WHERE s.date >= TO_DATE($1, 'DD-MM-YYYY') 
+                    AND s.date <= TO_DATE($2, 'DD-MM-YYYY')
+                    AND (sec.summary IS NULL)
+                    ''',
+                    start_date_str, end_date_str,
+                    fetch=True
+                )
+            session_ids_to_process = [r['id'] for r in rows]
+                
+            logger.info(f"Generating summaries for {len(session_ids_to_process)} sessions...")
             
-            
-        # C. Bill Summaries
-        await generate_bill_summaries()
+            # A. Section & Bill Summaries
+            for sid in session_ids_to_process:
+                await generate_section_summaries_for_session(sid)
+                await generate_bill_summaries_for_session(sid)
         
         # D. Member Summaries
-        await generate_member_summaries()
+        else:
+            await generate_member_summaries()
 
     logger.info("Batch processing complete!")
     await close_pool()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python batch_process.py START_DATE [END_DATE] [--no-summaries | --only-summaries | --only-blank-summaries]")
+        print("Usage: python batch_process.py START_DATE [END_DATE] [--no-summaries | --only-summaries | --only-blank-summaries | --summarize-members]")
         print("Example: python batch_process.py 01-10-2024")
         sys.exit(1)
         
@@ -548,5 +590,6 @@ if __name__ == '__main__':
     skip_sum = '--no-summaries' in flags
     sum_only = '--only-summaries' in flags
     blank_sum = '--only-blank-summaries' in flags
+    do_members = '--summarize-members' in flags
     
-    asyncio.run(batch_process(start, end, skip_sum, sum_only, blank_sum))
+    asyncio.run(batch_process(start, end, skip_sum, sum_only, blank_sum, do_members))

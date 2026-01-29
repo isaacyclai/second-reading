@@ -42,8 +42,18 @@ export default function AISummaryCard({
                     <span className="text-xs font-medium text-blue-600">AI Generated</span>
                 </div>
             </div>
-            <div className="prose prose-sm prose-blue max-w-none text-zinc-700">
-                <ReactMarkdown>{content}</ReactMarkdown>
+            <div className="text-zinc-700">
+                <ReactMarkdown
+                    components={{
+                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-2 mb-4" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 space-y-2 mb-4" {...props} />,
+                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                        p: ({ node, ...props }) => <p className="mb-2 leading-relaxed" {...props} />,
+                        strong: ({ node, ...props }) => <strong className="font-semibold text-zinc-900" {...props} />,
+                    }}
+                >
+                    {content}
+                </ReactMarkdown>
             </div>
         </section>
     )

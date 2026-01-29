@@ -29,11 +29,6 @@ export default function MemberCard({ member }: MemberCardProps) {
                     )}
                 </div>
             )}
-            {member.summary && (
-                <p className="mt-2 line-clamp-2 text-sm text-zinc-600">
-                    {member.summary}
-                </p>
-            )}
         </Link>
     )
 }
