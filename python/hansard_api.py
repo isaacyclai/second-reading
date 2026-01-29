@@ -1,6 +1,5 @@
 import requests
-from datetime import datetime
-from typing import List, Dict, Optional, Set
+from typing import Dict, Optional
 from bs4 import BeautifulSoup
 from parliament_session import ParliamentSession
 
@@ -29,93 +28,15 @@ class HansardAPI:
                 # New format
                 parliament_session.set_attendance(data['attendanceList'])
                 parliament_session.set_sections(data['takesSectionVOList'])
-            elif data.get('htmlFullContent'):
-                # Old format
-                return None
+            
             
             return parliament_session
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {date_str}: {e}")
             return None
     
-    def extract_metadata_from_html(self, html: str) -> Dict:
-        # Extract metadata from old format HTML
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        metadata = {
-            'date': None,
-            'sitting_no': None,
-            'parliament': None,
-            'session_no': None,
-            'volume_no': None
-        }
-        
-        # Method 1: Look for meta tags
-        parl_no = soup.find('meta', {'name': 'Parl_No'})
-        sess_no = soup.find('meta', {'name': 'Sess_No'})
-        vol_no = soup.find('meta', {'name': 'Vol_No'})
-        sit_no = soup.find('meta', {'name': 'Sit_No'})
-        sit_date = soup.find('meta', {'name': 'Sit_Date'})
-        
-        if parl_no:
-            metadata['parliament'] = int(parl_no.get('content'))
-        if sess_no:
-            metadata['session_no'] = int(sess_no.get('content'))
-        if vol_no:
-            metadata['volume_no'] = int(vol_no.get('content'))
-        if sit_no:
-            metadata['sitting_no'] = int(sit_no.get('content'))
-        if sit_date:
-            # Format is YYYY-MM-DD, convert to DD-MM-YYYY
-            date_str = sit_date.get('content')
-            try:
-                dt = datetime.strptime(date_str, '%Y-%m-%d')
-                metadata['date'] = dt.strftime('%d-%m-%Y')
-            except:
-                pass
-        
-        # Method 2: Look in table (backup method)
-        if not metadata['parliament']:
-            for row in soup.find_all('tr'):
-                cells = row.find_all('td')
-                if len(cells) == 2:
-                    label = cells[0].get_text(strip=True)
-                    value = cells[1].get_text(strip=True)
-                    
-                    if 'Parliament No' in label:
-                        try:
-                            metadata['parliament'] = int(value)
-                        except:
-                            pass
-                    elif 'Session No' in label:
-                        try:
-                            metadata['session_no'] = int(value)
-                        except:
-                            pass
-                    elif 'Volume No' in label:
-                        try:
-                            metadata['volume_no'] = int(value)
-                        except:
-                            pass
-                    elif 'Sitting No' in label:
-                        try:
-                            metadata['sitting_no'] = int(value)
-                        except:
-                            pass
-                    elif 'Sitting Date' in label:
-                        # Format is DD-MM-YYYY
-                        metadata['date'] = value
-        
-        return metadata
-    
     def get_session_metadata(self, raw_data: Dict) -> Dict:
-        # Detect format
         if 'takesSectionVOList' in raw_data and raw_data['takesSectionVOList']:
-            format_type = 'new'
-        else:
-            format_type = 'old'
-        
-        if format_type == 'new':
             metadata = raw_data.get('metadata', {})
             return {
                 'date': metadata.get('sittingDate'),
@@ -125,18 +46,8 @@ class HansardAPI:
                 'volume_no': metadata.get('volumeNO'),
                 'format': 'new'
             }
-        else:  # old format
-            html = raw_data.get('htmlFullContent', '')
-            html_metadata = self.extract_metadata_from_html(html)
-            
-            return {
-                'date': html_metadata.get('date'),
-                'sitting_no': html_metadata.get('sitting_no'),
-                'parliament': html_metadata.get('parliament'),
-                'session_no': html_metadata.get('session_no'),
-                'volume_no': html_metadata.get('volume_no'),
-                'format': 'old'
-            }
+        else:
+            raise ValueError("Unknown format")
     
 
 

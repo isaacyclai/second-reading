@@ -1,8 +1,7 @@
 import re
 
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 SALUTATIONS = [
     "Assoc Prof Dr",

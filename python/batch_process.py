@@ -4,19 +4,16 @@ import os
 import sys
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
 from hansard_api import HansardAPI
-from parliament_session import ParliamentSession
 from db_async import (
     execute, fetchone, find_or_create_member, find_ministry_by_acronym,
     add_section_speaker, add_session_attendance, find_or_create_bill,
-    refresh_member_list_view, get_pool, close_pool
+    refresh_member_list_view, close_pool
 )
-from parliament_session import QUESTION_SECTION_TYPES, BILL_TYPES, STATEMENT_TYPES
-from process_hansard import detect_ministry
+from parliament_session import BILL_TYPES
 
 # Load environment variables
 load_dotenv()
@@ -36,18 +33,76 @@ DB_SEMAPHORE = asyncio.Semaphore(10) # Limit concurrent DB operations
 AI_SEMAPHORE = asyncio.Semaphore(1)  # Sequential AI requests for rate limiting
 AI_COOLDOWN = 2.5                    # Delay in seconds to achieve ~24-30 RPM and respect TPM
 
-async def get_ai_client():
-    return AsyncOpenAI(
-        base_url="https://api.groq.com/openai/v1",
-        api_key=GROQ_API_KEY,
-    )
+DESIGNATION_TO_MINISTRY = {
+    'Minister in the Prime Minister\'s Office': 'PMO',
+    'Minister for Culture, Community and Youth': 'MCCY',
+    'Minister for Defence': 'MINDEF',
+    'Minister for Digital Development and Information': 'MDDI',
+    'Minister for Education': 'MOE',
+    'Minister for Finance': 'MOF',
+    'Minister for Foreign Affairs': 'MFA',
+    'Minister for Health': 'MOH',
+    'Minister for Home Affairs': 'MHA',
+    'Minister for Law': 'MINLAW',
+    'Minister for Manpower': 'MOM',
+    'Minister for National Development': 'MND',
+    'Minister for Social and Family Development': 'MSF',
+    'Minister for Sustainability and the Environment': 'MSE',
+    'Minister for Trade and Industry': 'MTI',
+    'Minister for Transport': 'MOT',
+}
+
+def detect_ministry_from_designation(designation):
+    if not designation:
+        return None
+    designation_lower = designation.lower()
+    for keyword, acronym in DESIGNATION_TO_MINISTRY.items():
+        if keyword in designation_lower:
+            return acronym
+    return None
+
+def detect_ministry_from_content(content_plain):
+    if not content_plain:
+        return None
+    
+    # Look in the first 500 chars (the question preamble)
+    preamble = content_plain[:500]
+    
+    # Search for each ministry designation in the content
+    for designation, acronym in DESIGNATION_TO_MINISTRY.items():
+        if designation in preamble:
+            return acronym
+    
+    return None
+
+def detect_ministry_from_speakers(speakers):
+    for speaker in speakers:
+        designation = getattr(speaker, 'appointment', None)
+        if designation and 'minister' in designation.lower():
+            ministry = detect_ministry_from_designation(designation)
+            if ministry:
+                return ministry
+    return None
+
+def detect_ministry(section):
+    # Try content-based detection first (more accurate)
+    ministry = detect_ministry_from_content(section.get('content_plain', ''))
+    if ministry:
+        return ministry
+    
+    # Fallback to speaker designation
+    return detect_ministry_from_speakers(section.get('speakers', []))
+
 
 async def generate_summary(text: str, prompt_template: str, model='llama-3.1-8b-instant') -> str:
     if not text:
         return None
         
     async with AI_SEMAPHORE:
-        client = await get_ai_client()
+        client = AsyncOpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=GROQ_API_KEY,
+        )
         try:
             response = await client.chat.completions.create(
                 model=model,
@@ -403,7 +458,7 @@ async def generate_member_summaries():
     logger.info("Member summaries complete")
 
 
-async def batch_process(start_date_str, end_date_str, skip_summaries=False, summaries_only=False):
+async def batch_process(start_date_str, end_date_str, no_summaries=False, only_summaries=False, only_blank_summaries=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y')
     end_date = datetime.strptime(end_date_str, '%d-%m-%Y')
     
@@ -418,7 +473,7 @@ async def batch_process(start_date_str, end_date_str, skip_summaries=False, summ
     ingested_session_ids = []
     
     # 1. Ingest Data (Parallel chunks)
-    if not summaries_only:
+    if not (only_summaries or only_blank_summaries):
         # Process in chunks to be polite to the Hansard API
         chunk_size = 5
         for i in range(0, len(dates), chunk_size):
@@ -436,18 +491,25 @@ async def batch_process(start_date_str, end_date_str, skip_summaries=False, summ
     await refresh_member_list_view()
     
     # 3. Generate Summaries
-    if not skip_summaries:
+    if not no_summaries:
         # If summaries_only is True, we need to fetch relevant session IDs
         session_ids_to_process = ingested_session_ids
         
-        if summaries_only:
-             # Fetch sessions in date range
-             rows = await execute(
-                'SELECT id FROM sessions WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
-                start_date_str, end_date_str,
-                fetch=True
-             )
-             session_ids_to_process = [r['id'] for r in rows]
+        if only_summaries:
+            # Fetch sessions in date range
+            rows = await execute(
+            'SELECT id FROM sessions WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
+            start_date_str, end_date_str,
+            fetch=True
+            )
+        elif only_blank_summaries:
+            rows = await execute(
+            'SELECT sessions.id FROM sessions JOIN sections ON sessions.id = sections.session_id \
+            WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\') AND sections.summary IS NULL',
+            start_date_str, end_date_str,
+            fetch=True
+            )
+        session_ids_to_process = [r['id'] for r in rows]
              
         logger.info(f"Generating summaries for {len(session_ids_to_process)} sessions...")
         
@@ -467,7 +529,7 @@ async def batch_process(start_date_str, end_date_str, skip_summaries=False, summ
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python batch_process.py START_DATE [END_DATE] [--skip-summaries | --summaries-only]")
+        print("Usage: python batch_process.py START_DATE [END_DATE] [--no-summaries | --only-summaries | --only-blank-summaries]")
         print("Example: python batch_process.py 01-10-2024")
         sys.exit(1)
         
@@ -483,7 +545,8 @@ if __name__ == '__main__':
     start = dates[0]
     end = dates[1] if len(dates) > 1 else start
     
-    skip_sum = '--skip-summaries' in flags
-    sum_only = '--summaries-only' in flags
+    skip_sum = '--no-summaries' in flags
+    sum_only = '--only-summaries' in flags
+    blank_sum = '--only-blank-summaries' in flags
     
-    asyncio.run(batch_process(start, end, skip_sum, sum_only))
+    asyncio.run(batch_process(start, end, skip_sum, sum_only, blank_sum))

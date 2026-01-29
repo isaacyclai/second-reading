@@ -15,7 +15,6 @@ QUESTION_SECTION_TYPES = {'OA', 'WA', 'WANA'}
 BILL_TYPES = {'BI', 'BP'}
 STATEMENT_TYPES = {'OS', 'WS'}
 
-# All types we want to process
 ALL_VALID_TYPES = QUESTION_SECTION_TYPES | BILL_TYPES | STATEMENT_TYPES
 
 # Minimum content length to filter out procedural/short sections
