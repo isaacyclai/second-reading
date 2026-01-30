@@ -118,7 +118,7 @@ export default function MemberDetailPage({
 
             <div className="mb-8">
                 <SearchBar
-                    placeholder="Search bills and questions..."
+                    placeholder="Search involvements..."
                     onSearch={setSearchQuery}
                     defaultValue={searchQuery}
                 />

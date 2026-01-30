@@ -6,7 +6,7 @@ import sys
 
 from openai import AsyncOpenAI
 from datetime import datetime, timedelta
-from db_async import execute
+from db_async import close_pool, execute
 from dotenv import load_dotenv
 
 from prompts import PQ_PROMPT, SECTION_PROMPT, BILL_PROMPT, MEMBER_PROMPT
@@ -228,6 +228,7 @@ async def generate_member_summaries(only_blanks):
     if tasks:
         await asyncio.gather(*tasks)
     logger.info("Member summaries complete")
+    await close_pool()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

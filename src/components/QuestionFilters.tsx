@@ -22,7 +22,7 @@ export default function QuestionFilters({
     return (
         <div className="mb-6">
             <SearchBar
-                placeholder="Search questions by title..."
+                placeholder="Search questions..."
                 onSearch={handleSearch}
                 defaultValue={initialSearch}
             />

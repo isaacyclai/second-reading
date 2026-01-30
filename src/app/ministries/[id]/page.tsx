@@ -96,7 +96,7 @@ export default function MinistryDetailPage({
 
             <div className="mb-8">
                 <SearchBar
-                    placeholder="Search bills and questions..."
+                    placeholder="Search relevant proceedings..."
                     onSearch={setSearchQuery}
                     defaultValue={searchQuery}
                 />
