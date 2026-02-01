@@ -37,8 +37,14 @@ export default function MinistriesPage() {
                 <h1 className="mb-2 text-3xl font-bold text-zinc-900">
                     Ministries
                 </h1>
-                <p className="text-zinc-600">
-                    Browse government ministries and their work. (Placeholder)
+                <p className="mb-4 text-zinc-600">
+                    Here, you can find the motions, bills, and questions organised by which ministry they are related to. This serves
+                    as a proxy for topics discussed in Parliament.
+                </p>
+                <p className="mb-4 text-zinc-600">
+                    Note that not all proceedings in Parliament are necessarily related to a particular ministry. Furthermore, the ministry
+                    affiliations are based on the identity of the Minister who answers the question or introduces the bill, which may not be
+                    completely precise in all cases.
                 </p>
             </header>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
