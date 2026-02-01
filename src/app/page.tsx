@@ -25,7 +25,7 @@ export default async function Home() {
             <h1 className="mb-6 text-5xl font-extrabold tracking-tight text-zinc-900 sm:text-6xl">
               Making Parliament <br />
               <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Accessible to All
+                Accessible for All
               </span>
             </h1>
             <p className="mb-10 text-xl leading-relaxed text-zinc-600">
@@ -105,7 +105,7 @@ export default async function Home() {
               <Link key={session.id} href={`/sessions/${session.id}`} className="block h-full">
                 <div className="flex h-full flex-col rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                    <span className="h-2 w-2 rounded-full bg-blue-500"></span>
                     <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
                       Sitting Report
                     </span>
@@ -135,7 +135,7 @@ export default async function Home() {
           <h2 className="mb-4 text-2xl font-semibold">About Scribe</h2>
           <p className="mx-auto max-w-2xl text-zinc-400">
             Data is sourced from the official <a href="https://sprs.parl.gov.sg/search/#/home" className="underline hover:text-white" target="_blank" rel="noreferrer">Hansard</a>.
-            Scribe is an independent project dedicated to improving the accessibility of parliamentary records for the public.
+            Scribe is an independent project and is not affiliated with the Singapore Government in any way.
           </p>
         </div>
       </section>
