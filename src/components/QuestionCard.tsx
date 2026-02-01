@@ -32,7 +32,7 @@ export default function QuestionCard({
 
     const typeLabel = QUESTION_TYPE_LABELS[question.sectionType] || question.sectionType
 
-    const isMotion = question.category === 'motion' || question.category === 'statement' || (!question.category && question.sectionType === 'OS')
+    const isMotion = question.category === 'motion' || (!question.category && question.sectionType === 'OS')
     const isBill = ['BP', 'BI'].includes(question.sectionType)
 
     let badgeColorClass = "bg-blue-100 text-blue-700"
@@ -50,9 +50,11 @@ export default function QuestionCard({
     if (question.category === 'adjournment_motion') hoverBorderClass = "hover:border-orange-300"
     else if (question.category === 'clarification') hoverBorderClass = "hover:border-yellow-300"
 
+    const linkHref = `/questions/${question.id}`
+
     return (
         <Link
-            href={`/questions/${question.id}`}
+            href={linkHref}
             className={`block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all ${hoverBorderClass} hover:shadow-md`}
         >
             <div className="mb-2 flex flex-wrap items-center gap-2">

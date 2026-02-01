@@ -9,6 +9,8 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
     'OA': 'Oral Answer to Oral Question',
     'WA': 'Written Answer',
     'WANA': 'Written Answer to Oral Question not answered by end of Question Time',
+    'OS': 'Motion',
+    'BP': 'Bill',
 }
 
 interface QuestionDetail extends Section {
@@ -64,6 +66,15 @@ export default function QuestionDetailPage({
     const speakers = Array.isArray(question.speakers) ? question.speakers : []
 
     let badgeColorClass = "bg-blue-100 text-blue-700"
+    if (question.category === 'motion') {
+        badgeColorClass = "bg-red-100 text-red-700"
+    }
+    else if (question.category === 'adjournment_motion') {
+        badgeColorClass = "bg-orange-100 text-orange-700"
+    }
+    else if (question.category === 'clarification') {
+        badgeColorClass = "bg-yellow-100 text-yellow-700"
+    }
 
     return (
         <div className="mx-auto max-w-4xl">
