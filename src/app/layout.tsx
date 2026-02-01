@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SG Parliament Summarizer",
-  description: "Browse and search Singapore Parliament proceedings",
+  title: "Scribe",
+  description: "Making Parliament Accessible for All",
 };
 
 export default function RootLayout({
