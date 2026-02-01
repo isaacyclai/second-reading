@@ -67,7 +67,7 @@ export default function QuestionDetailPage({
 
     let badgeColorClass = "bg-blue-100 text-blue-700"
     if (question.category === 'motion') {
-        badgeColorClass = "bg-red-100 text-red-700"
+        badgeColorClass = "bg-pink-100 text-pink-700"
     }
     else if (question.category === 'adjournment_motion') {
         badgeColorClass = "bg-orange-100 text-orange-700"
@@ -96,7 +96,7 @@ export default function QuestionDetailPage({
                                 href={`/ministries/${question.ministryId}`}
                                 className="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 transition-colors hover:bg-green-200"
                             >
-                                {question.ministryName || question.ministry}
+                                {question.ministryName}
                             </Link>
                         )}
                         {question.category === 'adjournment_motion' && (

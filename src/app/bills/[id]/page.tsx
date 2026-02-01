@@ -113,7 +113,7 @@ export default function BillDetailPage({
                                 href={`/ministries/${bill.ministryId}`}
                                 className="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 transition-colors hover:bg-green-200"
                             >
-                                {bill.ministry}
+                                {bill.ministryName}
                             </Link>
                         )}
                     </div>
