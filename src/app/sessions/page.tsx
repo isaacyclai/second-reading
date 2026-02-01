@@ -88,6 +88,10 @@ export default async function SessionsPage({
                 Here, you can find the proceedings of each Parliament sitting. A typical sitting consists of 90 minutes of <Link href="/questions" className="text-blue-600 hover:underline">question time</Link>,
                 followed by readings and debates of various <Link href="/bills" className="text-blue-600 hover:underline">bills</Link> and <Link href="/motions" className="text-blue-600 hover:underline">motions</Link>.
             </p>
+            <p className="mb-6 text-zinc-600">
+                A day before the sitting, the agenda for the day will be published in the <Link href="https://www.parliament.gov.sg/parliamentary-business/order-paper" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">order paper</Link>.
+                Parliament sittings are also live streamed on the <Link href="https://www.youtube.com/@SingaporeMDDI/streams" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">MDDI youtube channel</Link>.
+            </p>
 
             <SessionFilters
                 initialStartDate={startDate}
