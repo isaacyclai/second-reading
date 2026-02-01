@@ -58,6 +58,7 @@ export default function ServerPagination({
             {currentPage > 1 ? (
                 <Link
                     href={getPageUrl(currentPage - 1)}
+                    scroll={false}
                     className="rounded-md border border-zinc-200 px-3 py-1 text-sm font-medium hover:bg-zinc-50"
                 >
                     Previous
@@ -80,9 +81,10 @@ export default function ServerPagination({
                         <Link
                             key={page}
                             href={getPageUrl(page as number)}
+                            scroll={false}
                             className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${currentPage === page
-                                    ? 'bg-blue-600 text-white'
-                                    : 'border border-zinc-200 hover:bg-zinc-50 text-zinc-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'border border-zinc-200 hover:bg-zinc-50 text-zinc-700'
                                 }`}
                         >
                             {page}
@@ -95,6 +97,7 @@ export default function ServerPagination({
             {currentPage < totalPages ? (
                 <Link
                     href={getPageUrl(currentPage + 1)}
+                    scroll={false}
                     className="rounded-md border border-zinc-200 px-3 py-1 text-sm font-medium hover:bg-zinc-50"
                 >
                     Next
