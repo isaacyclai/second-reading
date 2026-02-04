@@ -1,109 +1,160 @@
 ---
 interface Props {
-  containerId: string;
-  itemSelector: string;
-  itemsPerPage?: number;
+    containerId: string;
+    itemSelector: string;
+    itemsPerPage?: number;
 }
 
 const { containerId, itemSelector, itemsPerPage = 20 } = Astro.props;
 ---
 
-<div class="pagination-controls flex items-center justify-center gap-4 py-6" data-container={containerId} data-selector={itemSelector} data-per-page={itemsPerPage}>
-  <button
-    class="pagination-prev flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
-    disabled
-  >
-    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7" />
-    </svg>
-    Previous
-  </button>
-  <span class="pagination-info font-ui text-sm text-ink/50">
-    Page <span class="pagination-current font-medium text-ink">1</span> of <span class="pagination-total font-medium text-ink">1</span>
-  </span>
-  <button
-    class="pagination-next flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
-  >
-    Next
-    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
-    </svg>
-  </button>
+<div
+    class="pagination-controls flex items-center justify-center gap-4 py-6"
+    data-container={containerId}
+    data-selector={itemSelector}
+    data-per-page={itemsPerPage}
+>
+    <button
+        class="pagination-prev flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
+        disabled
+    >
+        <svg
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Previous
+    </button>
+    <span class="pagination-info font-ui text-sm text-ink/50">
+        Page <span class="pagination-current font-medium text-ink">1</span> of <span
+            class="pagination-total font-medium text-ink">1</span
+        >
+    </span>
+    <button
+        class="pagination-next flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
+    >
+        Next
+        <svg
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M9 5l7 7-7 7"></path>
+        </svg>
+    </button>
 </div>
 
 <script>
-  function initPagination() {
-    document.querySelectorAll('.pagination-controls').forEach((controls) => {
-      const containerId = controls.getAttribute('data-container');
-      const selector = controls.getAttribute('data-selector');
-      const perPage = parseInt(controls.getAttribute('data-per-page') || '20', 10);
+    function initPagination() {
+        document
+            .querySelectorAll(".pagination-controls")
+            .forEach((controls) => {
+                const containerId = controls.getAttribute("data-container");
+                const selector = controls.getAttribute("data-selector");
+                const perPage = parseInt(
+                    controls.getAttribute("data-per-page") || "20",
+                    10,
+                );
 
-      const container = document.getElementById(containerId!);
-      if (!container) return;
+                const container = document.getElementById(containerId!);
+                if (!container) return;
 
-      const items = container.querySelectorAll(selector!);
-      const totalPages = Math.ceil(items.length / perPage);
-      let currentPage = 1;
+                const items = container.querySelectorAll(selector!);
+                const totalPages = Math.ceil(items.length / perPage);
+                let currentPage = 1;
 
-      // Clone buttons to remove any existing event listeners from previous initializations
-      let prevBtn = controls.querySelector('.pagination-prev') as HTMLButtonElement;
-      let nextBtn = controls.querySelector('.pagination-next') as HTMLButtonElement;
-      const currentSpan = controls.querySelector('.pagination-current');
-      const totalSpan = controls.querySelector('.pagination-total');
+                // Remove animation classes after initial load to prevent re-animation on page change
+                // Wait for animations to complete (longest delay + animation duration)
+                setTimeout(() => {
+                    items.forEach((item) => {
+                        const element = item as HTMLElement;
+                        element.classList.remove('animate-fade-up', 'animate-fade-in', 'animate-slide-down');
+                        element.style.animationDelay = '';
+                    });
+                }, 1000); // Allow time for staggered animations to complete
 
-      // Replace buttons with clones to clear old event listeners
-      if (prevBtn) {
-        const newPrevBtn = prevBtn.cloneNode(true) as HTMLButtonElement;
-        prevBtn.parentNode?.replaceChild(newPrevBtn, prevBtn);
-        prevBtn = newPrevBtn;
-      }
-      if (nextBtn) {
-        const newNextBtn = nextBtn.cloneNode(true) as HTMLButtonElement;
-        nextBtn.parentNode?.replaceChild(newNextBtn, nextBtn);
-        nextBtn = newNextBtn;
-      }
+                // Clone buttons to remove any existing event listeners from previous initializations
+                let prevBtn = controls.querySelector(
+                    ".pagination-prev",
+                ) as HTMLButtonElement;
+                let nextBtn = controls.querySelector(
+                    ".pagination-next",
+                ) as HTMLButtonElement;
+                const currentSpan = controls.querySelector(
+                    ".pagination-current",
+                );
+                const totalSpan = controls.querySelector(".pagination-total");
 
-      function updateDisplay() {
-        items.forEach((item, index) => {
-          const element = item as HTMLElement;
-          const start = (currentPage - 1) * perPage;
-          const end = start + perPage;
-          element.style.display = index >= start && index < end ? '' : 'none';
-        });
+                // Replace buttons with clones to clear old event listeners
+                if (prevBtn) {
+                    const newPrevBtn = prevBtn.cloneNode(
+                        true,
+                    ) as HTMLButtonElement;
+                    prevBtn.parentNode?.replaceChild(newPrevBtn, prevBtn);
+                    prevBtn = newPrevBtn;
+                }
+                if (nextBtn) {
+                    const newNextBtn = nextBtn.cloneNode(
+                        true,
+                    ) as HTMLButtonElement;
+                    nextBtn.parentNode?.replaceChild(newNextBtn, nextBtn);
+                    nextBtn = newNextBtn;
+                }
 
-        if (currentSpan) currentSpan.textContent = String(currentPage);
-        if (totalSpan) totalSpan.textContent = String(totalPages);
+                function updateDisplay() {
+                    items.forEach((item, index) => {
+                        const element = item as HTMLElement;
+                        const start = (currentPage - 1) * perPage;
+                        const end = start + perPage;
+                        element.style.display =
+                            index >= start && index < end ? "" : "none";
+                    });
 
-        prevBtn.disabled = currentPage === 1;
-        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
-      }
+                    if (currentSpan)
+                        currentSpan.textContent = String(currentPage);
+                    if (totalSpan) totalSpan.textContent = String(totalPages);
 
-      prevBtn?.addEventListener('click', () => {
-        if (currentPage > 1) {
-          currentPage--;
-          updateDisplay();
-          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
+                    prevBtn.disabled = currentPage === 1;
+                    nextBtn.disabled =
+                        currentPage === totalPages || totalPages === 0;
+                }
 
-      nextBtn?.addEventListener('click', () => {
-        if (currentPage < totalPages) {
-          currentPage++;
-          updateDisplay();
-          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
+                prevBtn?.addEventListener("click", () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        updateDisplay();
+                    }
+                });
 
-      // Hide pagination if only one page
-      if (totalPages <= 1) {
-        (controls as HTMLElement).style.display = 'none';
-      }
+                nextBtn?.addEventListener("click", () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        updateDisplay();
+                    }
+                });
 
-      updateDisplay();
-    });
-  }
+                // Hide pagination if only one page
+                if (totalPages <= 1) {
+                    (controls as HTMLElement).style.display = "none";
+                }
 
-  // Run on page load and view transitions
-  initPagination();
-  document.addEventListener('astro:after-swap', initPagination);
+                updateDisplay();
+            });
+    }
+
+    // Run on page load and view transitions
+    initPagination();
+    document.addEventListener("astro:after-swap", initPagination);
 </script>
