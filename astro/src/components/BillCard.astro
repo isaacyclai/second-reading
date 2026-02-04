@@ -31,11 +31,9 @@ const status = getStatus(bill);
 <a
   href={`/bills/${bill.id}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  data-pagefind-body
-  data-pagefind-filter="type:bill"
   data-pagefind-meta={`id:${bill.id}`}
 >
-  <div class="flex flex-wrap items-center gap-2 mb-2" data-pagefind-ignore>
+  <div class="flex flex-wrap items-center gap-2 mb-2">
     <Tag color={status.color}>{status.label}</Tag>
     {bill.firstReadingDate && (
       <span class="font-sans text-xs text-ink-muted">
@@ -44,12 +42,12 @@ const status = getStatus(bill);
     )}
   </div>
   
-  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors" data-pagefind-weight="10">
+  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors">
     {bill.title}
   </h3>
   
   {bill.ministry && (
-    <div class="font-sans text-sm text-ink-muted" data-pagefind-weight="3">
+    <div class="font-sans text-sm text-ink-muted">
       {bill.ministry}
     </div>
   )}

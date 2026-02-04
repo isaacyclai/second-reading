@@ -31,11 +31,9 @@ const snippet = section.contentPlain?.substring(0, 150) + (section.contentPlain 
 <a
   href={`/questions/${section.id}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  data-pagefind-body
-  data-pagefind-filter={`type:${section.category === 'motion' || section.category === 'adjournment_motion' ? 'motion' : 'question'}`}
   data-pagefind-meta={`id:${section.id}`}
 >
-  <div class="flex flex-wrap items-center gap-2 mb-2" data-pagefind-ignore>
+  <div class="flex flex-wrap items-center gap-2 mb-2">
     {section.category && categoryLabels[section.category] ? (
       <Tag color="indigo">{categoryLabels[section.category]}</Tag>
     ) : (
@@ -51,25 +49,25 @@ const snippet = section.contentPlain?.substring(0, 150) + (section.contentPlain 
     )}
   </div>
   
-  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2" data-pagefind-weight="10">
+  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2">
     {section.sectionTitle}
   </h3>
   
   {showSpeakers && section.speakers && section.speakers.length > 0 && (
-    <div class="flex flex-wrap gap-2 mb-2" data-pagefind-weight="5">
+    <div class="flex flex-wrap gap-2 mb-2">
       {section.speakers.slice(0, 3).map((speaker) => (
         <span class="font-sans text-xs text-accent">
           {speaker.name}
         </span>
       ))}
       {section.speakers.length > 3 && (
-        <span class="font-sans text-xs text-ink-muted" data-pagefind-ignore>+{section.speakers.length - 3} more</span>
+        <span class="font-sans text-xs text-ink-muted">+{section.speakers.length - 3} more</span>
       )}
     </div>
   )}
   
   {snippet && (
-    <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-2" data-pagefind-weight="2">
+    <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-2">
       {snippet}
     </p>
   )}

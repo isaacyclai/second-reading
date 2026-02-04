@@ -54,32 +54,41 @@ const party = getParty();
 ---
 
 <Layout title={member.name} description={`Parliamentary activities for ${member.name}`}>
-  <a href="/members" class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-8">
+  <a href="/members" class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-8" data-pagefind-ignore>
     ← Back to Members
   </a>
 
-  <section class="mb-10">
+  <section
+    class="mb-10"
+    data-pagefind-body
+    data-pagefind-filter="type:member"
+    data-pagefind-meta={`id:${member.id}`}
+  >
     <div class="flex items-start gap-5 mb-6">
       <Avatar name={member.name} party={party || undefined} class="w-16 h-16 text-xl" />
       
       <div class="flex-1">
-        <h1 class="font-display text-display-md text-ink mb-2">
+        <h1 class="font-display text-display-md text-ink mb-2" data-pagefind-weight="10">
           {member.name}
         </h1>
         
         <div class="flex flex-wrap items-center gap-3 mb-4">
           {member.designation && (
-            <span class="font-sans text-base text-ink-soft">
+            <span class="font-sans text-base text-ink-soft" data-pagefind-weight="5">
               {member.designation}
             </span>
           )}
           {member.constituency && (
-            <Tag color="muted">{member.constituency}</Tag>
+            <span data-pagefind-weight="5">
+              <Tag color="muted">{member.constituency}</Tag>
+            </span>
           )}
         </div>
       </div>
     </div>
     
+    <!-- Everything below excluded from search indexing -->
+    <div data-pagefind-ignore>
     <!-- Stats Row -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-border mb-8">
       <div>
@@ -173,6 +182,7 @@ const party = getParty();
         fallbackMessage="Summary of recent topics has not been generated yet."
       />
     </div>
+    </div><!-- end data-pagefind-ignore -->
   </section>
 
   <!-- Motions Section -->

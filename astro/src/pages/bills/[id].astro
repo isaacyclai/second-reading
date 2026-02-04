@@ -1,11 +1,11 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import SectionLabel from '../../components/SectionLabel.astro';
-import AISummaryCard from '../../components/AISummaryCard.astro';
-import SpeakerPills from '../../components/SpeakerPills.astro';
-import Tag from '../../components/Tag.astro';
-import { getBills, getBill, getBillSections } from '../../lib/db';
-import type { Speaker } from '../../lib/db';
+import Layout from "../../layouts/Layout.astro";
+import SectionLabel from "../../components/SectionLabel.astro";
+import AISummaryCard from "../../components/AISummaryCard.astro";
+import SpeakerPills from "../../components/SpeakerPills.astro";
+import Tag from "../../components/Tag.astro";
+import { getBills, getBill, getBillSections } from "../../lib/db";
+import type { Speaker } from "../../lib/db";
 
 export async function getStaticPaths() {
   const bills = getBills();
@@ -18,75 +18,101 @@ const { id } = Astro.params;
 const bill = getBill(id);
 
 if (!bill) {
-  return Astro.redirect('/bills');
+  return Astro.redirect("/bills");
 }
 
 const sections = getBillSections(id);
 
 // Separate readings
-const firstReadings = sections.filter(s => s.sectionType === 'BI');
-const secondReadings = sections.filter(s => s.sectionType === 'BP');
+const firstReadings = sections.filter((s) => s.sectionType === "BI");
+const secondReadings = sections.filter((s) => s.sectionType === "BP");
 
 // Get unique speakers from second readings
-const allSpeakers = secondReadings.flatMap(s => s.speakers || []);
-const uniqueSpeakers = allSpeakers.filter((speaker, index, self) =>
-  speaker && index === self.findIndex(s => s && s.memberId === speaker.memberId)
+const allSpeakers = secondReadings.flatMap((s) => s.speakers || []);
+const uniqueSpeakers = allSpeakers.filter(
+  (speaker, index, self) =>
+    speaker &&
+    index === self.findIndex((s) => s && s.memberId === speaker.memberId),
 );
 
 // Group unique second reading timelines
-const secondReadingTimelines = secondReadings.reduce((acc, curr) => {
-  if (!acc.find(item => item.sessionDate === curr.sessionDate)) {
-    acc.push({ sessionDate: curr.sessionDate, sessionId: curr.sessionId });
-  }
-  return acc;
-}, [] as { sessionDate: string, sessionId: string }[]);
+const secondReadingTimelines = secondReadings.reduce(
+  (acc, curr) => {
+    if (!acc.find((item) => item.sessionDate === curr.sessionDate)) {
+      acc.push({ sessionDate: curr.sessionDate, sessionId: curr.sessionId });
+    }
+    return acc;
+  },
+  [] as { sessionDate: string; sessionId: string }[],
+);
 
 const formatLongDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('en-SG', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return new Date(dateStr).toLocaleDateString("en-SG", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 };
 
 // Determine bill status
-const getStatus = (): { label: string; color: 'green' | 'accent' | 'muted' } => {
-  if (bill.thirdReadingDate) return { label: 'Passed', color: 'green' };
-  if (bill.secondReadingDate) return { label: 'Second Reading', color: 'accent' };
-  if (bill.firstReadingDate) return { label: 'First Reading', color: 'muted' };
-  return { label: 'Introduced', color: 'muted' };
+const getStatus = (): {
+  label: string;
+  color: "green" | "accent" | "muted";
+} => {
+  if (bill.thirdReadingDate) return { label: "Passed", color: "green" };
+  if (bill.secondReadingDate)
+    return { label: "Second Reading", color: "accent" };
+  if (bill.firstReadingDate) return { label: "First Reading", color: "muted" };
+  return { label: "Introduced", color: "muted" };
 };
 
 const status = getStatus();
 ---
 
 <Layout title={bill.title} description={`Bill details: ${bill.title}`}>
-  <a href="/bills" class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-8">
+  <a
+    href="/bills"
+    class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-8"
+    data-pagefind-ignore
+  >
     ← Back to Bills
   </a>
 
-  <article>
+  <article
+    data-pagefind-body
+    data-pagefind-filter="type:bill"
+    data-pagefind-meta={`id:${bill.id}`}
+  >
     <!-- Header -->
     <header class="mb-8">
-      <div class="flex flex-wrap items-center gap-2 mb-3">
+      <div class="flex flex-wrap items-center gap-2 mb-3" data-pagefind-ignore>
         <Tag color={status.color}>{status.label}</Tag>
-        {bill.ministry && bill.ministryId && (
-          <a
-            href={`/ministries/${bill.ministryId}`}
-            class="inline-block"
-          >
-            <Tag color="green">{bill.ministry}</Tag>
-          </a>
-        )}
+        {
+          bill.ministry && bill.ministryId && (
+            <a href={`/ministries/${bill.ministryId}`} class="inline-block">
+              <Tag color="green">{bill.ministry}</Tag>
+            </a>
+          )
+        }
       </div>
-      <h1 class="font-display text-display-md text-ink mb-2 text-balance">
+      <h1
+        class="font-display text-display-md text-ink mb-2 text-balance"
+        data-pagefind-weight="20"
+      >
         {bill.title}
       </h1>
+      {
+        bill.ministry && (
+          <span class="hidden" data-pagefind-weight="5">
+            {bill.ministry}
+          </span>
+        )
+      }
     </header>
 
     <!-- Bill Summary -->
-    <div class="mb-8">
+    <div class="mb-8" data-pagefind-weight="1">
       <AISummaryCard
         title="Bill Summary"
         content={bill.summary}
@@ -95,105 +121,124 @@ const status = getStatus();
     </div>
 
     <!-- Reading Timeline -->
-    <section class="mb-8 bg-surface border border-border rounded-md p-6">
-      <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold mb-4">
+    <section
+      class="mb-8 bg-surface border border-border rounded-md p-6"
+      data-pagefind-ignore
+    >
+      <h2
+        class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold mb-4"
+      >
         Reading Timeline
       </h2>
       <div class="space-y-3">
-        {bill.firstReadingDate && bill.firstReadingSessionId && (
-          <div class="flex items-center gap-3">
-            <Tag color="muted">First Reading</Tag>
-            <a
-              href={`/sessions/${bill.firstReadingSessionId}`}
-              class="font-sans text-sm text-ink-soft hover:text-accent no-underline"
-            >
-              {formatLongDate(bill.firstReadingDate)}
-            </a>
-          </div>
-        )}
-        {secondReadingTimelines.map((session, idx) => (
-          <div class="flex items-center gap-3">
-            <Tag color="accent">
-              Second Reading{secondReadingTimelines.length > 1 ? ` (${idx + 1})` : ''}
-            </Tag>
-            <a
-              href={`/sessions/${session.sessionId}`}
-              class="font-sans text-sm text-ink-soft hover:text-accent no-underline"
-            >
-              {formatLongDate(session.sessionDate)}
-            </a>
-          </div>
-        ))}
-        {bill.thirdReadingDate && (
-          <div class="flex items-center gap-3">
-            <Tag color="green">Third Reading</Tag>
-            <span class="font-sans text-sm text-ink-soft">
-              {formatLongDate(bill.thirdReadingDate)}
-            </span>
-          </div>
-        )}
+        {
+          bill.firstReadingDate && bill.firstReadingSessionId && (
+            <div class="flex items-center gap-3">
+              <Tag color="muted">First Reading</Tag>
+              <a
+                href={`/sessions/${bill.firstReadingSessionId}`}
+                class="font-sans text-sm text-ink-soft hover:text-accent no-underline"
+              >
+                {formatLongDate(bill.firstReadingDate)}
+              </a>
+            </div>
+          )
+        }
+        {
+          secondReadingTimelines.map((session, idx) => (
+            <div class="flex items-center gap-3">
+              <Tag color="accent">
+                Second Reading
+                {secondReadingTimelines.length > 1 ? ` (${idx + 1})` : ""}
+              </Tag>
+              <a
+                href={`/sessions/${session.sessionId}`}
+                class="font-sans text-sm text-ink-soft hover:text-accent no-underline"
+              >
+                {formatLongDate(session.sessionDate)}
+              </a>
+            </div>
+          ))
+        }
+        {
+          bill.thirdReadingDate && (
+            <div class="flex items-center gap-3">
+              <Tag color="green">Third Reading</Tag>
+              <span class="font-sans text-sm text-ink-soft">
+                {formatLongDate(bill.thirdReadingDate)}
+              </span>
+            </div>
+          )
+        }
       </div>
     </section>
 
     <!-- Speakers -->
-    {uniqueSpeakers.length > 0 && (
-      <section class="mb-8">
-        <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold mb-4">
-          Members Involved
-        </h2>
-        <SpeakerPills speakers={uniqueSpeakers} />
-      </section>
-    )}
+    {
+      uniqueSpeakers.length > 0 && (
+        <section class="mb-8" data-pagefind-weight="3">
+          <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold mb-4">
+            Members Involved
+          </h2>
+          <SpeakerPills speakers={uniqueSpeakers} />
+        </section>
+      )
+    }
 
     <!-- Second Reading Transcripts -->
-    {secondReadings.length > 0 && (
-      <section>
-        <div class="flex items-center justify-between mb-4 border-t-2 border-ink pt-4">
-          <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
-            Transcript{secondReadings.length > 1 ? 's' : ''}
-          </h2>
-          {secondReadings[0]?.sourceUrl && (
-            <a
-              href={secondReadings[0].sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="font-sans text-sm text-accent hover:text-accent-light no-underline"
-            >
-              View Original Hansard ↗
-            </a>
-          )}
-        </div>
-
-        {secondReadings.map((section, idx) => (
-          <div class="mb-8">
-            {secondReadings.length > 1 && (
-              <h3 class="font-sans text-sm font-medium text-ink-soft mb-4">
-                {new Date(section.sessionDate).toLocaleDateString('en-SG', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </h3>
-            )}
-            <div
-              class="transcript-content"
-              set:html={section.contentHtml}
-            />
-            {idx < secondReadings.length - 1 && (
-              <hr class="my-8 border-border" />
+    {
+      secondReadings.length > 0 && (
+        <section data-pagefind-weight="1">
+          <div
+            class="flex items-center justify-between mb-4 border-t-2 border-ink pt-4"
+            data-pagefind-ignore
+          >
+            <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
+              Transcript{secondReadings.length > 1 ? "s" : ""}
+            </h2>
+            {secondReadings[0]?.sourceUrl && (
+              <a
+                href={secondReadings[0].sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-sans text-sm text-accent hover:text-accent-light no-underline"
+              >
+                View Original Hansard ↗
+              </a>
             )}
           </div>
-        ))}
-      </section>
-    )}
+
+          {secondReadings.map((section, idx) => (
+            <div class="mb-8">
+              {secondReadings.length > 1 && (
+                <h3 class="font-sans text-sm font-medium text-ink-soft mb-4">
+                  {new Date(section.sessionDate).toLocaleDateString("en-SG", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </h3>
+              )}
+              <div class="transcript-content" set:html={section.contentHtml} />
+              {idx < secondReadings.length - 1 && (
+                <hr class="my-8 border-border" />
+              )}
+            </div>
+          ))}
+        </section>
+      )
+    }
 
     <!-- No second reading yet -->
-    {secondReadings.length === 0 && (
-      <section class="bg-status-reading-bg border border-status-reading/20 rounded-md p-5">
-        <p class="font-body text-sm italic text-status-reading">
-          This bill has not yet had its second reading. Check back later for debate transcripts.
-        </p>
-      </section>
-    )}
+    {
+      secondReadings.length === 0 && (
+        <section class="bg-status-reading-bg border border-status-reading/20 rounded-md p-5">
+          <p class="font-body text-sm italic text-status-reading">
+            This bill has not yet had its second reading. Check back later for
+            debate transcripts.
+          </p>
+        </section>
+      )
+    }
   </article>
 </Layout>

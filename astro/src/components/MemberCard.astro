@@ -29,33 +29,31 @@ const attendancePercent = member.attendanceTotal && member.attendanceTotal > 0
 <a
   href={`/members/${member.id}`}
   class="group flex gap-4 items-start p-4 bg-surface border border-border rounded-md transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-  data-pagefind-body
-  data-pagefind-filter="type:member"
   data-pagefind-meta={`id:${member.id}`}
 >
   <Avatar name={member.name} party={party || undefined} />
   
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2 mb-0.5">
-      <span class="font-display text-base text-ink font-medium group-hover:text-accent transition-colors" data-pagefind-weight="10">
+      <span class="font-display text-base text-ink font-medium group-hover:text-accent transition-colors">
         {member.name}
       </span>
       {party && <PartyBadge party={party} />}
     </div>
     
     {member.constituency && (
-      <div class="font-sans text-xs text-ink-muted mb-1" data-pagefind-weight="5">
+      <div class="font-sans text-xs text-ink-muted mb-1">
         {member.constituency}
       </div>
     )}
     
     {member.designation && (
-      <div class="font-sans text-xs text-ink-muted mb-2 line-clamp-1" data-pagefind-weight="3">
+      <div class="font-sans text-xs text-ink-muted mb-2 line-clamp-1">
         {member.designation}
       </div>
     )}
     
-    <div class="font-sans text-xs text-accent font-medium" data-pagefind-ignore>
+    <div class="font-sans text-xs text-accent font-medium">
       {member.sectionCount !== undefined && member.sectionCount > 0 && (
         <span>{member.sectionCount} speeches</span>
       )}

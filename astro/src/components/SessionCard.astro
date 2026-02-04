@@ -24,19 +24,16 @@ const formattedDate = new Date(session.date).toLocaleDateString("en-SG", {
 <a
     href={`/sessions/${session.id}`}
     class="group grid grid-cols-[140px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2"
-    data-pagefind-body
-    data-pagefind-filter="type:session"
-    data-pagefind-meta={`id:${session.id}`}
 >
-    <div class="font-display text-base text-ink" data-pagefind-weight="10">
+    <div class="font-display text-base text-ink">
         {formattedDate}
     </div>
-    <div class="font-sans text-sm text-ink-muted" data-pagefind-weight="5">
+    <div class="font-sans text-sm text-ink-muted">
         {getOrdinal(session.parliament)} Parliament · {
             getOrdinal(session.sessionNo)
         } Session · {getOrdinal(session.sittingNo)} Sitting
     </div>
-    <div class="font-sans text-xs text-ink-soft" data-pagefind-ignore>
+    <div class="font-sans text-xs text-ink-soft">
         {session.sectionCount !== undefined && `${session.sectionCount} items`}
     </div>
 </a>
