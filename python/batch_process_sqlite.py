@@ -1,0 +1,310 @@
+"""
+Batch processor for ingesting Hansard data into SQLite.
+Synchronous version - no async/await, no network DB latency.
+"""
+
+import logging
+import sys
+from datetime import datetime, timedelta
+
+from db_sqlite import (
+    add_section_speaker,
+    add_session_attendance,
+    close_connection,
+    create_or_update_session,
+    create_section,
+    find_ministry_by_acronym,
+    find_or_create_bill,
+    find_or_create_member,
+    get_bill_count,
+    get_member_count,
+    get_section_count,
+    get_session_count,
+    init_db,
+)
+from hansard_api import HansardAPI
+from parliament_session import BILL_TYPES
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger(__name__)
+
+DESIGNATION_TO_MINISTRY = {
+    "Minister in the Prime Minister's Office": "PMO",
+    "Minister for Culture, Community and Youth": "MCCY",
+    "Minister for Defence": "MINDEF",
+    "Minister for Digital Development and Information": "MDDI",
+    "Minister for Education": "MOE",
+    "Minister for Finance": "MOF",
+    "Minister for Foreign Affairs": "MFA",
+    "Minister for Health": "MOH",
+    "Minister for Home Affairs": "MHA",
+    "Minister for Law": "MINLAW",
+    "Minister for Manpower": "MOM",
+    "Minister for National Development": "MND",
+    "Minister for Social and Family Development": "MSF",
+    "Minister for Sustainability and the Environment": "MSE",
+    "Minister for Trade and Industry": "MTI",
+    "Minister for Transport": "MOT",
+}
+
+
+def detect_ministry_from_designation(designation):
+    """Extract ministry acronym from a ministerial designation."""
+    if not designation:
+        return None
+    designation_lower = designation.lower()
+    for keyword, acronym in DESIGNATION_TO_MINISTRY.items():
+        if keyword.lower() in designation_lower:
+            return acronym
+    return None
+
+
+def detect_ministry_from_content(content_plain):
+    """Detect ministry from question preamble content."""
+    if not content_plain:
+        return None
+
+    # Look in the first 500 chars (the question preamble)
+    preamble = content_plain[:500]
+
+    for designation, acronym in DESIGNATION_TO_MINISTRY.items():
+        if designation in preamble:
+            return acronym
+
+    return None
+
+
+def detect_ministry_from_speakers(speakers):
+    """Detect ministry from speaker appointments."""
+    for speaker in speakers:
+        designation = getattr(speaker, "appointment", None)
+        if designation and "minister" in designation.lower():
+            ministry = detect_ministry_from_designation(designation)
+            if ministry:
+                return ministry
+    return None
+
+
+def detect_ministry(section):
+    """Detect ministry for a section using content and speaker info."""
+    # Try content-based detection first (more accurate)
+    ministry = detect_ministry_from_content(section.get("content_plain", ""))
+    if ministry:
+        return ministry
+
+    # Fallback to speaker designation
+    return detect_ministry_from_speakers(section.get("speakers", []))
+
+
+def process_speaker(section_id, speaker):
+    """Process a single speaker for a section."""
+    member_id = find_or_create_member(speaker.name)
+    add_section_speaker(
+        section_id=section_id,
+        member_id=member_id,
+        constituency=getattr(speaker, "constituency", None),
+        designation=getattr(speaker, "appointment", None),
+    )
+
+
+def process_section(session_id, idx, section, date_str):
+    """Process a single section and its speakers."""
+    ministry_acronym = detect_ministry(section)
+    ministry_id = (
+        find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
+    )
+
+    bill_id = None
+    section_type = section["section_type"]
+
+    # Handle bill sections
+    if section_type in BILL_TYPES:
+        first_reading_date = date_str if section_type == "BI" else None
+        first_reading_session_id = session_id if section_type == "BI" else None
+
+        bill_id = find_or_create_bill(
+            title=section["title"],
+            ministry_id=ministry_id,
+            first_reading_date=first_reading_date,
+            first_reading_session_id=first_reading_session_id,
+        )
+
+    # Create section
+    section_id = create_section(
+        session_id=session_id,
+        ministry_id=ministry_id,
+        bill_id=bill_id,
+        category=section.get("category", "other"),
+        section_type=section_type,
+        title=section["title"],
+        content_html=section["content_html"],
+        content_plain=section["content_plain"],
+        section_order=section["order"],
+        source_url=section.get("source_url"),
+    )
+
+    # Process speakers
+    for speaker in section["speakers"]:
+        process_speaker(section_id, speaker)
+
+    return section_id
+
+
+def process_attendance(session_id, mp, present):
+    """Process attendance for a single MP."""
+    member_id = find_or_create_member(mp.name)
+    add_session_attendance(
+        session_id=session_id,
+        member_id=member_id,
+        present=present,
+        constituency=mp.constituency,
+        designation=mp.appointment,
+    )
+
+
+def ingest_session(date_str: str) -> str:
+    """
+    Fetch and ingest a single session into SQLite.
+    Returns session ID if successful, None otherwise.
+    """
+    logger.info(f"Processing session for {date_str}...")
+
+    # Fetch from Hansard API
+    api = HansardAPI()
+    parliament_session = api.fetch_by_date(date_str)
+
+    if not parliament_session:
+        logger.info(f"No data found for {date_str}")
+        return None
+
+    sections = parliament_session.get_sections()
+    metadata = parliament_session.get_metadata()
+
+    if not sections:
+        logger.info(f"No sections found for {date_str}")
+        return None
+
+    # Create session URL
+    session_url = f"https://sprs.parl.gov.sg/search/#/fullreport?sittingdate={date_str}"
+
+    # Create/Update Session
+    session_id = create_or_update_session(
+        date_str=metadata.get("date"),
+        sitting_no=metadata.get("sitting_no"),
+        parliament=metadata.get("parliament"),
+        session_no=metadata.get("session_no"),
+        volume_no=metadata.get("volume_no"),
+        format_type=metadata.get("format"),
+        url=session_url,
+    )
+    logger.info(f"   Session ID: {session_id}")
+
+    # Process attendance
+    attendance_count = 0
+    for mp in parliament_session.present_members:
+        process_attendance(session_id, mp, True)
+        attendance_count += 1
+
+    for mp in parliament_session.absent_members:
+        process_attendance(session_id, mp, False)
+        attendance_count += 1
+
+    logger.info(f"   Saved attendance for {attendance_count} members")
+
+    # Process sections
+    logger.info(f"   Processing {len(sections)} sections...")
+    section_ids = []
+
+    for idx, section in enumerate(sections):
+        section_id = process_section(session_id, idx, section, metadata.get("date"))
+        section_ids.append(section_id)
+
+        # Log progress every 10 sections
+        if (idx + 1) % 10 == 0:
+            logger.info(f"     Processed {idx + 1}/{len(sections)} sections")
+
+    logger.info(f"   Processed {len(section_ids)} sections for {date_str}")
+    return session_id
+
+
+def batch_process(start_date_str: str, end_date_str: str):
+    """
+    Process all sessions in a date range.
+    """
+    # Initialize database
+    init_db()
+
+    start_date = datetime.strptime(start_date_str, "%d-%m-%Y")
+    end_date = datetime.strptime(end_date_str, "%d-%m-%Y")
+
+    # Generate all dates in range
+    dates = []
+    curr = start_date
+    while curr <= end_date:
+        dates.append(curr.strftime("%d-%m-%Y"))
+        curr += timedelta(days=1)
+
+    logger.info(
+        f"Checking date range: {start_date_str} to {end_date_str} ({len(dates)} days)"
+    )
+
+    ingested_sessions = []
+
+    for date_str in dates:
+        session_id = ingest_session(date_str)
+        if session_id:
+            ingested_sessions.append(session_id)
+
+    # Print summary
+    logger.info("\n" + "=" * 50)
+    logger.info("Batch processing complete!")
+    logger.info(f"Sessions ingested: {len(ingested_sessions)}")
+    logger.info(f"\nDatabase stats:")
+    logger.info(f"  Total sessions: {get_session_count()}")
+    logger.info(f"  Total members: {get_member_count()}")
+    logger.info(f"  Total sections: {get_section_count()}")
+    logger.info(f"  Total bills: {get_bill_count()}")
+
+    close_connection()
+
+
+def show_stats():
+    """Show current database statistics."""
+    init_db()
+    print(f"\nDatabase stats:")
+    print(f"  Sessions: {get_session_count()}")
+    print(f"  Members: {get_member_count()}")
+    print(f"  Sections: {get_section_count()}")
+    print(f"  Bills: {get_bill_count()}")
+    close_connection()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python batch_process_sqlite.py START_DATE [END_DATE]")
+        print("       python batch_process_sqlite.py --stats")
+        print("\nExamples:")
+        print("  python batch_process_sqlite.py 01-10-2024")
+        print("  python batch_process_sqlite.py 01-10-2024 31-10-2024")
+        print("  python batch_process_sqlite.py --stats")
+        sys.exit(1)
+
+    if sys.argv[1] == "--stats":
+        show_stats()
+        sys.exit(0)
+
+    args = sys.argv[1:]
+    dates = [arg for arg in args if not arg.startswith("--")]
+
+    if not dates:
+        print("Error: Start date required")
+        sys.exit(1)
+
+    start = dates[0]
+    end = dates[1] if len(dates) > 1 else start
+
+    batch_process(start, end)
