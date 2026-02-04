@@ -59,11 +59,16 @@ const { containerId, itemSelector, itemsPerPage = 20 } = Astro.props;
       const container = document.getElementById(containerId!);
       if (!container) return;
 
-      const allItems = Array.from(
+      let allItems = Array.from(
         container.querySelectorAll(selector!),
       ) as HTMLElement[];
       let currentPage = 1;
       let isSearchActive = false;
+
+      // Refresh items array after DOM reordering
+      function refreshItems() {
+        allItems = Array.from(container.querySelectorAll(selector!)) as HTMLElement[];
+      }
 
       // Remove animation classes after initial load to prevent re-animation on page change
       // Wait for animations to complete (longest delay + animation duration)
@@ -164,17 +169,19 @@ const { containerId, itemSelector, itemsPerPage = 20 } = Astro.props;
       });
 
       // Listen for search events from SearchFilter component
-      container.addEventListener("search-updated", () => {
+      container.addEventListener("search-updated", ((e: CustomEvent) => {
+        if (e.detail?.reordered) refreshItems();
         isSearchActive = true;
         currentPage = 1;
         updateDisplay();
-      });
+      }) as EventListener);
 
-      container.addEventListener("search-cleared", () => {
+      container.addEventListener("search-cleared", ((e: CustomEvent) => {
+        if (e.detail?.reordered) refreshItems();
         isSearchActive = false;
         currentPage = 1;
         updateDisplay();
-      });
+      }) as EventListener);
 
       updateDisplay();
     });

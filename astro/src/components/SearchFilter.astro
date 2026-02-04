@@ -126,6 +126,54 @@ const {
         selector!,
       ) as NodeListOf<HTMLElement>;
 
+      // Build map for O(1) ID lookups and store original order for restoration
+      const itemById = new Map<string, HTMLElement>();
+      const originalOrder: HTMLElement[] = [];
+      items.forEach((item) => {
+        originalOrder.push(item);
+        const anchor = item.querySelector("a[data-pagefind-meta]") as HTMLElement;
+        if (anchor) {
+          const meta = anchor.getAttribute("data-pagefind-meta");
+          const match = meta?.match(/id:([^,]+)/);
+          if (match) {
+            itemById.set(match[1], item);
+          }
+        }
+      });
+
+      // Reorder DOM elements based on relevance-ranked IDs
+      function reorderItems(orderedIds: string[]) {
+        const fragment = document.createDocumentFragment();
+        const reorderedSet = new Set<HTMLElement>();
+
+        // Add items in relevance order
+        for (const id of orderedIds) {
+          const item = itemById.get(id);
+          if (item) {
+            fragment.appendChild(item);
+            reorderedSet.add(item);
+          }
+        }
+
+        // Add remaining items (non-matches) at the end
+        for (const item of originalOrder) {
+          if (!reorderedSet.has(item)) {
+            fragment.appendChild(item);
+          }
+        }
+
+        container.appendChild(fragment);
+      }
+
+      // Restore original DOM order
+      function restoreOriginalOrder() {
+        const fragment = document.createDocumentFragment();
+        for (const item of originalOrder) {
+          fragment.appendChild(item);
+        }
+        container.appendChild(fragment);
+      }
+
       let debounceTimer: ReturnType<typeof setTimeout>;
 
       async function performSearch(query: string) {
@@ -138,7 +186,8 @@ const {
           : ([] as unknown as NodeListOf<HTMLElement>);
 
         if (!query.trim()) {
-          // Clear search - show all items
+          // Clear search - show all items and restore original order
+          restoreOriginalOrder();
           items.forEach((item) => {
             item.style.display = "";
             item.removeAttribute("data-search-hidden");
@@ -150,7 +199,7 @@ const {
           );
 
           // Dispatch event for pagination to reset
-          container.dispatchEvent(new CustomEvent("search-cleared"));
+          container.dispatchEvent(new CustomEvent("search-cleared", { detail: { reordered: true } }));
           return;
         }
 
@@ -158,26 +207,45 @@ const {
 
         if (!pf) {
           // Fallback: simple text matching when pagefind isn't available
+          // Score matches by position (earlier = more relevant)
           const lowerQuery = query.toLowerCase();
-          let matchCount = 0;
+          const scored: { item: HTMLElement; score: number }[] = [];
 
           items.forEach((item) => {
             const text = item.textContent?.toLowerCase() || "";
-            if (text.includes(lowerQuery)) {
-              item.style.display = "";
+            const pos = text.indexOf(lowerQuery);
+            if (pos !== -1) {
               item.removeAttribute("data-search-hidden");
-              matchCount++;
+              scored.push({ item, score: pos });
             } else {
               item.style.display = "none";
               item.setAttribute("data-search-hidden", "true");
             }
           });
 
+          // Sort by score (lower position = more relevant)
+          scored.sort((a, b) => a.score - b.score);
+
+          // Reorder DOM by relevance
+          const fragment = document.createDocumentFragment();
+          for (const { item } of scored) {
+            item.style.display = "";
+            fragment.appendChild(item);
+          }
+          // Append non-matches at end
+          items.forEach((item) => {
+            if (item.hasAttribute("data-search-hidden")) {
+              fragment.appendChild(item);
+            }
+          });
+          container.appendChild(fragment);
+
+          const matchCount = scored.length;
           status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
           status.classList.remove("hidden");
           countElements.forEach((element) => element.classList.add("hidden"));
           container.dispatchEvent(
-            new CustomEvent("search-updated", { detail: { matchCount } }),
+            new CustomEvent("search-updated", { detail: { matchCount, reordered: true } }),
           );
           return;
         }
@@ -187,14 +255,16 @@ const {
           filters: { type: contentType! },
         });
 
-        // Get all matching IDs
-        const matchingIds = new Set<string>();
+        // Get matching IDs in relevance order (array preserves order)
+        const orderedIds: string[] = [];
         for (const result of results.results) {
           const data = await result.data();
           if (data.meta?.id) {
-            matchingIds.add(data.meta.id);
+            orderedIds.push(data.meta.id);
           }
         }
+
+        const matchingIds = new Set(orderedIds);
 
         // Show/hide items based on matches
         let matchCount = 0;
@@ -216,13 +286,16 @@ const {
           }
         });
 
+        // Reorder DOM by relevance
+        reorderItems(orderedIds);
+
         status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
         status.classList.remove("hidden");
         countElements.forEach((element) => element.classList.add("hidden"));
 
         // Dispatch event for pagination to update
         container.dispatchEvent(
-          new CustomEvent("search-updated", { detail: { matchCount } }),
+          new CustomEvent("search-updated", { detail: { matchCount, reordered: true } }),
         );
       }
 
