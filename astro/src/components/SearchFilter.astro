@@ -131,6 +131,12 @@ const {
       async function performSearch(query: string) {
         const pf = await loadPagefind();
 
+        const countElements = containerId
+          ? (document.querySelectorAll(
+              `[data-search-count="${containerId}"]`,
+            ) as NodeListOf<HTMLElement>)
+          : ([] as unknown as NodeListOf<HTMLElement>);
+
         if (!query.trim()) {
           // Clear search - show all items
           items.forEach((item) => {
@@ -139,6 +145,7 @@ const {
           });
           status.classList.add("hidden");
           clearBtn.classList.add("hidden");
+          countElements.forEach((element) => element.classList.remove("hidden"));
 
           // Dispatch event for pagination to reset
           container.dispatchEvent(new CustomEvent("search-cleared"));
@@ -164,12 +171,13 @@ const {
             }
           });
 
-          status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
-          status.classList.remove("hidden");
-          container.dispatchEvent(
-            new CustomEvent("search-updated", { detail: { matchCount } }),
-          );
-          return;
+        status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
+        status.classList.remove("hidden");
+        countElements.forEach((element) => element.classList.add("hidden"));
+        container.dispatchEvent(
+          new CustomEvent("search-updated", { detail: { matchCount } }),
+        );
+        return;
         }
 
         // Use pagefind with type filter
@@ -208,6 +216,7 @@ const {
 
         status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
         status.classList.remove("hidden");
+        countElements.forEach((element) => element.classList.add("hidden"));
 
         // Dispatch event for pagination to update
         container.dispatchEvent(
