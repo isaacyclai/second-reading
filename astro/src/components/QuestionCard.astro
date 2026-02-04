@@ -1,7 +1,7 @@
 ---
-import type { Section } from '../lib/db';
-import TypeBadge from './TypeBadge.astro';
-import Tag from './Tag.astro';
+import type { Section } from "../lib/db";
+import TypeBadge from "./TypeBadge.astro";
+import Tag from "./Tag.astro";
 
 interface Props {
   section: Section;
@@ -11,21 +11,23 @@ interface Props {
 const { section, showSpeakers = true } = Astro.props;
 
 const categoryLabels: Record<string, string> = {
-  'motion': 'Motion',
-  'adjournment_motion': 'Adjournment Motion',
-  'clarification': 'Clarification',
-  'statement': 'Statement',
+  motion: "Motion",
+  adjournment_motion: "Adjournment Motion",
+  clarification: "Clarification",
+  statement: "Statement",
 };
 
 const formattedDate = section.sessionDate
-  ? new Date(section.sessionDate).toLocaleDateString('en-SG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+  ? new Date(section.sessionDate).toLocaleDateString("en-SG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     })
   : null;
 
-const snippet = section.contentPlain?.substring(0, 150) + (section.contentPlain && section.contentPlain.length > 150 ? '...' : '');
+const snippet =
+  section.contentPlain?.substring(0, 150) +
+  (section.contentPlain && section.contentPlain.length > 150 ? "..." : "");
 ---
 
 <a
@@ -34,41 +36,47 @@ const snippet = section.contentPlain?.substring(0, 150) + (section.contentPlain 
   data-pagefind-meta={`id:${section.id}`}
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
-    {section.category && categoryLabels[section.category] ? (
-      <Tag color="indigo">{categoryLabels[section.category]}</Tag>
-    ) : (
-      <TypeBadge type={section.sectionType} />
-    )}
-    {section.ministry && (
-      <Tag color="green">{section.ministry}</Tag>
-    )}
-    {formattedDate && (
-      <span class="font-sans text-xs text-ink-muted">
-        {formattedDate}
-      </span>
-    )}
+    {
+      section.category && categoryLabels[section.category] ? (
+        <Tag color="indigo">{categoryLabels[section.category]}</Tag>
+      ) : (
+        <TypeBadge type={section.sectionType} />
+      )
+    }
+    {section.ministry && <Tag color="green">{section.ministry}</Tag>}
+    {
+      formattedDate && (
+        <span class="font-sans text-xs text-ink-muted">{formattedDate}</span>
+      )
+    }
   </div>
-  
-  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2">
+
+  <h3
+    class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2"
+  >
     {section.sectionTitle}
   </h3>
-  
-  {showSpeakers && section.speakers && section.speakers.length > 0 && (
-    <div class="flex flex-wrap gap-2 mb-2">
-      {section.speakers.slice(0, 3).map((speaker) => (
-        <span class="font-sans text-xs text-accent">
-          {speaker.name}
-        </span>
-      ))}
-      {section.speakers.length > 3 && (
-        <span class="font-sans text-xs text-ink-muted">+{section.speakers.length - 3} more</span>
-      )}
-    </div>
-  )}
-  
-  {snippet && (
-    <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-2">
-      {snippet}
-    </p>
-  )}
+
+  {
+    showSpeakers && section.speakers && section.speakers.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-2">
+        {section.speakers.slice(0, 3).map((speaker) => (
+          <span class="font-sans text-xs text-accent">{speaker.name}</span>
+        ))}
+        {section.speakers.length > 3 && (
+          <span class="font-sans text-xs text-ink-muted">
+            +{section.speakers.length - 3} more
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  {
+    snippet && (
+      <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-1">
+        {snippet}
+      </p>
+    )
+  }
 </a>
