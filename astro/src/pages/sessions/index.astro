@@ -1,60 +1,74 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import SectionLabel from '../../components/SectionLabel.astro';
-import SessionCard from '../../components/SessionCard.astro';
-import PaginatedList from '../../components/PaginatedList.astro';
-import { getSessions, getSessionCount } from '../../lib/db';
+import Layout from "../../layouts/Layout.astro";
+import SectionLabel from "../../components/SectionLabel.astro";
+import PaginatedList from "../../components/islands/PaginatedList";
+import { getSessions, getSessionCount } from "../../lib/db";
+import type { ListItem } from "../../lib/types";
 
 const PAGE_SIZE = 20;
 const totalCount = getSessionCount();
 const sessions = getSessions(PAGE_SIZE, 0);
+
+// Transform to match the ListItem interface
+const initialItems: ListItem[] = sessions.map((s) => ({
+  id: s.id,
+  date: s.date,
+  parliament: s.parliament,
+  sessionNo: s.sessionNo,
+  sittingNo: s.sittingNo,
+  sectionCount: s.sectionCount,
+}));
 ---
 
-<Layout title="Parliament Sittings" description="Browse all Singapore Parliament sittings">
+<Layout
+  title="Parliament Sittings"
+  description="Browse all Singapore Parliament sittings"
+>
   <SectionLabel>Parliament Proceedings</SectionLabel>
 
-  <h1 class="font-display text-display-lg text-ink mb-4">
-    Sittings
-  </h1>
+  <h1 class="font-display text-display-lg text-ink mb-4">Sittings</h1>
 
-  <p class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-3">
-    Here, you can find the proceedings of each Parliament sitting. A typical sitting consists of 90 minutes of
-    <a href="/questions" class="text-accent hover:text-accent-light no-underline">question time</a>,
-    followed by readings and debates of various <a href="/bills" class="text-accent hover:text-accent-light no-underline">bills</a> and
-    <a href="/motions" class="text-accent hover:text-accent-light no-underline">motions</a>.
+  <p
+    class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-3"
+  >
+    Here, you can find the proceedings of each Parliament sitting. A typical
+    sitting consists of 90 minutes of
+    <a href="/questions" class="text-accent hover:text-accent-light no-underline"
+      >question time</a
+    >, followed by readings and debates of various <a
+      href="/bills"
+      class="text-accent hover:text-accent-light no-underline">bills</a
+    > and
+    <a href="/motions" class="text-accent hover:text-accent-light no-underline"
+      >motions</a
+    >.
   </p>
 
-  <p class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-8">
+  <p
+    class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-8"
+  >
     A day before the sitting, the agenda for the day will be published in the
-    <a href="https://www.parliament.gov.sg/parliamentary-business/order-paper" class="text-accent hover:text-accent-light no-underline" target="_blank" rel="noopener noreferrer">order paper</a>.
-    Parliament sittings are also live streamed on the
-    <a href="https://www.youtube.com/@SingaporeMDDI/streams" class="text-accent hover:text-accent-light no-underline" target="_blank" rel="noopener noreferrer">MDDI youtube channel</a>.
+    <a
+      href="https://www.parliament.gov.sg/parliamentary-business/order-paper"
+      class="text-accent hover:text-accent-light no-underline"
+      target="_blank"
+      rel="noopener noreferrer">order paper</a
+    >. Parliament sittings are also live streamed on the
+    <a
+      href="https://www.youtube.com/@SingaporeMDDI/streams"
+      class="text-accent hover:text-accent-light no-underline"
+      target="_blank"
+      rel="noopener noreferrer">MDDI youtube channel</a
+    >.
   </p>
 
   <PaginatedList
-    containerId="sessions-list"
-    itemSelector=".session-item"
+    client:visible
     contentType="session"
     dataUrl="/data/sessions.json"
     totalCount={totalCount}
     pageSize={PAGE_SIZE}
     placeholder="Search by date (e.g. January 2024)..."
-  >
-    <div id="sessions-list" class="flex flex-col border-t border-border">
-      {sessions.length === 0 ? (
-        <p class="py-12 text-center font-body text-ink-muted">
-          No sessions found
-        </p>
-      ) : (
-        sessions.map((session, i) => (
-          <div
-            class="session-item animate-fade-up"
-            style={`animation-delay: ${0.1 + i * 0.03}s`}
-          >
-            <SessionCard session={session} />
-          </div>
-        ))
-      )}
-    </div>
-  </PaginatedList>
+    initialItems={initialItems}
+  />
 </Layout>

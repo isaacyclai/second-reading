@@ -1,13 +1,21 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
-import BillCard from "../../components/BillCard.astro";
-import PaginatedList from "../../components/PaginatedList.astro";
+import PaginatedList from "../../components/islands/PaginatedList";
 import { getBills, getBillCount } from "../../lib/db";
+import type { ListItem } from "../../lib/types";
 
 const PAGE_SIZE = 24;
 const totalCount = getBillCount();
 const bills = getBills(PAGE_SIZE, 0);
+
+// Transform to match the ListItem interface
+const initialItems: ListItem[] = bills.map((b) => ({
+  id: b.id,
+  title: b.title,
+  ministry: b.ministry || undefined,
+  firstReadingDate: b.firstReadingDate || undefined,
+}));
 ---
 
 <Layout title="Bills" description="Browse Singapore Parliament bills">
@@ -25,31 +33,12 @@ const bills = getBills(PAGE_SIZE, 0);
   </p>
 
   <PaginatedList
-    containerId="bills-list"
-    itemSelector=".bill-item"
+    client:visible
     contentType="bill"
     dataUrl="/data/bills.json"
     totalCount={totalCount}
     pageSize={PAGE_SIZE}
     placeholder="Search bills by title or ministry..."
-  >
-    <div id="bills-list" class="flex flex-col border-t border-border">
-      {
-        bills.length === 0 ? (
-          <p class="py-12 text-center font-body text-ink-muted">
-            No bills found
-          </p>
-        ) : (
-          bills.map((bill, i) => (
-            <div
-              class="bill-item animate-fade-up"
-              style={`animation-delay: ${0.1 + i * 0.06}s`}
-            >
-              <BillCard bill={bill} />
-            </div>
-          ))
-        )
-      }
-    </div>
-  </PaginatedList>
+    initialItems={initialItems}
+  />
 </Layout>

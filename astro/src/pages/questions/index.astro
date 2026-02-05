@@ -1,13 +1,25 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
-import QuestionCard from "../../components/QuestionCard.astro";
-import PaginatedList from "../../components/PaginatedList.astro";
+import PaginatedList from "../../components/islands/PaginatedList";
 import { getQuestions, getQuestionCount } from "../../lib/db";
+import type { ListItem } from "../../lib/types";
 
 const PAGE_SIZE = 20;
 const totalCount = getQuestionCount();
 const questions = getQuestions(PAGE_SIZE, 0);
+
+// Transform to match the ListItem interface
+const initialItems: ListItem[] = questions.map((q) => ({
+  id: q.id,
+  title: q.sectionTitle,
+  date: q.sessionDate,
+  type: q.sectionType,
+  category: q.category || undefined,
+  ministry: q.ministry || undefined,
+  speakers: q.speakers?.map((s) => s.name) || [],
+  snippet: q.contentPlain?.substring(0, 150),
+}));
 ---
 
 <Layout
@@ -29,31 +41,12 @@ const questions = getQuestions(PAGE_SIZE, 0);
   </p>
 
   <PaginatedList
-    containerId="questions-list"
-    itemSelector=".question-item"
+    client:visible
     contentType="question"
     dataUrl="/data/questions.json"
     totalCount={totalCount}
     pageSize={PAGE_SIZE}
     placeholder="Search questions by title, speaker, or content..."
-  >
-    <div id="questions-list" class="flex flex-col border-t border-border">
-      {
-        questions.length === 0 ? (
-          <p class="py-12 text-center font-body text-ink-muted">
-            No questions found
-          </p>
-        ) : (
-          questions.map((question, i) => (
-            <div
-              class="question-item animate-fade-up"
-              style={`animation-delay: ${0.1 + Math.min(i, 20) * 0.03}s`}
-            >
-              <QuestionCard section={question} />
-            </div>
-          ))
-        )
-      }
-    </div>
-  </PaginatedList>
+    initialItems={initialItems}
+  />
 </Layout>
