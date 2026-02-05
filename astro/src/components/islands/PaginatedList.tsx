@@ -46,6 +46,7 @@ export default function PaginatedList({
   placeholder = "Search...",
   initialItems,
 }: Props) {
+  const STAGGER_LIMIT = 12;
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -318,13 +319,13 @@ export default function PaginatedList({
   const renderCard = (item: ListItem) => {
     switch (contentType) {
       case "bill":
-        return <BillCard key={item.id} item={item} />;
+        return <BillCard item={item} />;
       case "session":
-        return <SessionCard key={item.id} item={item} />;
+        return <SessionCard item={item} />;
       case "question":
       case "motion":
       default:
-        return <QuestionCard key={item.id} item={item} />;
+        return <QuestionCard item={item} />;
     }
   };
 
@@ -395,7 +396,23 @@ export default function PaginatedList({
               {isSearchMode ? "No results found" : "No items found"}
             </p>
           ) : (
-            currentItems.map(renderCard)
+            currentItems.map((item, i) => {
+              const isStaggered =
+                !isSearchMode && page === 1 && i < STAGGER_LIMIT;
+              return (
+                <div
+                  key={item.id}
+                  class={isStaggered ? "animate-fade-up" : undefined}
+                  style={
+                    isStaggered
+                      ? `animation-delay: ${0.1 + i * 0.05}s`
+                      : undefined
+                  }
+                >
+                  {renderCard(item)}
+                </div>
+              );
+            })
           )}
         </div>
       )}
