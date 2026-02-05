@@ -6,8 +6,8 @@ import PaginatedList from '../../components/PaginatedList.astro';
 import { getSessions, getSessionCount } from '../../lib/db';
 
 const PAGE_SIZE = 20;
-const sessions = getSessions();
 const totalCount = getSessionCount();
+const sessions = getSessions(PAGE_SIZE, 0);
 ---
 
 <Layout title="Parliament Sittings" description="Browse all Singapore Parliament sittings">

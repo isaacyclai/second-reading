@@ -72,7 +72,7 @@ const {
     Showing 1-{Math.min(pageSize, totalCount)} of {totalCount}
   </p>
 
-  <!-- Content slot (static HTML items) -->
+  <!-- Content slot (static HTML items for page 1) -->
   <slot />
 
   <!-- Pagination controls -->
@@ -129,7 +129,15 @@ const {
     id: string;
     title?: string;
     date?: string;
-    [key: string]: unknown;
+    type?: string;
+    category?: string;
+    ministry?: string;
+    speakers?: string[];
+    snippet?: string;
+    parliament?: number;
+    sessionNo?: number;
+    sittingNo?: number;
+    sectionCount?: number;
   }
 
   interface DataResponse {
@@ -157,6 +165,159 @@ const {
     ) => Promise<PagefindSearch>;
   }
 
+  // Type badge colors
+  const typeBadgeConfig: Record<string, { label: string; classes: string }> = {
+    OA: {
+      label: "Oral Answer",
+      classes: "bg-amber-50 text-amber-700",
+    },
+    WA: {
+      label: "Written Answer",
+      classes: "bg-purple-50 text-purple-700",
+    },
+    WANA: {
+      label: "Written (No Answer)",
+      classes: "bg-slate-100 text-slate-600",
+    },
+  };
+
+  const categoryLabels: Record<string, string> = {
+    motion: "Motion",
+    adjournment_motion: "Adjournment Motion",
+  };
+
+  function formatDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("en-SG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function formatSessionDate(dateStr: string | undefined | null): string {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("en-SG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  function getOrdinal(n: number): string {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  function escapeHtml(text: string): string {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Card renderers for each content type
+  function renderQuestionCard(item: DataItem, itemClass: string): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = itemClass;
+
+    const typeConfig =
+      item.category && categoryLabels[item.category]
+        ? {
+            label: categoryLabels[item.category],
+            classes: "bg-indigo-50 text-indigo-700",
+          }
+        : typeBadgeConfig[item.type || ""] || {
+            label: item.type,
+            classes: "bg-slate-100 text-slate-600",
+          };
+
+    const speakersHtml =
+      item.speakers && item.speakers.length > 0
+        ? `<div class="flex flex-wrap gap-2 mb-2">
+          ${item.speakers
+            .slice(0, 3)
+            .map(
+              (s) =>
+                `<span class="font-sans text-xs text-accent">${escapeHtml(s)}</span>`,
+            )
+            .join("")}
+          ${item.speakers.length > 3 ? `<span class="font-sans text-xs text-ink-muted">+${item.speakers.length - 3} more</span>` : ""}
+        </div>`
+        : "";
+
+    const snippetHtml = item.snippet
+      ? `<p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-1">${escapeHtml(item.snippet)}${item.snippet.length >= 150 ? "..." : ""}</p>`
+      : "";
+
+    wrapper.innerHTML = `
+      <a href="/questions/${item.id}" class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer" data-pagefind-meta="id:${item.id}">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="inline-block font-sans text-label-sm uppercase tracking-wider px-2 py-0.5 rounded ${typeConfig.classes}">${escapeHtml(typeConfig.label)}</span>
+          ${item.ministry ? `<span class="inline-block font-sans text-label-sm uppercase tracking-wider px-2 py-0.5 rounded bg-status-passed-bg text-status-passed">${escapeHtml(item.ministry)}</span>` : ""}
+          ${item.date ? `<span class="font-sans text-xs text-ink-muted">${formatDate(item.date)}</span>` : ""}
+        </div>
+        <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2">${escapeHtml(item.title || "")}</h3>
+        ${speakersHtml}
+        ${snippetHtml}
+      </a>
+    `;
+    return wrapper;
+  }
+
+  function renderBillCard(item: DataItem, itemClass: string): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = itemClass;
+
+    wrapper.innerHTML = `
+      <a href="/bills/${item.id}" class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer" data-pagefind-meta="id:${item.id}">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="inline-block font-sans text-label-sm uppercase tracking-wider px-2 py-0.5 rounded bg-ink/5 text-ink/60">1st Reading</span>
+          ${item.date ? `<span class="font-sans text-xs text-ink-muted">${formatDate(item.date)}</span>` : ""}
+        </div>
+        <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors">${escapeHtml(item.title || "")}</h3>
+        ${item.ministry ? `<div class="font-sans text-sm text-ink-muted">${escapeHtml(item.ministry)}</div>` : ""}
+      </a>
+    `;
+    return wrapper;
+  }
+
+  function renderSessionCard(item: DataItem, itemClass: string): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = itemClass;
+
+    wrapper.innerHTML = `
+      <a href="/sessions/${item.id}" class="group grid grid-cols-[140px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2" data-pagefind-meta="id:${item.id}">
+        <div class="font-display text-base text-ink">${formatSessionDate(item.date)}</div>
+        <div class="font-sans text-sm text-ink-muted">
+          ${getOrdinal(item.parliament || 0)} Parliament · ${getOrdinal(item.sessionNo || 0)} Session · ${getOrdinal(item.sittingNo || 0)} Sitting
+        </div>
+        <div class="font-sans text-xs text-ink-soft">
+          ${item.sectionCount !== undefined ? `${item.sectionCount} items` : ""}
+        </div>
+      </a>
+    `;
+    return wrapper;
+  }
+
+  function renderCard(
+    item: DataItem,
+    contentType: string,
+    itemClass: string,
+  ): HTMLElement {
+    switch (contentType) {
+      case "question":
+      case "motion":
+        return renderQuestionCard(item, itemClass);
+      case "bill":
+        return renderBillCard(item, itemClass);
+      case "session":
+        return renderSessionCard(item, itemClass);
+      default:
+        return renderQuestionCard(item, itemClass);
+    }
+  }
+
   let pagefind: Pagefind | null = null;
 
   async function loadPagefind(): Promise<Pagefind | null> {
@@ -176,7 +337,7 @@ const {
     document.querySelectorAll(".paginated-list-wrapper").forEach((wrapper) => {
       const containerId = wrapper.getAttribute("data-container");
       const selector = wrapper.getAttribute("data-selector");
-      const contentType = wrapper.getAttribute("data-type");
+      const contentType = wrapper.getAttribute("data-type") || "question";
       const dataUrl = wrapper.getAttribute("data-url");
       const totalCount = parseInt(
         wrapper.getAttribute("data-total") || "0",
@@ -221,19 +382,23 @@ const {
       if (input.hasAttribute("data-paginated-initialized")) return;
       input.setAttribute("data-paginated-initialized", "true");
 
+      // Derive item class from selector (e.g., ".question-item" -> "question-item")
+      const itemClass = selector!.replace(/^\./, "");
+
       // State
       let currentPage = 1;
       let isSearchMode = false;
       let searchResults: string[] = []; // IDs of matching items in relevance order
       let jsonData: DataItem[] | null = null;
+      let dynamicItems: HTMLElement[] = []; // Track dynamically created items
 
-      // Get all static items
+      // Get all static items (page 1 only)
       const staticItems = Array.from(
         container.querySelectorAll(selector!),
       ) as HTMLElement[];
 
-      // Build ID map for quick lookup
-      const itemById = new Map<string, HTMLElement>();
+      // Build ID map for search results
+      const staticItemById = new Map<string, HTMLElement>();
       staticItems.forEach((item) => {
         const anchor = item.querySelector(
           "a[data-pagefind-meta]",
@@ -242,7 +407,7 @@ const {
           const meta = anchor.getAttribute("data-pagefind-meta");
           const match = meta?.match(/id:([^,]+)/);
           if (match) {
-            itemById.set(match[1], item);
+            staticItemById.set(match[1], item);
           }
         }
       });
@@ -273,6 +438,11 @@ const {
         }
       }
 
+      function clearDynamicItems() {
+        dynamicItems.forEach((item) => item.remove());
+        dynamicItems = [];
+      }
+
       function updateUrlParams() {
         const url = new URL(window.location.href);
         if (isSearchMode && input.value) {
@@ -288,36 +458,32 @@ const {
         window.history.replaceState({}, "", url.toString());
       }
 
-      function updateDisplay() {
+      async function updateDisplay() {
+        const totalPages = Math.ceil(totalCount / pageSize);
+
         if (isSearchMode) {
-          // Search mode: show items by relevance order
+          // Search mode: show matching items from static HTML only
+          // (search only works with items that have been indexed by Pagefind)
+          clearDynamicItems();
+
           const totalResults = searchResults.length;
-          const totalPages = Math.ceil(totalResults / pageSize);
+          const searchTotalPages = Math.ceil(totalResults / pageSize);
           const start = (currentPage - 1) * pageSize;
           const end = start + pageSize;
           const pageIds = new Set(searchResults.slice(start, end));
 
-          // Hide all items
+          // Hide all static items first
           staticItems.forEach((item) => {
             item.style.display = "none";
           });
 
-          // Show items for current page in relevance order
-          const fragment = document.createDocumentFragment();
+          // Show matching items for current page
           for (const id of searchResults.slice(start, end)) {
-            const item = itemById.get(id);
+            const item = staticItemById.get(id);
             if (item) {
               item.style.display = "";
-              fragment.appendChild(item);
             }
           }
-          // Append remaining hidden items
-          staticItems.forEach((item) => {
-            if (!pageIds.has(getItemId(item))) {
-              fragment.appendChild(item);
-            }
-          });
-          container.appendChild(fragment);
 
           // Update status
           if (totalResults === 0) {
@@ -330,30 +496,45 @@ const {
 
           // Update pagination
           currentSpan.textContent = String(currentPage);
-          totalSpan.textContent = String(totalPages || 1);
+          totalSpan.textContent = String(searchTotalPages || 1);
           prevBtn.disabled = currentPage === 1;
-          nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
-          controls.style.display = totalPages <= 1 ? "none" : "";
+          nextBtn.disabled =
+            currentPage >= searchTotalPages || searchTotalPages === 0;
+          controls.style.display = searchTotalPages <= 1 ? "none" : "";
         } else {
-          // Browse mode: paginate through all items in date order
-          const totalPages = Math.ceil(totalCount / pageSize);
-          const start = (currentPage - 1) * pageSize;
-          const end = start + pageSize;
+          // Browse mode: page 1 uses static items, pages 2+ use JSON
+          clearDynamicItems();
 
-          // Show/hide static items based on page
-          staticItems.forEach((item, index) => {
-            item.style.display = index >= start && index < end ? "" : "none";
-          });
+          if (currentPage === 1) {
+            // Show static items for page 1
+            staticItems.forEach((item) => {
+              item.style.display = "";
+            });
+          } else {
+            // Hide static items and render from JSON
+            staticItems.forEach((item) => {
+              item.style.display = "none";
+            });
 
-          // Restore original order
-          const fragment = document.createDocumentFragment();
-          staticItems.forEach((item) => fragment.appendChild(item));
-          container.appendChild(fragment);
+            const data = await fetchJsonData();
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageItems = data.slice(start, end);
+
+            const fragment = document.createDocumentFragment();
+            pageItems.forEach((item) => {
+              const card = renderCard(item, contentType, itemClass);
+              dynamicItems.push(card);
+              fragment.appendChild(card);
+            });
+            container.appendChild(fragment);
+          }
 
           // Update status
+          const start = (currentPage - 1) * pageSize;
+          const end = Math.min(currentPage * pageSize, totalCount);
           const rangeStart = totalCount === 0 ? 0 : start + 1;
-          const rangeEnd = Math.min(end, totalCount);
-          statusEl.textContent = `Showing ${rangeStart}-${rangeEnd} of ${totalCount}`;
+          statusEl.textContent = `Showing ${rangeStart}-${end} of ${totalCount}`;
 
           // Update pagination
           currentSpan.textContent = String(currentPage);
@@ -366,18 +547,6 @@ const {
         updateUrlParams();
       }
 
-      function getItemId(item: HTMLElement): string {
-        const anchor = item.querySelector(
-          "a[data-pagefind-meta]",
-        ) as HTMLElement;
-        if (anchor) {
-          const meta = anchor.getAttribute("data-pagefind-meta");
-          const match = meta?.match(/id:([^,]+)/);
-          if (match) return match[1];
-        }
-        return "";
-      }
-
       let debounceTimer: ReturnType<typeof setTimeout>;
 
       async function performSearch(query: string) {
@@ -387,7 +556,7 @@ const {
           searchResults = [];
           currentPage = 1;
           clearBtn.classList.add("hidden");
-          updateDisplay();
+          await updateDisplay();
           return;
         }
 
@@ -395,7 +564,7 @@ const {
         const pf = await loadPagefind();
 
         if (!pf) {
-          // Fallback: simple text matching
+          // Fallback: simple text matching on static items
           isSearchMode = true;
           const lowerQuery = query.toLowerCase();
           searchResults = [];
@@ -403,19 +572,28 @@ const {
           staticItems.forEach((item) => {
             const text = item.textContent?.toLowerCase() || "";
             if (text.includes(lowerQuery)) {
-              searchResults.push(getItemId(item));
+              const anchor = item.querySelector(
+                "a[data-pagefind-meta]",
+              ) as HTMLElement;
+              if (anchor) {
+                const meta = anchor.getAttribute("data-pagefind-meta");
+                const match = meta?.match(/id:([^,]+)/);
+                if (match) {
+                  searchResults.push(match[1]);
+                }
+              }
             }
           });
 
           currentPage = 1;
-          updateDisplay();
+          await updateDisplay();
           return;
         }
 
         // Use Pagefind for search
         isSearchMode = true;
         const results = await pf.search(query, {
-          filters: { type: contentType! },
+          filters: { type: contentType },
         });
 
         // Get matching IDs in relevance order
@@ -428,7 +606,7 @@ const {
         }
 
         currentPage = 1;
-        updateDisplay();
+        await updateDisplay();
       }
 
       // Event listeners
@@ -452,19 +630,19 @@ const {
         }
       });
 
-      prevBtn.addEventListener("click", () => {
+      prevBtn.addEventListener("click", async () => {
         if (currentPage > 1) {
           currentPage--;
-          updateDisplay();
+          await updateDisplay();
         }
       });
 
-      nextBtn.addEventListener("click", () => {
+      nextBtn.addEventListener("click", async () => {
         const totalItems = isSearchMode ? searchResults.length : totalCount;
         const totalPages = Math.ceil(totalItems / pageSize);
         if (currentPage < totalPages) {
           currentPage++;
-          updateDisplay();
+          await updateDisplay();
         }
       });
 
@@ -472,21 +650,21 @@ const {
       input.addEventListener("focus", () => loadPagefind(), { once: true });
 
       // Handle back/forward navigation
-      window.addEventListener("popstate", () => {
+      window.addEventListener("popstate", async () => {
         const urlParams = new URLSearchParams(window.location.search);
         const pageParam = urlParams.get("page");
         const queryParam = urlParams.get("q");
 
         if (queryParam) {
           input.value = queryParam;
-          performSearch(queryParam);
+          await performSearch(queryParam);
         } else {
           input.value = "";
           isSearchMode = false;
           searchResults = [];
           currentPage = pageParam ? parseInt(pageParam, 10) : 1;
           if (!Number.isFinite(currentPage) || currentPage < 1) currentPage = 1;
-          updateDisplay();
+          await updateDisplay();
         }
       });
 

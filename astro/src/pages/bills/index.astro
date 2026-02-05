@@ -6,8 +6,8 @@ import PaginatedList from "../../components/PaginatedList.astro";
 import { getBills, getBillCount } from "../../lib/db";
 
 const PAGE_SIZE = 24;
-const bills = getBills();
 const totalCount = getBillCount();
+const bills = getBills(PAGE_SIZE, 0);
 ---
 
 <Layout title="Bills" description="Browse Singapore Parliament bills">

@@ -7,7 +7,7 @@ import { getQuestions, getQuestionCount } from "../../lib/db";
 
 const PAGE_SIZE = 20;
 const totalCount = getQuestionCount();
-const questions = getQuestions();
+const questions = getQuestions(PAGE_SIZE, 0);
 ---
 
 <Layout
