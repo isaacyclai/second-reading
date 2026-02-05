@@ -187,14 +187,18 @@ const party = getParty();
 
   <!-- Motions Section -->
   {motions.length > 0 && (
-    <section class="mb-10">
+    <section class="mb-10" data-pagefind-ignore>
       <h2 class="font-display text-xl text-ink mb-4">
         Motions & Statements <span class="font-sans text-sm text-ink-muted font-normal">({motions.length})</span>
       </h2>
       <div id="motions-list" class="flex flex-col border-t border-border">
         {motions.map((section) => (
           <div class="motion-item">
-            <QuestionCard section={section} showSpeakers={false} />
+            <QuestionCard
+              section={section}
+              showSpeakers={false}
+              includePagefindMeta={false}
+            />
           </div>
         ))}
       </div>
@@ -204,7 +208,7 @@ const party = getParty();
 
   <!-- Bills Section -->
   {bills.length > 0 && (
-    <section class="mb-10">
+    <section class="mb-10" data-pagefind-ignore>
       <h2 class="font-display text-xl text-ink mb-4">
         Bills <span class="font-sans text-sm text-ink-muted font-normal">({bills.length})</span>
       </h2>
@@ -239,7 +243,7 @@ const party = getParty();
   )}
 
   <!-- Questions Section -->
-  <section>
+  <section data-pagefind-ignore>
     <h2 class="font-display text-xl text-ink mb-4">
       Parliamentary Questions <span class="font-sans text-sm text-ink-muted font-normal">({questions.length})</span>
     </h2>
@@ -250,7 +254,11 @@ const party = getParty();
         <div id="questions-list" class="flex flex-col border-t border-border">
           {questions.map((section) => (
             <div class="question-item">
-              <QuestionCard section={section} showSpeakers={false} />
+              <QuestionCard
+                section={section}
+                showSpeakers={false}
+                includePagefindMeta={false}
+              />
             </div>
           ))}
         </div>

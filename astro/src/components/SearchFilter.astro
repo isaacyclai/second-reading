@@ -136,7 +136,9 @@ const {
       const originalOrder: HTMLElement[] = [];
       items.forEach((item) => {
         originalOrder.push(item);
-        const anchor = item.querySelector("a[data-pagefind-meta]") as HTMLElement;
+        const anchor = item.querySelector(
+          "a[data-pagefind-meta]",
+        ) as HTMLElement;
         if (anchor) {
           const meta = anchor.getAttribute("data-pagefind-meta");
           const match = meta?.match(/id:([^,]+)/);
@@ -204,7 +206,9 @@ const {
           );
 
           // Dispatch event for pagination to reset
-          container.dispatchEvent(new CustomEvent("search-cleared", { detail: { reordered: true } }));
+          container.dispatchEvent(
+            new CustomEvent("search-cleared", { detail: { reordered: true } }),
+          );
           return;
         }
 
@@ -250,7 +254,9 @@ const {
           status.classList.remove("hidden");
           countElements.forEach((element) => element.classList.add("hidden"));
           container.dispatchEvent(
-            new CustomEvent("search-updated", { detail: { matchCount, reordered: true } }),
+            new CustomEvent("search-updated", {
+              detail: { matchCount, reordered: true },
+            }),
           );
           return;
         }
@@ -300,7 +306,9 @@ const {
 
         // Dispatch event for pagination to update
         container.dispatchEvent(
-          new CustomEvent("search-updated", { detail: { matchCount, reordered: true } }),
+          new CustomEvent("search-updated", {
+            detail: { matchCount, reordered: true },
+          }),
         );
       }
 

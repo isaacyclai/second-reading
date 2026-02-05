@@ -6,9 +6,14 @@ import Tag from "./Tag.astro";
 interface Props {
   section: Section;
   showSpeakers?: boolean;
+  includePagefindMeta?: boolean;
 }
 
-const { section, showSpeakers = true } = Astro.props;
+const {
+  section,
+  showSpeakers = true,
+  includePagefindMeta = true,
+} = Astro.props;
 
 const categoryLabels: Record<string, string> = {
   motion: "Motion",
@@ -33,7 +38,7 @@ const snippet =
 <a
   href={`/questions/${section.id}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  data-pagefind-meta={`id:${section.id}`}
+  {...(includePagefindMeta ? { 'data-pagefind-meta': `id:${section.id}` } : {})}
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
     {
