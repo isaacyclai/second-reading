@@ -58,6 +58,7 @@ export default function PaginatedList({
   const pagefindRef = useRef<Pagefind | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchSeqRef = useRef(0);
 
   // Calculate pagination values
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -128,6 +129,7 @@ export default function PaginatedList({
   // Perform search
   const performSearch = useCallback(
     async (searchQuery: string) => {
+      const searchSeq = (searchSeqRef.current += 1);
       const trimmedQuery = searchQuery.trim();
       if (!trimmedQuery || trimmedQuery.length <= 2) {
         setIsSearchMode(false);
@@ -135,12 +137,14 @@ export default function PaginatedList({
         setPage(1);
         setItems(initialItems);
         updateUrlParams(1, "");
+        setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
       const pf = await loadPagefind();
       const data = await fetchAllData();
+      if (searchSeq !== searchSeqRef.current) return;
 
       if (!pf) {
         // Fallback: simple text matching
@@ -162,7 +166,9 @@ export default function PaginatedList({
         setSearchResults(matched);
         setPage(1);
         updateUrlParams(1, searchQuery);
-        setIsLoading(false);
+        if (searchSeq === searchSeqRef.current) {
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -170,6 +176,7 @@ export default function PaginatedList({
       const results = await pf.search(trimmedQuery, {
         filters: { type: contentType },
       });
+      if (searchSeq !== searchSeqRef.current) return;
 
       // Get matching IDs in relevance order
       const matchedIds = new Set<string>();
@@ -179,6 +186,7 @@ export default function PaginatedList({
           matchedIds.add(resultData.meta.id);
         }
       }
+      if (searchSeq !== searchSeqRef.current) return;
 
       // Build search results from full data in relevance order
       const dataById = new Map(data.map((item) => [item.id, item]));
@@ -194,7 +202,9 @@ export default function PaginatedList({
       setSearchResults(matched);
       setPage(1);
       updateUrlParams(1, trimmedQuery);
-      setIsLoading(false);
+      if (searchSeq === searchSeqRef.current) {
+        setIsLoading(false);
+      }
     },
     [contentType, fetchAllData, initialItems, loadPagefind, updateUrlParams],
   );
