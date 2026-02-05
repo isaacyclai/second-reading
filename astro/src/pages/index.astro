@@ -9,170 +9,160 @@ const stats = getStats();
 ---
 
 <Layout
-    title="Home"
-    description="Scribe - Singapore Parliament proceedings made accessible"
+  title="Home"
+  description="Scribe - Singapore Parliament proceedings made accessible"
 >
-    <!-- Hero Section -->
-    <section class="relative py-16 mb-12">
-        <!-- Ruled lines background -->
-        <div
-            class="absolute inset-0 ruled-lines opacity-40 pointer-events-none"
+  <!-- Hero Section -->
+  <section class="relative py-16 mb-12">
+    <!-- Ruled lines background -->
+    <div class="absolute inset-0 ruled-lines opacity-40 pointer-events-none">
+    </div>
+
+    <div class="relative">
+      <SectionLabel>Singapore Parliament · Hansard</SectionLabel>
+
+      <h1
+        class="font-display font-light text-display-xl text-ink max-w-[16ch] mb-6 animate-fade-up"
+      >
+        Making Parliament<br />
+        <em class="font-normal italic text-accent">accessible</em> for all
+      </h1>
+
+      <p
+        class="font-body text-lg text-ink-soft leading-relaxed max-w-[48ch] mb-8 animate-fade-up animate-delay-100"
+      >
+        Scribe transforms Singapore's official Hansard into a clean, searchable,
+        and readable format — so you can understand what's happening in
+        Parliament without wading through walls of text.
+      </p>
+
+      <div class="flex gap-3 animate-fade-up animate-delay-200">
+        <a
+          href="/bills"
+          class="inline-flex items-center font-sans text-sm tracking-wide font-medium bg-accent text-white px-5 py-2.5 rounded hover:bg-accent-light hover:text-white transition-colors no-underline"
         >
-        </div>
+          Browse Bills
+        </a>
+        <a
+          href="/members"
+          class="inline-flex items-center font-sans text-sm tracking-wide font-medium bg-transparent text-ink border border-border px-5 py-2.5 rounded hover:bg-warm hover:border-ink-muted transition-colors no-underline"
+        >
+          Find Your MP
+        </a>
+      </div>
+    </div>
+  </section>
 
-        <div class="relative">
-            <SectionLabel>Singapore Parliament · Hansard</SectionLabel>
+  <!-- Explore Section -->
+  <section class="mb-12">
+    <SectionLabel>Explore</SectionLabel>
 
-            <h1
-                class="font-display font-light text-display-xl text-ink max-w-[16ch] mb-6 animate-fade-up"
-            >
-                Making Parliament<br />
-                <em class="font-normal italic text-accent">accessible</em> for all
-            </h1>
-
-            <p
-                class="font-body text-lg text-ink-soft leading-relaxed max-w-[48ch] mb-8 animate-fade-up animate-delay-100"
-            >
-                Scribe transforms Singapore's official Hansard into a clean,
-                searchable, and readable format — so you can understand what's
-                happening in Parliament without wading through walls of text.
-            </p>
-
-            <div class="flex gap-3 animate-fade-up animate-delay-200">
-                <a
-                    href="/bills"
-                    class="inline-flex items-center font-sans text-sm tracking-wide font-medium bg-accent text-white px-5 py-2.5 rounded hover:bg-accent-light transition-colors no-underline"
-                >
-                    Browse Bills
-                </a>
-                <a
-                    href="/members"
-                    class="inline-flex items-center font-sans text-sm tracking-wide font-medium bg-transparent text-ink border border-border px-5 py-2.5 rounded hover:bg-warm hover:border-ink-muted transition-colors no-underline"
-                >
-                    Find Your MP
-                </a>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {
+        [
+          {
+            label: "Bills",
+            desc: "What legislation is being debated and passed?",
+            href: "/bills",
+            count: stats.billCount,
+          },
+          {
+            label: "MPs",
+            desc: "Who are your representatives and what do they do?",
+            href: "/members",
+            count: stats.memberCount,
+          },
+          {
+            label: "Questions",
+            desc: "What tough questions are being asked of Ministers?",
+            href: "/questions",
+            count: stats.sectionCount,
+          },
+        ].map((card, i) => (
+          <a
+            href={card.href}
+            class:list={[
+              "group block bg-surface border border-border rounded-md p-6 transition-all hover:-translate-y-0.5 hover:shadow-md no-underline",
+              `animate-fade-up`,
+            ]}
+            style={`animation-delay: ${0.15 + i * 0.08}s`}
+          >
+            <div class="font-sans text-label-sm uppercase tracking-widest text-accent font-semibold mb-1">
+              {card.count} records
             </div>
-        </div>
-    </section>
-
-    <!-- Explore Section -->
-    <section class="mb-12">
-        <SectionLabel>Explore</SectionLabel>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {
-                [
-                    {
-                        label: "Bills",
-                        desc: "What legislation is being debated and passed?",
-                        href: "/bills",
-                        count: stats.billCount,
-                    },
-                    {
-                        label: "MPs",
-                        desc: "Who are your representatives and what do they do?",
-                        href: "/members",
-                        count: stats.memberCount,
-                    },
-                    {
-                        label: "Questions",
-                        desc: "What tough questions are being asked of Ministers?",
-                        href: "/questions",
-                        count: stats.sectionCount,
-                    },
-                ].map((card, i) => (
-                    <a
-                        href={card.href}
-                        class:list={[
-                            "group block bg-surface border border-border rounded-md p-6 transition-all hover:-translate-y-0.5 hover:shadow-md no-underline",
-                            `animate-fade-up`,
-                        ]}
-                        style={`animation-delay: ${0.15 + i * 0.08}s`}
-                    >
-                        <div class="font-sans text-label-sm uppercase tracking-widest text-accent font-semibold mb-1">
-                            {card.count} records
-                        </div>
-                        <div class="font-display text-xl text-ink mb-1 group-hover:text-accent transition-colors">
-                            {card.label}
-                        </div>
-                        <div class="font-body text-sm text-ink-muted leading-relaxed">
-                            {card.desc}
-                        </div>
-                    </a>
-                ))
-            }
-        </div>
-    </section>
-
-    <!-- Stats Strip -->
-    <section class="mb-12 py-6 border-y border-border">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div class="text-center">
-                <div class="font-display text-3xl text-ink mb-1">
-                    {stats.sessionCount}
-                </div>
-                <div
-                    class="font-sans text-xs uppercase tracking-wide text-ink-muted"
-                >
-                    Sittings
-                </div>
+            <div class="font-display text-xl text-ink mb-1 group-hover:text-accent transition-colors">
+              {card.label}
             </div>
-            <div class="text-center">
-                <div class="font-display text-3xl text-ink mb-1">
-                    {stats.memberCount}
-                </div>
-                <div
-                    class="font-sans text-xs uppercase tracking-wide text-ink-muted"
-                >
-                    Members
-                </div>
+            <div class="font-body text-sm text-ink-muted leading-relaxed">
+              {card.desc}
             </div>
-            <div class="text-center">
-                <div class="font-display text-3xl text-ink mb-1">
-                    {stats.billCount}
-                </div>
-                <div
-                    class="font-sans text-xs uppercase tracking-wide text-ink-muted"
-                >
-                    Bills
-                </div>
-            </div>
-            <div class="text-center">
-                <div class="font-display text-3xl text-ink mb-1">
-                    {stats.sectionCount}
-                </div>
-                <div
-                    class="font-sans text-xs uppercase tracking-wide text-ink-muted"
-                >
-                    Sections
-                </div>
-            </div>
-        </div>
-    </section>
+          </a>
+        ))
+      }
+    </div>
+  </section>
 
-    <!-- Recent Sittings -->
-    <section>
-        <div class="flex items-baseline justify-between mb-4">
-            <SectionLabel class="mb-0">Latest Sittings</SectionLabel>
-            <a
-                href="/sessions"
-                class="font-sans text-xs text-accent hover:text-accent-light no-underline"
-            >
-                View all →
-            </a>
+  <!-- Stats Strip -->
+  <section class="mb-12 py-6 border-y border-border">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="text-center">
+        <div class="font-display text-3xl text-ink mb-1">
+          {stats.sessionCount}
         </div>
+        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+          Sittings
+        </div>
+      </div>
+      <div class="text-center">
+        <div class="font-display text-3xl text-ink mb-1">
+          {stats.memberCount}
+        </div>
+        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+          Members
+        </div>
+      </div>
+      <div class="text-center">
+        <div class="font-display text-3xl text-ink mb-1">
+          {stats.billCount}
+        </div>
+        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+          Bills
+        </div>
+      </div>
+      <div class="text-center">
+        <div class="font-display text-3xl text-ink mb-1">
+          {stats.sectionCount}
+        </div>
+        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+          Sections
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="flex flex-col">
-            {
-                recentSessions.map((session, i) => (
-                    <div
-                        style={`animation-delay: ${0.3 + i * 0.06}s`}
-                        class="animate-fade-up -mx-2"
-                    >
-                        <SessionCard session={session} />
-                    </div>
-                ))
-            }
-        </div>
-    </section>
+  <!-- Recent Sittings -->
+  <section>
+    <div class="flex items-baseline justify-between mb-4">
+      <SectionLabel class="mb-0">Latest Sittings</SectionLabel>
+      <a
+        href="/sessions"
+        class="font-sans text-xs text-accent hover:text-accent-light no-underline"
+      >
+        View all →
+      </a>
+    </div>
+
+    <div class="flex flex-col">
+      {
+        recentSessions.map((session, i) => (
+          <div
+            style={`animation-delay: ${0.3 + i * 0.06}s`}
+            class="animate-fade-up -mx-2"
+          >
+            <SessionCard session={session} />
+          </div>
+        ))
+      }
+    </div>
+  </section>
 </Layout>
