@@ -166,6 +166,13 @@
 
 /* ─── Newspaper Front Page Styles ─── */
 
+/* Page container - matches HTML design */
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
 /* Top rule bar */
 .top-rule {
   height: 4px;
@@ -182,7 +189,9 @@
 
 .masthead-title {
   font-family: 'Playfair Display', Georgia, serif;
-  @apply text-5xl font-normal tracking-tight leading-none;
+  font-size: 3.2rem;
+  letter-spacing: 0.01em;
+  @apply font-normal leading-none;
 }
 
 .masthead-tagline {
@@ -259,7 +268,8 @@
 
 .section-card-title {
   font-family: 'Playfair Display', Georgia, serif;
-  @apply text-base font-semibold uppercase tracking-wide;
+  font-size: 1.1rem;
+  @apply font-semibold uppercase tracking-wide;
 }
 
 .section-card-badge {
@@ -269,7 +279,8 @@
 
 .section-card-count {
   font-family: 'Playfair Display', Georgia, serif;
-  @apply text-4xl font-normal text-ink leading-none mb-1.5;
+  font-size: 2.2rem;
+  @apply font-normal text-ink leading-none mb-1.5;
 }
 
 .section-card-description {
@@ -317,7 +328,8 @@
 
 .hero-headline {
   font-family: 'Playfair Display', Georgia, serif;
-  @apply text-5xl font-normal leading-tight mb-1;
+  font-size: 3rem;
+  @apply font-normal leading-tight mb-1;
 }
 
 .hero-headline em {
@@ -365,7 +377,8 @@
 
 .stat-number {
   font-family: 'Playfair Display', Georgia, serif;
-  @apply text-3xl font-normal leading-none mb-1;
+  font-size: 2rem;
+  @apply font-normal leading-none mb-1;
 }
 
 .stat-label {
@@ -478,6 +491,10 @@
 }
 
 @media (max-width: 768px) {
+  .page {
+    padding: 0 1.25rem;
+  }
+
   .masthead {
     grid-template-columns: 1fr;
     @apply text-center gap-3;
@@ -489,7 +506,7 @@
   }
 
   .masthead-title {
-    @apply text-4xl;
+    font-size: 2.5rem;
   }
 
   .nav-bar {
@@ -509,7 +526,7 @@
   }
 
   .hero-headline {
-    @apply text-3xl;
+    font-size: 2.2rem;
   }
 
   .hero-actions {
