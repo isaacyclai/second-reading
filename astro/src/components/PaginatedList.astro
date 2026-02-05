@@ -84,7 +84,12 @@ const {
       class="paginated-prev flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
       disabled
     >
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg
+        class="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -103,7 +108,12 @@ const {
       class="paginated-next flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
     >
       Next
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg
+        class="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -143,7 +153,7 @@ const {
   interface Pagefind {
     search: (
       query: string,
-      options?: { filters?: Record<string, string> }
+      options?: { filters?: Record<string, string> },
     ) => Promise<PagefindSearch>;
   }
 
@@ -168,20 +178,42 @@ const {
       const selector = wrapper.getAttribute("data-selector");
       const contentType = wrapper.getAttribute("data-type");
       const dataUrl = wrapper.getAttribute("data-url");
-      const totalCount = parseInt(wrapper.getAttribute("data-total") || "0", 10);
-      const pageSize = parseInt(wrapper.getAttribute("data-page-size") || "20", 10);
+      const totalCount = parseInt(
+        wrapper.getAttribute("data-total") || "0",
+        10,
+      );
+      const pageSize = parseInt(
+        wrapper.getAttribute("data-page-size") || "20",
+        10,
+      );
 
       const container = document.getElementById(containerId!);
       if (!container) return;
 
-      const input = wrapper.querySelector(".paginated-search-input") as HTMLInputElement;
-      const clearBtn = wrapper.querySelector(".paginated-clear-btn") as HTMLButtonElement;
-      const statusEl = wrapper.querySelector(".paginated-status") as HTMLElement;
-      const controls = wrapper.querySelector(".paginated-controls") as HTMLElement;
-      const prevBtn = wrapper.querySelector(".paginated-prev") as HTMLButtonElement;
-      const nextBtn = wrapper.querySelector(".paginated-next") as HTMLButtonElement;
-      const currentSpan = wrapper.querySelector(".paginated-current") as HTMLElement;
-      const totalSpan = wrapper.querySelector(".paginated-total") as HTMLElement;
+      const input = wrapper.querySelector(
+        ".paginated-search-input",
+      ) as HTMLInputElement;
+      const clearBtn = wrapper.querySelector(
+        ".paginated-clear-btn",
+      ) as HTMLButtonElement;
+      const statusEl = wrapper.querySelector(
+        ".paginated-status",
+      ) as HTMLElement;
+      const controls = wrapper.querySelector(
+        ".paginated-controls",
+      ) as HTMLElement;
+      const prevBtn = wrapper.querySelector(
+        ".paginated-prev",
+      ) as HTMLButtonElement;
+      const nextBtn = wrapper.querySelector(
+        ".paginated-next",
+      ) as HTMLButtonElement;
+      const currentSpan = wrapper.querySelector(
+        ".paginated-current",
+      ) as HTMLElement;
+      const totalSpan = wrapper.querySelector(
+        ".paginated-total",
+      ) as HTMLElement;
 
       if (!input) return;
 
@@ -196,12 +228,16 @@ const {
       let jsonData: DataItem[] | null = null;
 
       // Get all static items
-      const staticItems = Array.from(container.querySelectorAll(selector!)) as HTMLElement[];
+      const staticItems = Array.from(
+        container.querySelectorAll(selector!),
+      ) as HTMLElement[];
 
       // Build ID map for quick lookup
       const itemById = new Map<string, HTMLElement>();
       staticItems.forEach((item) => {
-        const anchor = item.querySelector("a[data-pagefind-meta]") as HTMLElement;
+        const anchor = item.querySelector(
+          "a[data-pagefind-meta]",
+        ) as HTMLElement;
         if (anchor) {
           const meta = anchor.getAttribute("data-pagefind-meta");
           const match = meta?.match(/id:([^,]+)/);
@@ -214,7 +250,11 @@ const {
       // Remove animation classes after initial load
       setTimeout(() => {
         staticItems.forEach((item) => {
-          item.classList.remove("animate-fade-up", "animate-fade-in", "animate-slide-down");
+          item.classList.remove(
+            "animate-fade-up",
+            "animate-fade-in",
+            "animate-slide-down",
+          );
           item.style.animationDelay = "";
         });
       }, 1000);
@@ -327,7 +367,9 @@ const {
       }
 
       function getItemId(item: HTMLElement): string {
-        const anchor = item.querySelector("a[data-pagefind-meta]") as HTMLElement;
+        const anchor = item.querySelector(
+          "a[data-pagefind-meta]",
+        ) as HTMLElement;
         if (anchor) {
           const meta = anchor.getAttribute("data-pagefind-meta");
           const match = meta?.match(/id:([^,]+)/);
@@ -414,7 +456,6 @@ const {
         if (currentPage > 1) {
           currentPage--;
           updateDisplay();
-          container.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
 
@@ -424,7 +465,6 @@ const {
         if (currentPage < totalPages) {
           currentPage++;
           updateDisplay();
-          container.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
 
