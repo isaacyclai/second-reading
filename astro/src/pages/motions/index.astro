@@ -2,53 +2,50 @@
 import Layout from '../../layouts/Layout.astro';
 import SectionLabel from '../../components/SectionLabel.astro';
 import QuestionCard from '../../components/QuestionCard.astro';
-import SearchFilter from '../../components/SearchFilter.astro';
-import Pagination from '../../components/Pagination.astro';
+import PaginatedList from '../../components/PaginatedList.astro';
 import { getMotions, getMotionCount } from '../../lib/db';
 
+const PAGE_SIZE = 20;
 const motions = getMotions();
 const totalCount = getMotionCount();
 ---
 
 <Layout title="Motions" description="Browse Singapore Parliament motions">
   <SectionLabel>Parliamentary Proceedings</SectionLabel>
-  
+
   <h1 class="font-display text-display-lg text-ink mb-4">
     Motions
   </h1>
-  
+
   <p class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-8">
     Browse parliamentary motions and adjournment motions. Motions are formal proposals put before
     Parliament for debate and decision. Click on a motion to see the full transcript.
   </p>
 
-  <SearchFilter 
+  <PaginatedList
     containerId="motions-list"
     itemSelector=".motion-item"
     contentType="motion"
+    dataUrl="/data/motions.json"
+    totalCount={totalCount}
+    pageSize={PAGE_SIZE}
     placeholder="Search motions by title, speaker, or content..."
-  />
-
-  <p class="font-sans text-sm text-ink-muted mb-6" data-search-count="motions-list">
-    Showing <span id="motions-count">{motions.length}</span> of {totalCount} motions
-  </p>
-
-  <div id="motions-list" class="flex flex-col border-t border-border">
-    {motions.length === 0 ? (
-      <p class="py-12 text-center font-body text-ink-muted">
-        No motions found
-      </p>
-    ) : (
-      motions.map((motion, i) => (
-        <div
-          class="motion-item animate-fade-up"
-          style={`animation-delay: ${0.1 + i * 0.03}s`}
-        >
-          <QuestionCard section={motion} />
-        </div>
-      ))
-    )}
-  </div>
-
-  <Pagination containerId="motions-list" itemSelector=".motion-item" itemsPerPage={20} />
+  >
+    <div id="motions-list" class="flex flex-col border-t border-border">
+      {motions.length === 0 ? (
+        <p class="py-12 text-center font-body text-ink-muted">
+          No motions found
+        </p>
+      ) : (
+        motions.map((motion, i) => (
+          <div
+            class="motion-item animate-fade-up"
+            style={`animation-delay: ${0.1 + i * 0.03}s`}
+          >
+            <QuestionCard section={motion} />
+          </div>
+        ))
+      )}
+    </div>
+  </PaginatedList>
 </Layout>

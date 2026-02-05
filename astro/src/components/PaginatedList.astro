@@ -1,0 +1,474 @@
+---
+interface Props {
+  containerId: string;
+  itemSelector: string;
+  contentType: "question" | "bill" | "motion" | "session";
+  dataUrl: string;
+  totalCount: number;
+  pageSize?: number;
+  placeholder?: string;
+}
+
+const {
+  containerId,
+  itemSelector,
+  contentType,
+  dataUrl,
+  totalCount,
+  pageSize = 20,
+  placeholder = "Search...",
+} = Astro.props;
+---
+
+<div
+  class="paginated-list-wrapper"
+  data-container={containerId}
+  data-selector={itemSelector}
+  data-type={contentType}
+  data-url={dataUrl}
+  data-total={totalCount}
+  data-page-size={pageSize}
+>
+  <!-- Search input -->
+  <div class="mb-6">
+    <div class="relative">
+      <svg
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 pointer-events-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <input
+        type="text"
+        class="paginated-search-input w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+        placeholder={placeholder}
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button
+        type="button"
+        class="paginated-clear-btn absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 hover:text-ink transition-colors hidden"
+        aria-label="Clear search"
+      >
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Status text -->
+  <p class="paginated-status font-sans text-sm text-ink-muted mb-6">
+    Showing 1-{Math.min(pageSize, totalCount)} of {totalCount}
+  </p>
+
+  <!-- Content slot (static HTML items) -->
+  <slot />
+
+  <!-- Pagination controls -->
+  <nav
+    class="paginated-controls flex items-center justify-center gap-4 py-6"
+    aria-label="Pagination"
+  >
+    <button
+      class="paginated-prev flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
+      disabled
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Previous
+    </button>
+    <span class="paginated-info font-ui text-sm text-ink/50">
+      Page <span class="paginated-current font-medium text-ink">1</span> of <span
+        class="paginated-total font-medium text-ink"
+        >{Math.ceil(totalCount / pageSize)}</span
+      >
+    </span>
+    <button
+      class="paginated-next flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
+    >
+      Next
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M9 5l7 7-7 7"></path>
+      </svg>
+    </button>
+  </nav>
+</div>
+
+<script>
+  interface DataItem {
+    id: string;
+    title?: string;
+    date?: string;
+    [key: string]: unknown;
+  }
+
+  interface DataResponse {
+    items: DataItem[];
+    total: number;
+  }
+
+  interface PagefindResult {
+    id: string;
+    data: () => Promise<{
+      meta?: { id?: string };
+      url: string;
+      excerpt: string;
+    }>;
+  }
+
+  interface PagefindSearch {
+    results: PagefindResult[];
+  }
+
+  interface Pagefind {
+    search: (
+      query: string,
+      options?: { filters?: Record<string, string> }
+    ) => Promise<PagefindSearch>;
+  }
+
+  let pagefind: Pagefind | null = null;
+
+  async function loadPagefind(): Promise<Pagefind | null> {
+    if (pagefind) return pagefind;
+    try {
+      const base = import.meta.env.BASE_URL || "/";
+      const pagefindPath = `${base}pagefind/pagefind.js`.replace(/\/+/g, "/");
+      pagefind = (await import(/* @vite-ignore */ pagefindPath)) as Pagefind;
+      return pagefind;
+    } catch (e) {
+      console.warn("Pagefind not available - search will be disabled.");
+      return null;
+    }
+  }
+
+  function initPaginatedList() {
+    document.querySelectorAll(".paginated-list-wrapper").forEach((wrapper) => {
+      const containerId = wrapper.getAttribute("data-container");
+      const selector = wrapper.getAttribute("data-selector");
+      const contentType = wrapper.getAttribute("data-type");
+      const dataUrl = wrapper.getAttribute("data-url");
+      const totalCount = parseInt(wrapper.getAttribute("data-total") || "0", 10);
+      const pageSize = parseInt(wrapper.getAttribute("data-page-size") || "20", 10);
+
+      const container = document.getElementById(containerId!);
+      if (!container) return;
+
+      const input = wrapper.querySelector(".paginated-search-input") as HTMLInputElement;
+      const clearBtn = wrapper.querySelector(".paginated-clear-btn") as HTMLButtonElement;
+      const statusEl = wrapper.querySelector(".paginated-status") as HTMLElement;
+      const controls = wrapper.querySelector(".paginated-controls") as HTMLElement;
+      const prevBtn = wrapper.querySelector(".paginated-prev") as HTMLButtonElement;
+      const nextBtn = wrapper.querySelector(".paginated-next") as HTMLButtonElement;
+      const currentSpan = wrapper.querySelector(".paginated-current") as HTMLElement;
+      const totalSpan = wrapper.querySelector(".paginated-total") as HTMLElement;
+
+      if (!input) return;
+
+      // Check if already initialized
+      if (input.hasAttribute("data-paginated-initialized")) return;
+      input.setAttribute("data-paginated-initialized", "true");
+
+      // State
+      let currentPage = 1;
+      let isSearchMode = false;
+      let searchResults: string[] = []; // IDs of matching items in relevance order
+      let jsonData: DataItem[] | null = null;
+
+      // Get all static items
+      const staticItems = Array.from(container.querySelectorAll(selector!)) as HTMLElement[];
+
+      // Build ID map for quick lookup
+      const itemById = new Map<string, HTMLElement>();
+      staticItems.forEach((item) => {
+        const anchor = item.querySelector("a[data-pagefind-meta]") as HTMLElement;
+        if (anchor) {
+          const meta = anchor.getAttribute("data-pagefind-meta");
+          const match = meta?.match(/id:([^,]+)/);
+          if (match) {
+            itemById.set(match[1], item);
+          }
+        }
+      });
+
+      // Remove animation classes after initial load
+      setTimeout(() => {
+        staticItems.forEach((item) => {
+          item.classList.remove("animate-fade-up", "animate-fade-in", "animate-slide-down");
+          item.style.animationDelay = "";
+        });
+      }, 1000);
+
+      // Fetch JSON data for pagination
+      async function fetchJsonData(): Promise<DataItem[]> {
+        if (jsonData) return jsonData;
+        try {
+          const response = await fetch(dataUrl!);
+          const data: DataResponse = await response.json();
+          jsonData = data.items;
+          return jsonData;
+        } catch (e) {
+          console.error("Failed to fetch JSON data:", e);
+          return [];
+        }
+      }
+
+      function updateUrlParams() {
+        const url = new URL(window.location.href);
+        if (isSearchMode && input.value) {
+          url.searchParams.set("q", input.value);
+          url.searchParams.delete("page");
+        } else if (currentPage > 1) {
+          url.searchParams.set("page", String(currentPage));
+          url.searchParams.delete("q");
+        } else {
+          url.searchParams.delete("page");
+          url.searchParams.delete("q");
+        }
+        window.history.replaceState({}, "", url.toString());
+      }
+
+      function updateDisplay() {
+        if (isSearchMode) {
+          // Search mode: show items by relevance order
+          const totalResults = searchResults.length;
+          const totalPages = Math.ceil(totalResults / pageSize);
+          const start = (currentPage - 1) * pageSize;
+          const end = start + pageSize;
+          const pageIds = new Set(searchResults.slice(start, end));
+
+          // Hide all items
+          staticItems.forEach((item) => {
+            item.style.display = "none";
+          });
+
+          // Show items for current page in relevance order
+          const fragment = document.createDocumentFragment();
+          for (const id of searchResults.slice(start, end)) {
+            const item = itemById.get(id);
+            if (item) {
+              item.style.display = "";
+              fragment.appendChild(item);
+            }
+          }
+          // Append remaining hidden items
+          staticItems.forEach((item) => {
+            if (!pageIds.has(getItemId(item))) {
+              fragment.appendChild(item);
+            }
+          });
+          container.appendChild(fragment);
+
+          // Update status
+          if (totalResults === 0) {
+            statusEl.textContent = `No results found`;
+          } else {
+            const rangeStart = totalResults === 0 ? 0 : start + 1;
+            const rangeEnd = Math.min(end, totalResults);
+            statusEl.textContent = `Found ${totalResults} results (${rangeStart}-${rangeEnd})`;
+          }
+
+          // Update pagination
+          currentSpan.textContent = String(currentPage);
+          totalSpan.textContent = String(totalPages || 1);
+          prevBtn.disabled = currentPage === 1;
+          nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
+          controls.style.display = totalPages <= 1 ? "none" : "";
+        } else {
+          // Browse mode: paginate through all items in date order
+          const totalPages = Math.ceil(totalCount / pageSize);
+          const start = (currentPage - 1) * pageSize;
+          const end = start + pageSize;
+
+          // Show/hide static items based on page
+          staticItems.forEach((item, index) => {
+            item.style.display = index >= start && index < end ? "" : "none";
+          });
+
+          // Restore original order
+          const fragment = document.createDocumentFragment();
+          staticItems.forEach((item) => fragment.appendChild(item));
+          container.appendChild(fragment);
+
+          // Update status
+          const rangeStart = totalCount === 0 ? 0 : start + 1;
+          const rangeEnd = Math.min(end, totalCount);
+          statusEl.textContent = `Showing ${rangeStart}-${rangeEnd} of ${totalCount}`;
+
+          // Update pagination
+          currentSpan.textContent = String(currentPage);
+          totalSpan.textContent = String(totalPages || 1);
+          prevBtn.disabled = currentPage === 1;
+          nextBtn.disabled = currentPage >= totalPages;
+          controls.style.display = totalPages <= 1 ? "none" : "";
+        }
+
+        updateUrlParams();
+      }
+
+      function getItemId(item: HTMLElement): string {
+        const anchor = item.querySelector("a[data-pagefind-meta]") as HTMLElement;
+        if (anchor) {
+          const meta = anchor.getAttribute("data-pagefind-meta");
+          const match = meta?.match(/id:([^,]+)/);
+          if (match) return match[1];
+        }
+        return "";
+      }
+
+      let debounceTimer: ReturnType<typeof setTimeout>;
+
+      async function performSearch(query: string) {
+        if (!query.trim()) {
+          // Exit search mode
+          isSearchMode = false;
+          searchResults = [];
+          currentPage = 1;
+          clearBtn.classList.add("hidden");
+          updateDisplay();
+          return;
+        }
+
+        clearBtn.classList.remove("hidden");
+        const pf = await loadPagefind();
+
+        if (!pf) {
+          // Fallback: simple text matching
+          isSearchMode = true;
+          const lowerQuery = query.toLowerCase();
+          searchResults = [];
+
+          staticItems.forEach((item) => {
+            const text = item.textContent?.toLowerCase() || "";
+            if (text.includes(lowerQuery)) {
+              searchResults.push(getItemId(item));
+            }
+          });
+
+          currentPage = 1;
+          updateDisplay();
+          return;
+        }
+
+        // Use Pagefind for search
+        isSearchMode = true;
+        const results = await pf.search(query, {
+          filters: { type: contentType! },
+        });
+
+        // Get matching IDs in relevance order
+        searchResults = [];
+        for (const result of results.results) {
+          const data = await result.data();
+          if (data.meta?.id) {
+            searchResults.push(data.meta.id);
+          }
+        }
+
+        currentPage = 1;
+        updateDisplay();
+      }
+
+      // Event listeners
+      input.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          performSearch(input.value);
+        }, 150);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        performSearch("");
+        input.focus();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && input.value) {
+          input.value = "";
+          performSearch("");
+        }
+      });
+
+      prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          updateDisplay();
+          container.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+
+      nextBtn.addEventListener("click", () => {
+        const totalItems = isSearchMode ? searchResults.length : totalCount;
+        const totalPages = Math.ceil(totalItems / pageSize);
+        if (currentPage < totalPages) {
+          currentPage++;
+          updateDisplay();
+          container.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+
+      // Preload pagefind on focus
+      input.addEventListener("focus", () => loadPagefind(), { once: true });
+
+      // Handle back/forward navigation
+      window.addEventListener("popstate", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageParam = urlParams.get("page");
+        const queryParam = urlParams.get("q");
+
+        if (queryParam) {
+          input.value = queryParam;
+          performSearch(queryParam);
+        } else {
+          input.value = "";
+          isSearchMode = false;
+          searchResults = [];
+          currentPage = pageParam ? parseInt(pageParam, 10) : 1;
+          if (!Number.isFinite(currentPage) || currentPage < 1) currentPage = 1;
+          updateDisplay();
+        }
+      });
+
+      // Initialize from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialQuery = urlParams.get("q");
+      const initialPage = urlParams.get("page");
+
+      if (initialQuery) {
+        input.value = initialQuery;
+        performSearch(initialQuery);
+      } else if (initialPage) {
+        currentPage = parseInt(initialPage, 10);
+        if (!Number.isFinite(currentPage) || currentPage < 1) currentPage = 1;
+        updateDisplay();
+      } else {
+        updateDisplay();
+      }
+    });
+  }
+
+  // Initialize on page load and after view transitions
+  initPaginatedList();
+  document.addEventListener("astro:after-swap", initPaginatedList);
+</script>

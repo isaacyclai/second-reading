@@ -2,13 +2,12 @@
 import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
 import QuestionCard from "../../components/QuestionCard.astro";
-import SearchRedirect from "../../components/SearchRedirect.astro";
+import PaginatedList from "../../components/PaginatedList.astro";
 import { getQuestions, getQuestionCount } from "../../lib/db";
 
 const PAGE_SIZE = 20;
 const totalCount = getQuestionCount();
-const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-const questions = getQuestions(PAGE_SIZE, 0);
+const questions = getQuestions();
 ---
 
 <Layout
@@ -29,80 +28,32 @@ const questions = getQuestions(PAGE_SIZE, 0);
     see the full transcript.
   </p>
 
-  <SearchRedirect
-    action="/questions/search"
+  <PaginatedList
+    containerId="questions-list"
+    itemSelector=".question-item"
+    contentType="question"
+    dataUrl="/data/questions.json"
+    totalCount={totalCount}
+    pageSize={PAGE_SIZE}
     placeholder="Search questions by title, speaker, or content..."
-  />
-
-  <p class="font-sans text-sm text-ink-muted mb-6">
-    Showing 1-{Math.min(PAGE_SIZE, totalCount)} of {totalCount} questions
-  </p>
-
-  <div id="questions-list" class="flex flex-col border-t border-border">
-    {
-      questions.length === 0 ? (
-        <p class="py-12 text-center font-body text-ink-muted">
-          No questions found
-        </p>
-      ) : (
-        questions.map((question, i) => (
-          <div
-            class="question-item animate-fade-up"
-            style={`animation-delay: ${0.1 + Math.min(i, 20) * 0.03}s`}
-          >
-            <QuestionCard section={question} />
-          </div>
-        ))
-      )
-    }
-  </div>
-
-  {
-    totalPages > 1 && (
-      <nav
-        class="flex items-center justify-center gap-4 py-6"
-        aria-label="Questions pagination"
-      >
-        <span class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 opacity-40">
-          <svg
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Previous
-        </span>
-        <span class="font-ui text-sm text-ink/50">
-          Page <span class="font-medium text-ink">1</span> of{" "}
-          <span class="font-medium text-ink">{totalPages}</span>
-        </span>
-        <a
-          class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent"
-          href="/questions/page/2"
-        >
-          Next
-          <svg
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </a>
-      </nav>
-    )
-  }
+  >
+    <div id="questions-list" class="flex flex-col border-t border-border">
+      {
+        questions.length === 0 ? (
+          <p class="py-12 text-center font-body text-ink-muted">
+            No questions found
+          </p>
+        ) : (
+          questions.map((question, i) => (
+            <div
+              class="question-item animate-fade-up"
+              style={`animation-delay: ${0.1 + Math.min(i, 20) * 0.03}s`}
+            >
+              <QuestionCard section={question} />
+            </div>
+          ))
+        )
+      }
+    </div>
+  </PaginatedList>
 </Layout>
