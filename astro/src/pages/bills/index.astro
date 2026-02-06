@@ -13,6 +13,7 @@ const bills = getBills(PAGE_SIZE, 0);
 const initialItems: ListItem[] = bills.map((b) => ({
   id: b.id,
   title: b.title,
+  date: b.firstReadingDate || undefined,
   ministry: b.ministry || undefined,
   firstReadingDate: b.firstReadingDate || undefined,
   hasSecondReading: b.hasSecondReading || false,
