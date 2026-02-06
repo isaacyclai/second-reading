@@ -193,9 +193,12 @@ const {
       }
 
       let debounceTimer: ReturnType<typeof setTimeout>;
+      let searchSeq = 0;
 
       async function performSearch(query: string) {
+        const seq = ++searchSeq;
         const pf = await loadPagefind();
+        if (seq !== searchSeq) return;
 
         const countElements = containerId
           ? (document.querySelectorAll(
@@ -277,6 +280,7 @@ const {
         const results = await pf.search(query, {
           filters: { type: contentType! },
         });
+        if (seq !== searchSeq) return;
 
         // Get matching IDs in relevance order (array preserves order)
         const orderedIds: string[] = [];
@@ -286,6 +290,7 @@ const {
             orderedIds.push(data.meta.id);
           }
         }
+        if (seq !== searchSeq) return;
 
         const matchingIds = new Set(orderedIds);
 
