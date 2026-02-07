@@ -268,12 +268,7 @@ const defaultYear = years[years.length - 1];
   </div>
 
   <!-- Treemap -->
-  <div
-    id="treemap-container"
-    class="relative border border-border"
-    style="padding-bottom: 80%;"
-  >
-  </div>
+  <div id="treemap-container" class="relative border border-border"></div>
 
   <!-- Source note -->
   <p class="font-sans text-xs text-ink-muted mt-4">
@@ -306,6 +301,16 @@ const defaultYear = years[years.length - 1];
 
 <style is:global>
   /* ─── Treemap cells ─── */
+  #treemap-container {
+    padding-bottom: 80%;
+  }
+
+  @media (max-width: 640px) {
+    #treemap-container {
+      padding-bottom: 140%;
+    }
+  }
+
   .tm-sector {
     position: absolute;
     box-sizing: border-box;
