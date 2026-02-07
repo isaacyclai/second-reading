@@ -1,13 +1,20 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import SectionLabel from '../../components/SectionLabel.astro';
-import AISummaryCard from '../../components/AISummaryCard.astro';
-import QuestionCard from '../../components/QuestionCard.astro';
-import Pagination from '../../components/Pagination.astro';
-import Avatar from '../../components/Avatar.astro';
-import Tag from '../../components/Tag.astro';
-import { getMembersWithInfo, getMember, getMemberSections, getMemberAttendance } from '../../lib/db';
-import { slugify } from '../../lib/slugify';
+import Layout from "../../layouts/Layout.astro";
+import SectionLabel from "../../components/SectionLabel.astro";
+import AISummaryCard from "../../components/AISummaryCard.astro";
+import QuestionCard from "../../components/QuestionCard.astro";
+import Pagination from "../../components/Pagination.astro";
+import Avatar from "../../components/Avatar.astro";
+import Tag from "../../components/Tag.astro";
+import AttendanceTimeline from "../../components/AttendanceTimeline.astro";
+import AttendanceDotGrid from "../../components/AttendanceDotGrid.astro";
+import {
+  getMembersWithInfo,
+  getMember,
+  getMemberSections,
+  getMemberAttendance,
+} from "../../lib/db";
+import { slugify } from "../../lib/slugify";
 
 export async function getStaticPaths() {
   const members = getMembersWithInfo();
@@ -21,42 +28,57 @@ const { id } = Astro.props;
 const member = getMember(id);
 
 if (!member) {
-  return Astro.redirect('/members');
+  return Astro.redirect("/members");
 }
 
 const sections = getMemberSections(id);
 const attendance = getMemberAttendance(id);
 
 // Categorize sections
-const motions = sections.filter(s =>
-  s.category === 'motion' ||
-  s.category === 'adjournment_motion' ||
-  s.category === 'statement' ||
-  s.category === 'clarification' ||
-  (!s.category && s.sectionType === 'OS')
+const motions = sections.filter(
+  (s) =>
+    s.category === "motion" ||
+    s.category === "adjournment_motion" ||
+    s.category === "statement" ||
+    s.category === "clarification" ||
+    (!s.category && s.sectionType === "OS"),
 );
-const bills = sections.filter(s => s.sectionType === 'BI' || s.sectionType === 'BP');
-const questions = sections.filter(s =>
-  ['OA', 'WA', 'WANA'].includes(s.sectionType) && !motions.includes(s)
+const bills = sections.filter(
+  (s) => s.sectionType === "BI" || s.sectionType === "BP",
+);
+const questions = sections.filter(
+  (s) => ["OA", "WA", "WANA"].includes(s.sectionType) && !motions.includes(s),
 );
 
-const attendancePercent = member.attendanceTotal && member.attendanceTotal > 0
-  ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
-  : null;
+const attendancePercent =
+  member.attendanceTotal && member.attendanceTotal > 0
+    ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
+    : null;
 
 // Try to extract party from designation
 const getParty = (): string | null => {
-  if (member.designation?.includes('Workers')) return 'WP';
-  if (member.designation?.includes('Progress')) return 'PSP';
-  if (member.designation?.includes('Minister') || member.designation?.includes('Secretary')) return 'PAP';
+  if (member.designation?.includes("Workers")) return "WP";
+  if (member.designation?.includes("Progress")) return "PSP";
+  if (
+    member.designation?.includes("Minister") ||
+    member.designation?.includes("Secretary")
+  )
+    return "PAP";
   return null;
 };
 
 const party = getParty();
 ---
 
-<Layout title={member.name} description={`Parliamentary activities for ${member.name}`}>
-  <a href="/members" class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-8" data-pagefind-ignore>
+<Layout
+  title={member.name}
+  description={`Parliamentary activities for ${member.name}`}
+>
+  <a
+    href="/members"
+    class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-8"
+    data-pagefind-ignore
+  >
     ← Back to Members
   </a>
 
@@ -67,195 +89,130 @@ const party = getParty();
     data-pagefind-meta={`id:${member.id}`}
   >
     <div class="flex items-start gap-5 mb-6">
-      <Avatar name={member.name} party={party || undefined} class="w-16 h-16 text-xl" />
-      
+      <Avatar
+        name={member.name}
+        party={party || undefined}
+        class="w-16 h-16 text-xl"
+      />
+
       <div class="flex-1">
-        <h1 class="font-display text-display-md text-ink mb-2" data-pagefind-weight="10">
+        <h1
+          class="font-display text-display-md text-ink mb-2"
+          data-pagefind-weight="10"
+        >
           {member.name}
         </h1>
-        
+
         <div class="flex flex-wrap items-center gap-3 mb-4">
-          {member.designation && (
-            <span class="font-sans text-base text-ink-soft" data-pagefind-weight="5">
-              {member.designation}
-            </span>
-          )}
-          {member.constituency && (
-            <span data-pagefind-weight="5">
-              <Tag color="muted">{member.constituency}</Tag>
-            </span>
-          )}
+          {
+            member.designation && (
+              <span
+                class="font-sans text-base text-ink-soft"
+                data-pagefind-weight="5"
+              >
+                {member.designation}
+              </span>
+            )
+          }
+          {
+            member.constituency && (
+              <span data-pagefind-weight="5">
+                <Tag color="muted">{member.constituency}</Tag>
+              </span>
+            )
+          }
         </div>
       </div>
     </div>
-    
+
     <!-- Everything below excluded from search indexing -->
     <div data-pagefind-ignore>
-    <!-- Stats Row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-border mb-8">
-      <div>
-        <div class="font-display text-2xl text-ink">{sections.length}</div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">Speeches</div>
-      </div>
-      <div>
-        <div class="font-display text-2xl text-ink">{questions.length}</div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">Questions</div>
-      </div>
-      <div>
-        <div class="font-display text-2xl text-ink">{motions.length}</div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">Motions</div>
-      </div>
-      {attendancePercent !== null && (
+      <!-- Stats Row -->
+      <div
+        class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-border mb-8"
+      >
         <div>
-          <button
-            id="attendance-toggle"
-            class="text-left w-full"
-          >
-            <div class:list={[
-              'font-display text-2xl',
-              attendancePercent >= 80 ? 'text-status-passed' : 
-              attendancePercent >= 50 ? 'text-status-reading' : 'text-red-600'
-            ]}>
-              {attendancePercent}%
-            </div>
-            <div class="font-sans text-xs uppercase tracking-wide text-ink-muted flex items-center gap-1">
-              Attendance
-              <svg
-                class="h-3 w-3 transition-transform"
-                id="attendance-chevron"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          <div class="font-display text-2xl text-ink">{sections.length}</div>
+          <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+            Speeches
+          </div>
+        </div>
+        <div>
+          <div class="font-display text-2xl text-ink">{questions.length}</div>
+          <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+            Questions
+          </div>
+        </div>
+        <div>
+          <div class="font-display text-2xl text-ink">{motions.length}</div>
+          <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+            Motions
+          </div>
+        </div>
+        {
+          attendancePercent !== null && (
+            <div>
+              <div
+                class:list={[
+                  "font-display text-2xl",
+                  attendancePercent >= 80
+                    ? "text-status-passed"
+                    : attendancePercent >= 50
+                      ? "text-status-reading"
+                      : "text-red-600",
+                ]}
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
+                {attendancePercent}%
+              </div>
+              <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+                Attendance
+              </div>
             </div>
-          </button>
-        </div>
-      )}
-    </div>
-
-    <!-- Attendance History Dropdown -->
-    {attendance.length > 0 && (
-      <div id="attendance-dropdown" class="hidden mb-8 bg-surface border border-border rounded-md p-5">
-        <h3 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold mb-4">
-          Attendance History ({member.attendancePresent}/{member.attendanceTotal} sessions)
-        </h3>
-        <div id="attendance-list" class="max-h-60 overflow-y-auto space-y-1">
-          {attendance.map((record) => (
-            <a
-              href={`/sessions/${slugify(record.date, record.sessionId)}`}
-              class="attendance-record flex items-center justify-between rounded p-2 font-sans text-sm hover:bg-warm transition-colors no-underline"
-            >
-              <span class="text-ink-soft">
-                {new Date(record.date).toLocaleDateString('en-SG', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                })}
-              </span>
-              {record.present ? (
-                <span class="flex items-center gap-1 text-status-passed">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span class="text-xs font-medium">Present</span>
-                </span>
-              ) : (
-                <span class="flex items-center gap-1 text-red-600">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span class="text-xs font-medium">Absent</span>
-                </span>
-              )}
-            </a>
-          ))}
-        </div>
-        <Pagination containerId="attendance-list" itemSelector=".attendance-record" itemsPerPage={10} />
+          )
+        }
       </div>
-    )}
 
-    <!-- Member Summary -->
-    <div class="mb-8">
-      <AISummaryCard
-        title="Summary of Recent Topics"
-        content={member.summary}
-        fallbackMessage="Summary of recent topics has not been generated yet."
-      />
-    </div>
+      <!-- Member Summary -->
+      <div class="mb-8">
+        <AISummaryCard
+          title="Summary of Recent Topics"
+          content={member.summary}
+          fallbackMessage="Summary of recent topics has not been generated yet."
+        />
+      </div>
+
+      <!-- Attendance Components (both shown for comparison) -->
+      {
+        attendance.length > 0 &&
+          member.attendancePresent != null &&
+          member.attendanceTotal != null && (
+            <>
+              <div class="mb-8">
+                <AttendanceDotGrid
+                  attendance={attendance}
+                  attendancePresent={member.attendancePresent}
+                  attendanceTotal={member.attendanceTotal}
+                />
+              </div>
+            </>
+          )
+      }
     </div><!-- end data-pagefind-ignore -->
   </section>
 
   <!-- Motions Section -->
-  {motions.length > 0 && (
-    <section class="mb-10" data-pagefind-ignore>
-      <h2 class="font-display text-xl text-ink mb-4">
-        Motions & Statements <span class="font-sans text-sm text-ink-muted font-normal">({motions.length})</span>
-      </h2>
-      <div id="motions-list" class="flex flex-col border-t border-border">
-        {motions.map((section) => (
-          <div class="motion-item">
-            <QuestionCard
-              section={section}
-              showSpeakers={false}
-              includePagefindMeta={false}
-            />
-          </div>
-        ))}
-      </div>
-      <Pagination containerId="motions-list" itemSelector=".motion-item" itemsPerPage={10} />
-    </section>
-  )}
-
-  <!-- Bills Section -->
-  {bills.length > 0 && (
-    <section class="mb-10" data-pagefind-ignore>
-      <h2 class="font-display text-xl text-ink mb-4">
-        Bills <span class="font-sans text-sm text-ink-muted font-normal">({bills.length})</span>
-      </h2>
-      <div id="bills-list" class="flex flex-col border-t border-border">
-        {bills.map((section) => (
-          <a href={`/bills/${slugify((section as any).billTitle || section.sectionTitle, (section as any).billId)}`} class="bill-item group block p-5 border-b border-border transition-colors hover:bg-warm no-underline">
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-              <Tag color={section.sectionType === 'BI' ? 'muted' : 'accent'}>
-                {section.sectionType === 'BI' ? '1st Reading' : '2nd Reading'}
-              </Tag>
-              {section.ministry && (
-                <Tag color="green">{section.ministry}</Tag>
-              )}
-              {section.sessionDate && (
-                <span class="font-sans text-xs text-ink-muted">
-                  {new Date(section.sessionDate).toLocaleDateString('en-SG', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-              )}
-            </div>
-            <h3 class="font-display text-lg text-ink leading-snug line-clamp-2 group-hover:text-accent transition-colors">
-              {section.sectionTitle}
-            </h3>
-          </a>
-        ))}
-      </div>
-      <Pagination containerId="bills-list" itemSelector=".bill-item" itemsPerPage={10} />
-    </section>
-  )}
-
-  <!-- Questions Section -->
-  <section data-pagefind-ignore>
-    <h2 class="font-display text-xl text-ink mb-4">
-      Parliamentary Questions <span class="font-sans text-sm text-ink-muted font-normal">({questions.length})</span>
-    </h2>
-    {questions.length === 0 ? (
-      <p class="py-8 font-body text-ink-muted">No recorded questions</p>
-    ) : (
-      <>
-        <div id="questions-list" class="flex flex-col border-t border-border">
-          {questions.map((section) => (
-            <div class="question-item">
+  {
+    motions.length > 0 && (
+      <section class="mb-10" data-pagefind-ignore>
+        <h2 class="font-display text-xl text-ink mb-4">
+          Motions & Statements{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({motions.length})
+          </span>
+        </h2>
+        <div id="motions-list" class="flex flex-col border-t border-border">
+          {motions.map((section) => (
+            <div class="motion-item">
               <QuestionCard
                 section={section}
                 showSpeakers={false}
@@ -264,34 +221,94 @@ const party = getParty();
             </div>
           ))}
         </div>
-        <Pagination containerId="questions-list" itemSelector=".question-item" itemsPerPage={10} />
-      </>
-    )}
-  </section>
-</Layout>
-
-<script>
-  function initAttendanceToggle() {
-    const toggle = document.getElementById('attendance-toggle');
-    const dropdown = document.getElementById('attendance-dropdown');
-    const chevron = document.getElementById('attendance-chevron');
-
-    if (toggle && dropdown && chevron) {
-      toggle.addEventListener('click', () => {
-        dropdown.classList.toggle('hidden');
-        chevron.classList.toggle('rotate-180');
-      });
-
-      // Close when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!toggle.contains(e.target as Node) && !dropdown.contains(e.target as Node)) {
-          dropdown.classList.add('hidden');
-          chevron.classList.remove('rotate-180');
-        }
-      });
-    }
+        <Pagination
+          containerId="motions-list"
+          itemSelector=".motion-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
   }
 
-  initAttendanceToggle();
-  document.addEventListener('astro:after-swap', initAttendanceToggle);
-</script>
+  <!-- Bills Section -->
+  {
+    bills.length > 0 && (
+      <section class="mb-10" data-pagefind-ignore>
+        <h2 class="font-display text-xl text-ink mb-4">
+          Bills{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({bills.length})
+          </span>
+        </h2>
+        <div id="bills-list" class="flex flex-col border-t border-border">
+          {bills.map((section) => (
+            <a
+              href={`/bills/${slugify((section as any).billTitle || section.sectionTitle, (section as any).billId)}`}
+              class="bill-item group block p-5 border-b border-border transition-colors hover:bg-warm no-underline"
+            >
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <Tag color={section.sectionType === "BI" ? "muted" : "accent"}>
+                  {section.sectionType === "BI" ? "1st Reading" : "2nd Reading"}
+                </Tag>
+                {section.ministry && (
+                  <Tag color="green">{section.ministry}</Tag>
+                )}
+                {section.sessionDate && (
+                  <span class="font-sans text-xs text-ink-muted">
+                    {new Date(section.sessionDate).toLocaleDateString("en-SG", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                )}
+              </div>
+              <h3 class="font-display text-lg text-ink leading-snug line-clamp-2 group-hover:text-accent transition-colors">
+                {section.sectionTitle}
+              </h3>
+            </a>
+          ))}
+        </div>
+        <Pagination
+          containerId="bills-list"
+          itemSelector=".bill-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
+  }
+
+  <!-- Questions Section -->
+  <section data-pagefind-ignore>
+    <h2 class="font-display text-xl text-ink mb-4">
+      Parliamentary Questions <span
+        class="font-sans text-sm text-ink-muted font-normal"
+        >({questions.length})</span
+      >
+    </h2>
+    {
+      questions.length === 0 ? (
+        <p class="py-8 font-body text-ink-muted">No recorded questions</p>
+      ) : (
+        <>
+          <div id="questions-list" class="flex flex-col border-t border-border">
+            {questions.map((section) => (
+              <div class="question-item">
+                <QuestionCard
+                  section={section}
+                  showSpeakers={false}
+                  includePagefindMeta={false}
+                />
+              </div>
+            ))}
+          </div>
+          <Pagination
+            containerId="questions-list"
+            itemSelector=".question-item"
+            itemsPerPage={10}
+          />
+        </>
+      )
+    }
+  </section>
+</Layout>
