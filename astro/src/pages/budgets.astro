@@ -157,10 +157,10 @@ for (const [year, entries] of yearMap) {
   treemap()
     .size([W, H])
     .tile(treemapSquarify)
-    .paddingTop(24)
-    .paddingRight(3)
-    .paddingBottom(3)
-    .paddingLeft(3)
+    .paddingTop((d: any) => (d.depth === 0 ? 0 : 24))
+    .paddingRight((d: any) => (d.depth === 0 ? 0 : 3))
+    .paddingBottom((d: any) => (d.depth === 0 ? 0 : 3))
+    .paddingLeft((d: any) => (d.depth === 0 ? 0 : 3))
     .paddingInner(2)(root as any);
 
   const totalBudget = root.value || 0;
@@ -221,13 +221,16 @@ const defaultYear = years[years.length - 1];
 
   <!-- Year selector -->
   <div class="mb-5 border-b border-t border-border py-3">
-    <div id="year-buttons" class="flex gap-1 flex-wrap">
+    <div
+      id="year-buttons"
+      class="grid gap-1 grid-cols-[repeat(10,1fr)] sm:grid-cols-[repeat(15,1fr)]"
+    >
       {
         years.map((y) => (
           <button
             data-year={y}
             class:list={[
-              "year-btn font-sans text-xs px-2 py-1 transition-colors cursor-pointer border",
+              "year-btn font-sans text-xs py-1 transition-colors cursor-pointer border text-center",
               y === defaultYear
                 ? "bg-ink text-page-bg border-ink"
                 : "bg-transparent text-ink-muted border-transparent hover:text-ink hover:border-border",
