@@ -606,12 +606,25 @@ const defaultYear = years[years.length - 1];
 
   function positionTooltip(e: MouseEvent) {
     const pad = 14;
-    const tw = 240;
-    const th = 180;
+    const edgePad = 8;
+    const rect = tooltip.getBoundingClientRect();
+    const tw = rect.width;
+    const th = rect.height;
+
+    // Prefer placing on the cursor's lower-right, then flip, then clamp.
     let x = e.clientX + pad;
     let y = e.clientY + pad;
-    if (x + tw > window.innerWidth) x = e.clientX - tw - pad;
-    if (y + th > window.innerHeight) y = e.clientY - th - pad;
+
+    if (x + tw + edgePad > window.innerWidth) {
+      x = e.clientX - tw - pad;
+    }
+    if (y + th + edgePad > window.innerHeight) {
+      y = e.clientY - th - pad;
+    }
+
+    x = Math.max(edgePad, Math.min(x, window.innerWidth - tw - edgePad));
+    y = Math.max(edgePad, Math.min(y, window.innerHeight - th - edgePad));
+
     tooltip.style.left = x + "px";
     tooltip.style.top = y + "px";
   }
