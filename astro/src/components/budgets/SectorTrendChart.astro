@@ -94,6 +94,10 @@ const { trendSeries, years } = Astro.props;
       border-left: 0;
       border-right: 0;
     }
+
+    .sector-line-grid {
+      stroke-opacity: 0.55;
+    }
   }
 
   .sector-line-grid {
@@ -248,21 +252,13 @@ const { trendSeries, years } = Astro.props;
     return value.toFixed(decimals) + "%";
   }
 
-  function niceCeil(value) {
-    if (value <= 0) return 1;
-    const power = 10 ** Math.floor(Math.log10(value));
-    const n = value / power;
-    const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
-    return step * power;
-  }
-
   function renderSectorLineChart() {
     if (!Array.isArray(trendSeries) || trendSeries.length === 0) return;
 
     const width = lineContainer.clientWidth || 900;
-    const height = Math.max(320, Math.round(width * 0.5));
     const isMobile = window.matchMedia("(max-width: 640px)").matches;
     const isNarrow = window.matchMedia("(max-width: 1024px)").matches;
+    const height = Math.max(isMobile ? 352 : 320, Math.round(width * 0.5));
     const margin = {
       top: 30,
       right: isNarrow ? 24 : 180,
@@ -306,11 +302,8 @@ const { trendSeries, years } = Astro.props;
     const minYear = years[0];
     const maxYear = years[years.length - 1];
     const yearSpan = Math.max(1, maxYear - minYear);
-    const maxValue = Math.max(
-      ...displaySeries.flatMap((s) => s.points.map((p) => p.value)),
-      1,
-    );
-    const yMax = lineMode === "share" ? 100 : niceCeil(maxValue * 1.1);
+    const yMax = lineMode === "share" ? 80 : 80000;
+    const yTickStep = lineMode === "share" ? 20 : 20000;
 
     const xFor = (year) => margin.left + ((year - minYear) / yearSpan) * plotW;
     const yFor = (value) => margin.top + plotH - (value / yMax) * plotH;
@@ -331,9 +324,9 @@ const { trendSeries, years } = Astro.props;
     svg.style.width = "100%";
     svg.style.height = "auto";
 
-    const yTicks = 5;
+    const yTicks = Math.round(yMax / yTickStep);
     for (let i = 0; i <= yTicks; i++) {
-      const v = (yMax * i) / yTicks;
+      const v = i * yTickStep;
       const y = yFor(v);
 
       const line = document.createElementNS(ns, "line");
@@ -353,8 +346,8 @@ const { trendSeries, years } = Astro.props;
       svg.appendChild(label);
     }
 
-    const xLabelStep = Math.max(1, Math.ceil(years.length / (isMobile ? 5 : 8)));
-    const minTickGapPx = isMobile ? 52 : 40;
+    const xLabelStep = Math.max(1, Math.ceil(years.length / (isMobile ? 4 : 8)));
+    const minTickGapPx = isMobile ? 64 : 40;
     const selectedTickYears = [];
     let lastTickX = -Infinity;
 
