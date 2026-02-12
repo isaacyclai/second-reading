@@ -251,6 +251,144 @@ const sectorTrendSeries = sectorOrder
     return { name: sector, points };
   })
   .filter((series) => series.points.length > 0);
+
+const latestYear = defaultYear;
+const previousYear = years[years.length - 2];
+const latestData = allTreemapData[latestYear];
+const previousData = previousYear ? allTreemapData[previousYear] : undefined;
+
+const totalChangeAbs =
+  latestData && previousData ? latestData.total - previousData.total : null;
+const totalChangePct =
+  totalChangeAbs !== null && previousData && previousData.total > 0
+    ? (totalChangeAbs / previousData.total) * 100
+    : null;
+
+const fmtAmount = (millions: number, decimals = 1) => {
+  if (millions >= 1000) return `S$${(millions / 1000).toFixed(decimals)}B`;
+  return `S$${Math.round(millions).toLocaleString()}M`;
+};
+
+const fmtSignedAmount = (millions: number, decimals = 1) =>
+  `${millions >= 0 ? "+" : "-"}${fmtAmount(Math.abs(millions), decimals)}`;
+
+const fmtSignedPct = (value: number, decimals = 1) =>
+  `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
+
+const sectorChangeRows = sectorOrder
+  .map((sector) => {
+    const latestPoint = sectorTrendSeries
+      .find((series) => series.name === sector)
+      ?.points.find((point) => point.year === latestYear);
+    const previousPoint = sectorTrendSeries
+      .find((series) => series.name === sector)
+      ?.points.find((point) => point.year === previousYear);
+    const latestTotal = latestPoint?.total || 0;
+    const previousTotal = previousPoint?.total || 0;
+    const change = latestTotal - previousTotal;
+    return {
+      sector,
+      latestTotal,
+      previousTotal,
+      change,
+      changePct:
+        previousTotal > 0 ? (change / previousTotal) * 100 : latestTotal > 0 ? 100 : 0,
+    };
+  })
+  .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+
+const topSectorChange = sectorChangeRows[0];
+
+const ministryTotalsByYear = new Map<number, Map<string, { sector: string; total: number }>>();
+for (const [year, entries] of yearMap) {
+  const byMinistry = new Map<string, { sector: string; total: number }>();
+  for (const entry of entries.values()) {
+    const total = entry.operating + entry.development;
+    if (total <= 0) continue;
+    byMinistry.set(entry.ministry, {
+      sector: entry.sector,
+      total,
+    });
+  }
+  ministryTotalsByYear.set(year, byMinistry);
+}
+
+const latestMinistryTotals = ministryTotalsByYear.get(latestYear) || new Map();
+const previousMinistryTotals = previousYear
+  ? ministryTotalsByYear.get(previousYear) || new Map()
+  : new Map();
+
+const ministryNames = new Set([
+  ...latestMinistryTotals.keys(),
+  ...previousMinistryTotals.keys(),
+]);
+
+const ministryChangeRows = [...ministryNames]
+  .map((ministry) => {
+    const latest = latestMinistryTotals.get(ministry);
+    const previous = previousMinistryTotals.get(ministry);
+    const latestTotal = latest?.total || 0;
+    const previousTotal = previous?.total || 0;
+    const change = latestTotal - previousTotal;
+    const sector = latest?.sector || previous?.sector || "Unknown";
+    return {
+      ministry,
+      sector,
+      latestTotal,
+      previousTotal,
+      change,
+      changePct:
+        previousTotal > 0 ? (change / previousTotal) * 100 : latestTotal > 0 ? 100 : 0,
+    };
+  })
+  .filter((row) => row.latestTotal > 0 || row.previousTotal > 0)
+  .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+
+const topMinistryChange = ministryChangeRows[0];
+const majorMinistryMovers = ministryChangeRows.slice(0, 10);
+
+const policySpotlights = [
+  {
+    pillar: "Businesses",
+    tone: "Tax and innovation",
+    items: [
+      "40% corporate income tax rebate for YA2026.",
+      "S$37B for frontier technologies under RIE2030.",
+      "Startup SG Equity enhancements, including S$1B investment.",
+      "250% tax deduction for eligible donations extended to end-2029.",
+    ],
+  },
+  {
+    pillar: "Workers and talent",
+    tone: "Skills and labour policy",
+    items: [
+      "National AI Missions and a new National AI Council.",
+      "Redesigned SkillsFuture with six months of free premium AI tools.",
+      "Higher qualifying salaries for EP and S Pass holders.",
+      "Higher work permit levies for selected sectors.",
+    ],
+  },
+  {
+    pillar: "Households",
+    tone: "Support and transfers",
+    items: [
+      "S$500 extra Child LifeSG credits per Singaporean child aged 12 and below.",
+      "Additional ComLink+ payouts for eligible low-income families.",
+      "S$200-S$400 cash payouts, up to S$570 U-Save, and S$500 CDC vouchers.",
+      "Up to S$1,500 CPF top-up for eligible Singaporeans aged 50 and above.",
+    ],
+  },
+  {
+    pillar: "Other notable shifts",
+    tone: "Fiscal signals",
+    items: [
+      "Defence spending remains around 3% of GDP, with room to rise if needed.",
+      "Lower vehicle PARF rebates.",
+      "Higher tobacco excise duty.",
+      "New CPF investment scheme announced.",
+    ],
+  },
+];
 ---
 
 <Layout
@@ -265,6 +403,65 @@ const sectorTrendSeries = sectorOrder
     </p>
   </header>
 
+  {
+    latestData && (
+      <section class="mb-10">
+        <div class="mb-3">
+          <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
+            {latestYear} At A Glance
+          </h2>
+          <p class="font-sans text-sm text-ink-muted mt-1">
+            Quick comparison against {previousYear || latestYear - 1} using the latest available
+            estimate type per year.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border">
+          <article class="p-4 border-b sm:border-b border-border lg:border-b-0 lg:border-r">
+            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
+              Total Budget ({latestYear})
+            </p>
+            <p class="font-masthead text-3xl text-ink leading-none">
+              {fmtAmount(latestData.total)}
+            </p>
+          </article>
+          <article class="p-4 border-b sm:border-b border-border lg:border-b-0 lg:border-r">
+            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
+              Year-On-Year Change
+            </p>
+            <p class="font-masthead text-3xl text-ink leading-none">
+              {totalChangeAbs !== null ? fmtSignedAmount(totalChangeAbs) : "N/A"}
+            </p>
+            <p class="font-sans text-xs text-ink-muted mt-2">
+              {totalChangePct !== null ? fmtSignedPct(totalChangePct) : "No prior-year comparison"}
+            </p>
+          </article>
+          <article class="p-4 border-b border-border sm:border-b-0 lg:border-r">
+            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
+              Largest Sector Shift
+            </p>
+            <p class="font-serif text-sm text-ink">
+              {topSectorChange?.sector || "N/A"}
+            </p>
+            <p class="font-masthead text-2xl text-ink leading-none mt-1">
+              {topSectorChange ? fmtSignedAmount(topSectorChange.change) : "N/A"}
+            </p>
+          </article>
+          <article class="p-4">
+            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
+              Largest Ministry Shift
+            </p>
+            <p class="font-serif text-sm text-ink">
+              {topMinistryChange?.ministry || "N/A"}
+            </p>
+            <p class="font-masthead text-2xl text-ink leading-none mt-1">
+              {topMinistryChange ? fmtSignedAmount(topMinistryChange.change) : "N/A"}
+            </p>
+          </article>
+        </div>
+      </section>
+    )
+  }
+
   <BudgetTreemapGraph
     data={allTreemapData}
     width={W}
@@ -274,6 +471,73 @@ const sectorTrendSeries = sectorOrder
   />
 
   <SectorTrendChart trendSeries={sectorTrendSeries} years={years} />
+
+  <section class="mt-10">
+    <div class="mb-3">
+      <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
+        Largest Ministry Shifts
+      </h2>
+      <p class="font-sans text-sm text-ink-muted mt-1">
+        Biggest changes in ministry expenditure between {latestYear} and {previousYear || latestYear - 1}.
+      </p>
+    </div>
+    <div class="border border-border overflow-x-auto">
+      <table class="w-full min-w-[760px] border-collapse">
+        <thead>
+          <tr class="border-b border-border">
+            <th class="text-left p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Ministry</th>
+            <th class="text-left p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Sector</th>
+            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">{previousYear || latestYear - 1}</th>
+            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">{latestYear}</th>
+            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Change</th>
+            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Change %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            majorMinistryMovers.map((row) => (
+              <tr class="border-b border-border last:border-b-0">
+                <td class="p-3 font-serif text-[15px] text-ink">{row.ministry}</td>
+                <td class="p-3 font-sans text-xs text-ink-muted">{row.sector}</td>
+                <td class="p-3 font-sans text-sm text-right text-ink-muted">{fmtAmount(row.previousTotal)}</td>
+                <td class="p-3 font-sans text-sm text-right text-ink">{fmtAmount(row.latestTotal)}</td>
+                <td class="p-3 font-sans text-sm text-right text-ink">{fmtSignedAmount(row.change)}</td>
+                <td class="p-3 font-sans text-sm text-right text-ink">{fmtSignedPct(row.changePct)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mt-10">
+    <div class="mb-3">
+      <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
+        Budget 2026 Policy Spotlights
+      </h2>
+      <p class="font-sans text-sm text-ink-muted mt-1">
+        Thematic highlights you can pair with the expenditure charts.
+      </p>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      {
+        policySpotlights.map((spotlight) => (
+          <article class="border border-border bg-surface p-4">
+            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-1">
+              {spotlight.tone}
+            </p>
+            <h3 class="font-masthead text-xl text-ink leading-none mb-3">
+              {spotlight.pillar}
+            </h3>
+            <ul class="space-y-2">
+              {spotlight.items.map((item) => <li class="font-serif text-[15px] leading-snug text-ink">{item}</li>)}
+            </ul>
+          </article>
+        ))
+      }
+    </div>
+  </section>
 
   <p class="font-sans text-xs text-ink-muted mt-4">
     Source: Singapore Government Total Expenditure, data.gov.sg. Amounts in S$
