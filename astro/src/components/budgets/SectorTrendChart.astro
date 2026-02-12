@@ -239,13 +239,13 @@ const { trendSeries, years } = Astro.props;
     "Government Administration": "#8d7c68",
   };
 
-  function fmtCompactMillions(millions) {
-    if (millions >= 1000) return "$" + (millions / 1000).toFixed(1) + "B";
+  function fmtCompactMillions(millions, billionsDecimals = 1) {
+    if (millions >= 1000) return "$" + (millions / 1000).toFixed(billionsDecimals) + "B";
     return "$" + Math.round(millions) + "M";
   }
 
-  function fmtPercent(value) {
-    return value.toFixed(1) + "%";
+  function fmtPercent(value, decimals = 1) {
+    return value.toFixed(decimals) + "%";
   }
 
   function niceCeil(value) {
@@ -349,7 +349,7 @@ const { trendSeries, years } = Astro.props;
       label.setAttribute("y", String(y + 4));
       label.setAttribute("text-anchor", "end");
       label.setAttribute("class", "sector-line-axis");
-      label.textContent = lineMode === "share" ? fmtPercent(v) : fmtCompactMillions(v);
+      label.textContent = lineMode === "share" ? fmtPercent(v, 0) : fmtCompactMillions(v, 0);
       svg.appendChild(label);
     }
 
