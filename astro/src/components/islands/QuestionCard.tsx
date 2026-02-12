@@ -21,7 +21,7 @@ export default function QuestionCard({ item }: Props) {
   return (
     <a
       href={`/questions/${slugify(item.title || "", item.id)}`}
-      class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
+      class="group block p-6 sm:p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
       data-pagefind-meta={`id:${item.id}`}
     >
       <div class="flex flex-wrap items-center gap-2 mb-2">

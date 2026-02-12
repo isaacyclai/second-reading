@@ -610,7 +610,7 @@ export default function PaginatedList({
 
       {/* Item list */}
       {!isLoading && (
-        <div class="flex flex-col border-t border-border">
+        <div class="flex flex-col border-t border-border -mx-6 sm:mx-0">
           {currentItems.length === 0 ? (
             <p class="py-12 text-center font-body text-ink-muted">
               {isSearchMode || isDateFilterMode
