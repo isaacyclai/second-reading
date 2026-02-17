@@ -118,8 +118,7 @@ INSERT OR IGNORE INTO ministries (id, name, acronym) VALUES
     ('13', 'Ministry of Social and Family Development', 'MSF'),
     ('14', 'Ministry of Sustainability and the Environment', 'MSE'),
     ('15', 'Ministry of Trade and Industry', 'MTI'),
-    ('16', 'Ministry of Transport', 'MOT'),
-    ('17', 'Ministry of Communications and Information', 'MCI');
+    ('16', 'Ministry of Transport', 'MOT')
 
 -- FTS virtual table for full-text search on sections (optional, for search feature)
 -- CREATE VIRTUAL TABLE IF NOT EXISTS sections_fts USING fts5(
