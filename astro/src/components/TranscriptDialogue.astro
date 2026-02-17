@@ -141,11 +141,16 @@ const {
   }
 
   .transcript-rail {
+    --rail-axis: 20px;
+    --rail-track-width: 3px;
+    --rail-tick-width: 8px;
+    --rail-active-tick-width: 16px;
+
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 44px;
+    width: 56px;
     z-index: 50;
     pointer-events: none;
     opacity: 0;
@@ -159,11 +164,10 @@ const {
 
   .transcript-rail__track {
     position: absolute;
-    left: 20px;
+    left: calc(var(--rail-axis) - (var(--rail-track-width) / 2));
     top: 4.5rem;
     bottom: 2rem;
-    width: 4px;
-    border-radius: 2px;
+    width: var(--rail-track-width);
     background: var(--border-light);
     overflow: hidden;
   }
@@ -180,22 +184,22 @@ const {
     left: 0;
     top: 4.5rem;
     bottom: 2rem;
-    width: 44px;
+    width: 56px;
     transition: width 0.2s ease;
   }
 
   .transcript-rail__hover:hover {
-    width: 220px;
+    width: 232px;
   }
 
   .transcript-rail-marker {
     position: absolute;
-    left: 10px;
+    left: calc(var(--rail-axis) + 8px);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     transform: translateY(-50%);
-    height: 20px;
+    height: 18px;
     margin: 0;
     border: 0;
     background: transparent;
@@ -208,11 +212,11 @@ const {
   }
 
   .transcript-rail-marker__tick {
-    width: 20px;
+    width: var(--rail-tick-width);
     height: 2px;
     background: var(--ink-muted);
-    opacity: 0.5;
-    transition: background 0.2s, opacity 0.2s;
+    opacity: 0.55;
+    transition: background 0.2s, opacity 0.2s, width 0.2s ease, height 0.2s ease;
     flex-shrink: 0;
   }
 
@@ -243,6 +247,9 @@ const {
   }
 
   .transcript-rail-marker.is-active .transcript-rail-marker__tick {
+    left: calc(var(--rail-axis) + 8px);
+    width: var(--rail-active-tick-width);
+    height: 2px;
     background: var(--accent);
     opacity: 1;
   }
