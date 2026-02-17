@@ -51,11 +51,6 @@ export default function QuestionCard({ item }: Props) {
         </div>
       )}
 
-      {item.snippet && (
-        <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-1">
-          {item.snippet}
-        </p>
-      )}
     </a>
   );
 }
