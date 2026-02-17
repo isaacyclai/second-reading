@@ -4,6 +4,7 @@
 
 /* ─── CSS Custom Properties ─── */
 :root {
+    --site-nav-height: 3.5rem;
     --page-bg: #e8e4dc;
     --surface: #f0ede7;
     --warm: #f0ede7;
