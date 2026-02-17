@@ -1,13 +1,12 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import SectionLabel from "../../components/SectionLabel.astro";
 import AISummaryCard from "../../components/AISummaryCard.astro";
 import SpeakerPills from "../../components/SpeakerPills.astro";
 import BillReadingStatus from "../../components/BillReadingStatus.astro";
 import Tag from "../../components/Tag.astro";
+import TranscriptDialogue from "../../components/TranscriptDialogue.astro";
 import { getBills, getBill, getBillSections } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
-import type { Speaker } from "../../lib/db";
 
 export async function getStaticPaths() {
   const bills = getBills();
@@ -172,7 +171,10 @@ const status = getStatus();
                   })}
                 </h3>
               )}
-              <div class="transcript-content" set:html={section.contentHtml} />
+              <TranscriptDialogue
+                contentHtml={section.contentHtml}
+                instanceId={`bill-${section.id}`}
+              />
               {idx < secondReadings.length - 1 && (
                 <hr class="my-8 border-border" />
               )}

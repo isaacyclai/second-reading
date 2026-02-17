@@ -1,0 +1,635 @@
+---
+interface Props {
+  contentHtml?: string | null;
+  instanceId: string;
+  fallbackText?: string;
+}
+
+const {
+  contentHtml = null,
+  instanceId,
+  fallbackText = "Transcript not available.",
+} = Astro.props;
+---
+
+{
+  contentHtml ? (
+    <div class="transcript-shell" data-transcript-shell data-transcript-id={instanceId}>
+      <div class="transcript-rail" data-transcript-rail aria-hidden="true">
+        <div class="transcript-rail__track">
+          <div class="transcript-rail__progress" data-transcript-progress></div>
+        </div>
+        <div class="transcript-rail__hover" data-transcript-hover></div>
+      </div>
+      <div class="transcript-content" data-transcript-source set:html={contentHtml}></div>
+    </div>
+  ) : (
+    <p class="font-body text-ink-muted italic py-8">{fallbackText}</p>
+  )
+}
+
+<style is:global>
+  .transcript-shell {
+    position: relative;
+  }
+
+  .transcript-shell [data-transcript-source] {
+    position: relative;
+  }
+
+  .transcript-shell [data-transcript-source].transcript-source--enhanced {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 1rem;
+    line-height: 1.625;
+    color: #3a342c;
+  }
+
+  .transcript-source--enhanced p {
+    margin: 0;
+  }
+
+  .transcript-source--enhanced p + p {
+    margin-top: 0;
+  }
+
+  .transcript-dialogue {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .transcript-dialogue__turn {
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    column-gap: 2rem;
+    align-items: start;
+    scroll-margin-top: 4.5rem;
+  }
+
+  .transcript-dialogue__label {
+    border-right: 1px solid var(--border-light);
+    padding-right: 1.25rem;
+    padding-top: 0.15rem;
+    text-align: right;
+  }
+
+  .transcript-dialogue__speaker {
+    position: sticky;
+    top: 4.5rem;
+    display: inline-block;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    line-height: 1.35;
+  }
+
+  .transcript-dialogue__text {
+    min-width: 0;
+    padding-bottom: 1.5rem;
+  }
+
+  .transcript-dialogue__text > * + * {
+    margin-top: 0.85rem;
+  }
+
+  .transcript-dialogue__timestamp {
+    position: relative;
+    text-align: center;
+    padding: 1.25rem 0;
+  }
+
+  .transcript-dialogue__timestamp::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-light);
+  }
+
+  .transcript-dialogue__timestamp span {
+    position: relative;
+    background: var(--page-bg);
+    padding: 0 1rem;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .transcript-dialogue__procedural,
+  .transcript-dialogue__standalone {
+    width: 100%;
+  }
+
+  .transcript-dialogue__procedural {
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--ink-muted);
+    margin-bottom: 0.6rem;
+  }
+
+  .transcript-dialogue__procedural .proc {
+    display: block;
+    margin: 0;
+  }
+
+  .transcript-rail {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 44px;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .transcript-rail.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .transcript-rail__track {
+    position: absolute;
+    left: 20px;
+    top: 4.5rem;
+    bottom: 2rem;
+    width: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+    overflow: hidden;
+  }
+
+  .transcript-rail__progress {
+    width: 100%;
+    height: 0%;
+    background: var(--accent);
+    transition: height 60ms linear;
+  }
+
+  .transcript-rail__hover {
+    position: absolute;
+    left: 0;
+    top: 4.5rem;
+    bottom: 2rem;
+    width: 44px;
+    transition: width 0.2s ease;
+  }
+
+  .transcript-rail__hover:hover {
+    width: 220px;
+  }
+
+  .transcript-rail-marker {
+    position: absolute;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transform: translateY(-50%);
+    height: 20px;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .transcript-rail-marker__tick {
+    width: 20px;
+    height: 2px;
+    background: var(--ink-muted);
+    opacity: 0.5;
+    transition: background 0.2s, opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  .transcript-rail-marker__label {
+    white-space: nowrap;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.25s ease, transform 0.25s ease, color 0.15s ease;
+    transition-delay: 0ms;
+    pointer-events: none;
+  }
+
+  .transcript-rail__hover:hover .transcript-rail-marker__label {
+    opacity: 1;
+    transform: translateX(0);
+    transition-delay: var(--marker-delay, 0ms);
+    pointer-events: auto;
+  }
+
+  .transcript-rail-marker:hover .transcript-rail-marker__label {
+    color: var(--accent);
+  }
+
+  .transcript-rail-marker.is-active .transcript-rail-marker__tick {
+    background: var(--accent);
+    opacity: 1;
+  }
+
+  .transcript-rail-marker.is-active .transcript-rail-marker__label {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  @media (max-width: 1024px) {
+    .transcript-rail {
+      display: none;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .transcript-dialogue__turn {
+      grid-template-columns: 1fr;
+      row-gap: 0.2rem;
+    }
+
+    .transcript-dialogue__label {
+      border-right: none;
+      padding: 0 0 0.35rem;
+      text-align: left;
+    }
+
+    .transcript-dialogue__speaker {
+      position: static;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+    }
+
+    .transcript-dialogue__text {
+      padding-bottom: 1.15rem;
+    }
+  }
+</style>
+
+<script>
+  (() => {
+    const transcripts = [];
+    let rafScheduled = false;
+    let listenersBound = false;
+
+    const normalizeWhitespace = (value) => value.replace(/\s+/g, " ").trim();
+
+    const toRailLabel = (speakerLabel) => {
+      const cleaned = normalizeWhitespace(
+        speakerLabel.replace(/[:：]\s*$/, ""),
+      );
+      const parenMatches = [...cleaned.matchAll(/\(([^)]+)\)/g)];
+
+      for (let i = parenMatches.length - 1; i >= 0; i -= 1) {
+        const candidate = normalizeWhitespace(parenMatches[i][1] || "");
+        if (/^(Mr|Ms|Mdm|Mrs|Dr|Prof|Sir)\b/i.test(candidate)) {
+          return candidate;
+        }
+      }
+
+      if (cleaned.length > 56) {
+        return `${cleaned.slice(0, 53)}...`;
+      }
+      return cleaned;
+    };
+
+    const extractSpeakerParagraph = (paragraph) => {
+      if (!(paragraph instanceof HTMLParagraphElement)) {
+        return null;
+      }
+
+      const firstElement = paragraph.firstElementChild;
+      if (!(firstElement instanceof HTMLElement) || firstElement.tagName !== "STRONG") {
+        return null;
+      }
+
+      for (const node of paragraph.childNodes) {
+        if (node === firstElement) {
+          break;
+        }
+        if (node.nodeType !== Node.TEXT_NODE || (node.textContent || "").trim() !== "") {
+          return null;
+        }
+      }
+
+      const speakerRaw = normalizeWhitespace(firstElement.textContent || "");
+      if (!speakerRaw) {
+        return null;
+      }
+
+      let tail = "";
+      let cursor = firstElement.nextSibling;
+      while (cursor) {
+        tail += cursor.textContent || "";
+        cursor = cursor.nextSibling;
+      }
+
+      const hasDelimiter = /[:：]\s*$/.test(speakerRaw) || /^\s*[:：]/.test(tail);
+      if (!hasDelimiter) {
+        return null;
+      }
+
+      const speakerLabel = speakerRaw.replace(/[:：]\s*$/, "").trim();
+      if (!speakerLabel) {
+        return null;
+      }
+
+      const cleanedParagraph = paragraph.cloneNode(true);
+      if (!(cleanedParagraph instanceof HTMLParagraphElement)) {
+        return null;
+      }
+
+      const clonedFirst = cleanedParagraph.firstElementChild;
+      if (clonedFirst && clonedFirst.tagName === "STRONG") {
+        clonedFirst.remove();
+      }
+
+      const firstNode = cleanedParagraph.firstChild;
+      if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+        firstNode.textContent = (firstNode.textContent || "").replace(/^\s*[:：]\s*/, "");
+      }
+
+      return {
+        speakerLabel,
+        paragraphNode: cleanedParagraph,
+      };
+    };
+
+    const positionMarkers = (instance) => {
+      const sourceRect = instance.source.getBoundingClientRect();
+      const sourceHeight = sourceRect.height || 1;
+
+      instance.turns.forEach((turn) => {
+        const turnRect = turn.element.getBoundingClientRect();
+        const pct = ((turnRect.top - sourceRect.top) / sourceHeight) * 100;
+        const clamped = Math.max(0, Math.min(100, pct));
+        turn.marker.style.top = `${clamped}%`;
+      });
+    };
+
+    const updateProgress = (instance) => {
+      const rect = instance.source.getBoundingClientRect();
+      const total = rect.height + window.innerHeight;
+      const seen = window.innerHeight - rect.top;
+      const pct = Math.max(0, Math.min(100, (seen / total) * 100));
+      instance.railProgress.style.height = `${pct}%`;
+    };
+
+    const updateActiveMarker = (instance) => {
+      let activeIndex = 0;
+      const threshold = window.innerHeight * 0.35;
+
+      instance.turns.forEach((turn, index) => {
+        if (turn.element.getBoundingClientRect().top <= threshold) {
+          activeIndex = index;
+        }
+      });
+
+      instance.turns.forEach((turn, index) => {
+        turn.marker.classList.toggle("is-active", index === activeIndex);
+      });
+    };
+
+    const updateRailVisibility = () => {
+      let active = null;
+      let bestScore = 0;
+
+      transcripts.forEach((instance) => {
+        const rect = instance.source.getBoundingClientRect();
+        const visiblePx = Math.min(window.innerHeight, rect.bottom) - Math.max(0, rect.top);
+        const score = Math.max(0, visiblePx);
+        if (score > bestScore) {
+          bestScore = score;
+          active = instance;
+        }
+      });
+
+      transcripts.forEach((instance) => {
+        instance.rail.classList.toggle("is-visible", instance === active && bestScore > 0);
+      });
+    };
+
+    const refreshAll = () => {
+      updateRailVisibility();
+      transcripts.forEach((instance) => {
+        updateProgress(instance);
+        updateActiveMarker(instance);
+      });
+    };
+
+    const scheduleRefresh = () => {
+      if (rafScheduled) {
+        return;
+      }
+
+      rafScheduled = true;
+      window.requestAnimationFrame(() => {
+        refreshAll();
+        rafScheduled = false;
+      });
+    };
+
+    const bindGlobalListeners = () => {
+      if (listenersBound) {
+        return;
+      }
+
+      listenersBound = true;
+      window.addEventListener("scroll", scheduleRefresh, { passive: true });
+      window.addEventListener("resize", () => {
+        transcripts.forEach((instance) => positionMarkers(instance));
+        scheduleRefresh();
+      });
+    };
+
+    const initTranscript = (shell) => {
+      if (shell.dataset.transcriptInitialized === "true") {
+        return;
+      }
+
+      const source = shell.querySelector("[data-transcript-source]");
+      const rail = shell.querySelector("[data-transcript-rail]");
+      const railProgress = shell.querySelector("[data-transcript-progress]");
+      const railHover = shell.querySelector("[data-transcript-hover]");
+
+      if (
+        !(source instanceof HTMLElement) ||
+        !(rail instanceof HTMLElement) ||
+        !(railProgress instanceof HTMLElement) ||
+        !(railHover instanceof HTMLElement)
+      ) {
+        return;
+      }
+
+      const blocks = Array.from(source.children);
+      if (blocks.length === 0) {
+        return;
+      }
+
+      const transcriptId = (shell.dataset.transcriptId || "transcript").replace(
+        /[^a-zA-Z0-9_-]/g,
+        "-",
+      );
+
+      const dialogue = document.createElement("div");
+      dialogue.className = "transcript-dialogue";
+
+      const turns = [];
+      let currentTextCell = null;
+
+      blocks.forEach((block) => {
+        if (!(block instanceof HTMLElement)) {
+          return;
+        }
+
+        if (block.tagName === "H6") {
+          const timestampRow = document.createElement("div");
+          timestampRow.className = "transcript-dialogue__timestamp";
+          const timestampText = normalizeWhitespace(block.textContent || "");
+          if (timestampText) {
+            const span = document.createElement("span");
+            span.textContent = timestampText;
+            timestampRow.appendChild(span);
+            dialogue.appendChild(timestampRow);
+          }
+          currentTextCell = null;
+          return;
+        }
+
+        if (block.matches(".proc") || block.querySelector(".proc")) {
+          const proceduralRow = document.createElement("div");
+          proceduralRow.className = "transcript-dialogue__procedural";
+          proceduralRow.appendChild(block.cloneNode(true));
+          dialogue.appendChild(proceduralRow);
+          currentTextCell = null;
+          return;
+        }
+
+        const parsedSpeaker = extractSpeakerParagraph(block);
+        if (parsedSpeaker) {
+          const turn = document.createElement("div");
+          turn.className = "transcript-dialogue__turn";
+          turn.id = `${transcriptId}-turn-${turns.length}`;
+
+          const labelCell = document.createElement("div");
+          labelCell.className = "transcript-dialogue__label";
+
+          const speaker = document.createElement("span");
+          speaker.className = "transcript-dialogue__speaker";
+          speaker.textContent = parsedSpeaker.speakerLabel;
+          labelCell.appendChild(speaker);
+
+          const textCell = document.createElement("div");
+          textCell.className = "transcript-dialogue__text";
+
+          if (parsedSpeaker.paragraphNode.textContent?.trim()) {
+            textCell.appendChild(parsedSpeaker.paragraphNode);
+          }
+
+          turn.appendChild(labelCell);
+          turn.appendChild(textCell);
+          dialogue.appendChild(turn);
+
+          turns.push({
+            element: turn,
+            railLabel: toRailLabel(parsedSpeaker.speakerLabel),
+            marker: null,
+          });
+
+          currentTextCell = textCell;
+          return;
+        }
+
+        if (currentTextCell) {
+          currentTextCell.appendChild(block.cloneNode(true));
+          return;
+        }
+
+        const standaloneRow = document.createElement("div");
+        standaloneRow.className = "transcript-dialogue__standalone";
+        standaloneRow.appendChild(block.cloneNode(true));
+        dialogue.appendChild(standaloneRow);
+      });
+
+      if (turns.length === 0) {
+        return;
+      }
+
+      source.replaceChildren(dialogue);
+      source.classList.add("transcript-source--enhanced");
+
+      railHover.replaceChildren();
+
+      turns.forEach((turn, index) => {
+        const marker = document.createElement("button");
+        marker.type = "button";
+        marker.className = "transcript-rail-marker";
+        marker.style.setProperty("--marker-delay", `${index * 45}ms`);
+        marker.setAttribute("aria-label", `Jump to ${turn.railLabel}`);
+        marker.title = `Jump to ${turn.railLabel}`;
+
+        const tick = document.createElement("span");
+        tick.className = "transcript-rail-marker__tick";
+
+        const label = document.createElement("span");
+        label.className = "transcript-rail-marker__label";
+        label.textContent = turn.railLabel;
+
+        marker.appendChild(tick);
+        marker.appendChild(label);
+
+        marker.addEventListener("click", () => {
+          turn.element.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        railHover.appendChild(marker);
+        turn.marker = marker;
+      });
+
+      const instance = {
+        source,
+        rail,
+        railProgress,
+        turns,
+      };
+
+      transcripts.push(instance);
+      shell.dataset.transcriptInitialized = "true";
+
+      positionMarkers(instance);
+      bindGlobalListeners();
+      scheduleRefresh();
+
+      if ("ResizeObserver" in window) {
+        const resizeObserver = new ResizeObserver(() => {
+          positionMarkers(instance);
+          scheduleRefresh();
+        });
+        resizeObserver.observe(source);
+      }
+    };
+
+    const initAll = () => {
+      document
+        .querySelectorAll("[data-transcript-shell]")
+        .forEach((shell) => initTranscript(shell));
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAll, { once: true });
+    } else {
+      initAll();
+    }
+  })();
+</script>
