@@ -20,17 +20,10 @@ const initialItems: ListItem[] = sessions.map((s) => ({
 }));
 ---
 
-<Layout
-  title="Parliament Sittings"
-  description="Browse all Singapore Parliament sittings"
->
-  <SectionLabel>Parliament Proceedings</SectionLabel>
-
+<Layout title="Sittings" description="Browse all Singapore Parliament sittings">
   <h1 class="font-display text-display-lg text-ink mb-4">Sittings</h1>
 
-  <p
-    class="font-body text-base text-ink-soft leading-relaxed max-w-[72ch] mb-3 text-pretty"
-  >
+  <p class="font-body text-base text-ink-soft leading-relaxed mb-3 text-pretty">
     Here, you can find the proceedings of each Parliament sitting. A typical
     sitting consists of 90 minutes of
     <a
@@ -45,9 +38,7 @@ const initialItems: ListItem[] = sessions.map((s) => ({
     >.
   </p>
 
-  <p
-    class="font-body text-base text-ink-soft leading-relaxed max-w-[72ch] mb-8 text-pretty"
-  >
+  <p class="font-body text-base text-ink-soft leading-relaxed mb-8 text-pretty">
     A day before the sitting, the agenda for the day will be published in the
     <a
       href="https://www.parliament.gov.sg/parliamentary-business/order-paper"

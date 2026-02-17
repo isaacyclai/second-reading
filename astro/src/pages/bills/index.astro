@@ -20,25 +20,30 @@ const initialItems: ListItem[] = bills.map((b) => ({
 }));
 ---
 
-<Layout title="Bills" description="Browse Singapore Parliament bills">
-  <SectionLabel>Legislation</SectionLabel>
-
-  <h1 class="font-display text-display-lg text-ink mb-4">
-    Bills Before Parliament
-  </h1>
+<Layout title="Bills" description="Bills">
+  <h1 class="font-display text-display-lg text-ink mb-4">Bills</h1>
 
   <div
-    class="font-body text-base text-ink-soft leading-relaxed max-w-[72ch] mb-8 space-y-3 text-pretty"
+    class="font-body text-base text-ink-soft leading-relaxed mb-8 space-y-3 text-pretty"
   >
     <p>
-      Bills are proposed laws introduced by a Minister on behalf of the
-      Government, though MPs can also introduce Private Member's Bills. Track
-      their progress from first reading through to passage.
+      Here, you can find bills that have been introduced, debated, and passed in
+      Parliament. Bills are the first step in the process of making laws, and
+      are first introduced by a Minister on behalf of the Government. MPs can
+      also introduce Private Member's Bills.
     </p>
     <p>
       In the second reading, the principles and merits of the bill are debated,
-      after which members vote. Bills amending the Constitution require a
-      supermajority (two-thirds); otherwise a simple majority suffices.
+      after which members vote on the bill. If the bill seeks to amend the
+      Consitution, then a supermajority (two-thirds) is required for the bill to
+      move on to the next stage. Otherwise, a simple majority (half) is
+      sufficient. If a majority cannot be reached, the bill will go through a
+      third reading after being amended. For a more detailed description of the
+      full process, please refer to the official <a
+        href="https://www.parliament.gov.sg/about-us/parliament-information/functions"
+        class="text-accent hover:text-accent-light no-underline"
+        >Parliament website</a
+      >.
     </p>
   </div>
 
