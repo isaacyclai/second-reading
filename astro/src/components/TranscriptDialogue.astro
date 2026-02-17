@@ -15,12 +15,6 @@ const {
 {
   contentHtml ? (
     <div class="transcript-shell" data-transcript-shell data-transcript-id={instanceId}>
-      <div class="transcript-rail" data-transcript-rail aria-hidden="true">
-        <div class="transcript-rail__track">
-          <div class="transcript-rail__progress" data-transcript-progress></div>
-        </div>
-        <div class="transcript-rail__hover" data-transcript-hover></div>
-      </div>
       <div class="transcript-content" data-transcript-source set:html={contentHtml}></div>
     </div>
   ) : (
@@ -140,131 +134,6 @@ const {
     margin: 0;
   }
 
-  .transcript-rail {
-    --rail-axis: 20px;
-    --rail-track-width: 3px;
-    --rail-tick-width: 8px;
-    --rail-active-tick-width: 16px;
-
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 56px;
-    z-index: 50;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.35s ease;
-  }
-
-  .transcript-rail.is-visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .transcript-rail__track {
-    position: absolute;
-    left: calc(var(--rail-axis) - (var(--rail-track-width) / 2));
-    top: 4.5rem;
-    bottom: 2rem;
-    width: var(--rail-track-width);
-    background: var(--border-light);
-    overflow: hidden;
-  }
-
-  .transcript-rail__progress {
-    width: 100%;
-    height: 0%;
-    background: var(--accent);
-    transition: height 60ms linear;
-  }
-
-  .transcript-rail__hover {
-    position: absolute;
-    left: 0;
-    top: 4.5rem;
-    bottom: 2rem;
-    width: 56px;
-    transition: width 0.2s ease;
-  }
-
-  .transcript-rail__hover:hover {
-    width: 232px;
-  }
-
-  .transcript-rail-marker {
-    position: absolute;
-    left: calc(var(--rail-axis) + 8px);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transform: translateY(-50%);
-    height: 18px;
-    margin: 0;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    cursor: pointer;
-  }
-
-  .transcript-rail-marker.is-collapsed {
-    display: none;
-  }
-
-  .transcript-rail-marker__tick {
-    width: var(--rail-tick-width);
-    height: 2px;
-    background: var(--ink-muted);
-    opacity: 0.55;
-    transition: background 0.2s, opacity 0.2s, width 0.2s ease, height 0.2s ease;
-    flex-shrink: 0;
-  }
-
-  .transcript-rail-marker__label {
-    white-space: nowrap;
-    font-family: "DM Sans", system-ui, sans-serif;
-    font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    opacity: 0;
-    transform: translateX(-6px);
-    transition: opacity 0.25s ease, transform 0.25s ease, color 0.15s ease;
-    transition-delay: 0ms;
-    pointer-events: none;
-  }
-
-  .transcript-rail__hover:hover .transcript-rail-marker__label {
-    opacity: 1;
-    transform: translateX(0);
-    transition-delay: var(--marker-delay, 0ms);
-    pointer-events: auto;
-  }
-
-  .transcript-rail-marker:hover .transcript-rail-marker__label {
-    color: var(--accent);
-  }
-
-  .transcript-rail-marker.is-active .transcript-rail-marker__tick {
-    left: calc(var(--rail-axis) + 8px);
-    width: var(--rail-active-tick-width);
-    height: 2px;
-    background: var(--accent);
-    opacity: 1;
-  }
-
-  .transcript-rail-marker.is-active .transcript-rail-marker__label {
-    color: var(--accent);
-    font-weight: 700;
-  }
-
-  @media (max-width: 1024px) {
-    .transcript-rail {
-      display: none;
-    }
-  }
-
   @media (max-width: 900px) {
     .transcript-dialogue__turn {
       grid-template-columns: 1fr;
@@ -291,53 +160,9 @@ const {
 
 <script>
   (() => {
-    const transcripts = [];
-    let rafScheduled = false;
-    let listenersBound = false;
-
     const normalizeWhitespace = (value) => value.replace(/\s+/g, " ").trim();
     const honorificPattern =
       /^(?:(?:Mr|Ms|Mdm|Madam|Mrs|Dr|Prof|Professor|Assoc\.?\s*Prof\.?|Associate\s+Professor|Sir)\s+)+/i;
-    const stripHonorific = (label) => label.replace(honorificPattern, "").trim();
-    const stripTrailingSuffix = (label) => label.replace(/\s*\([^)]*\)\s*$/, "").trim();
-    const isFilteredRoleLabel = (label) =>
-      /\bdeputy\s+speakers?\b/i.test(label) || /\bchair(?:man|person)\b/i.test(label);
-
-    const isGenericChairLabel = (label) =>
-      /^(?:The\s+)?(?:(?:Mr|Mdm|Madam|Ms|Mrs|Dr|Sir)\s+)?(?:Speaker|Chairman|Chairperson)$/i.test(
-        label,
-      );
-
-    const toRailLabel = (speakerLabel) => {
-      const cleaned = normalizeWhitespace(
-        speakerLabel.replace(/[:：]\s*$/, ""),
-      );
-
-      if (!cleaned || isGenericChairLabel(cleaned) || isFilteredRoleLabel(cleaned)) {
-        return null;
-      }
-
-      let labelBase = stripTrailingSuffix(cleaned);
-      const parenMatches = [...cleaned.matchAll(/\(([^)]+)\)/g)];
-
-      for (let i = parenMatches.length - 1; i >= 0; i -= 1) {
-        const candidate = normalizeWhitespace(parenMatches[i][1] || "");
-        if (honorificPattern.test(candidate)) {
-          labelBase = candidate;
-          break;
-        }
-      }
-
-      const simplified = normalizeWhitespace(stripHonorific(labelBase));
-      if (!simplified || isGenericChairLabel(simplified) || isFilteredRoleLabel(simplified)) {
-        return null;
-      }
-
-      if (simplified.length > 56) {
-        return `${simplified.slice(0, 53)}...`;
-      }
-      return simplified;
-    };
 
     const extractSpeakerParagraph = (paragraph) => {
       if (!(paragraph instanceof HTMLParagraphElement)) {
@@ -401,149 +226,13 @@ const {
       };
     };
 
-    const positionMarkers = (instance) => {
-      const sourceRect = instance.source.getBoundingClientRect();
-      const sourceHeight = sourceRect.height || 1;
-
-      instance.turns.forEach((turn) => {
-        if (!turn.marker) {
-          return;
-        }
-        const turnRect = turn.element.getBoundingClientRect();
-        const pct = ((turnRect.top - sourceRect.top) / sourceHeight) * 100;
-        const clamped = Math.max(0, Math.min(100, pct));
-        turn.marker.style.top = `${clamped}%`;
-      });
-
-      collapseNearbyMarkers(instance);
-    };
-
-    const collapseNearbyMarkers = (instance) => {
-      const markerTurns = instance.turns.filter((turn) => turn.marker);
-      if (markerTurns.length === 0) {
-        return;
-      }
-
-      const railHeight = instance.railHover.clientHeight;
-      if (railHeight <= 0) {
-        markerTurns.forEach((turn) => {
-          turn.marker.classList.remove("is-collapsed");
-        });
-        return;
-      }
-
-      const minGapPx = 18;
-      let lastVisibleTopPx = Number.NEGATIVE_INFINITY;
-
-      markerTurns.forEach((turn) => {
-        const markerTopPct = Number.parseFloat(turn.marker.style.top || "0");
-        const markerTopPx = (Number.isFinite(markerTopPct) ? markerTopPct : 0) * (railHeight / 100);
-        const isCollapsed = markerTopPx - lastVisibleTopPx < minGapPx;
-        turn.marker.classList.toggle("is-collapsed", isCollapsed);
-        if (!isCollapsed) {
-          lastVisibleTopPx = markerTopPx;
-        }
-      });
-    };
-
-    const updateProgress = (instance) => {
-      const rect = instance.source.getBoundingClientRect();
-      const total = rect.height + window.innerHeight;
-      const seen = window.innerHeight - rect.top;
-      const pct = Math.max(0, Math.min(100, (seen / total) * 100));
-      instance.railProgress.style.height = `${pct}%`;
-    };
-
-    const updateActiveMarker = (instance) => {
-      const markerTurns = instance.turns.filter(
-        (turn) => turn.marker && !turn.marker.classList.contains("is-collapsed"),
-      );
-      if (markerTurns.length === 0) {
-        return;
-      }
-
-      let activeTurn = markerTurns[0];
-      const threshold = window.innerHeight * 0.35;
-
-      markerTurns.forEach((turn) => {
-        if (turn.element.getBoundingClientRect().top <= threshold) {
-          activeTurn = turn;
-        }
-      });
-
-      markerTurns.forEach((turn) => {
-        turn.marker.classList.toggle("is-active", turn === activeTurn);
-      });
-    };
-
-    const updateRailVisibility = () => {
-      let active = null;
-      let bestScore = 0;
-
-      transcripts.forEach((instance) => {
-        const rect = instance.source.getBoundingClientRect();
-        const visiblePx = Math.min(window.innerHeight, rect.bottom) - Math.max(0, rect.top);
-        const score = Math.max(0, visiblePx);
-        if (score > bestScore) {
-          bestScore = score;
-          active = instance;
-        }
-      });
-
-      transcripts.forEach((instance) => {
-        instance.rail.classList.toggle("is-visible", instance === active && bestScore > 0);
-      });
-    };
-
-    const refreshAll = () => {
-      updateRailVisibility();
-      transcripts.forEach((instance) => {
-        updateProgress(instance);
-        updateActiveMarker(instance);
-      });
-    };
-
-    const scheduleRefresh = () => {
-      if (rafScheduled) {
-        return;
-      }
-
-      rafScheduled = true;
-      window.requestAnimationFrame(() => {
-        refreshAll();
-        rafScheduled = false;
-      });
-    };
-
-    const bindGlobalListeners = () => {
-      if (listenersBound) {
-        return;
-      }
-
-      listenersBound = true;
-      window.addEventListener("scroll", scheduleRefresh, { passive: true });
-      window.addEventListener("resize", () => {
-        transcripts.forEach((instance) => positionMarkers(instance));
-        scheduleRefresh();
-      });
-    };
-
     const initTranscript = (shell) => {
       if (shell.dataset.transcriptInitialized === "true") {
         return;
       }
 
       const source = shell.querySelector("[data-transcript-source]");
-      const rail = shell.querySelector("[data-transcript-rail]");
-      const railProgress = shell.querySelector("[data-transcript-progress]");
-      const railHover = shell.querySelector("[data-transcript-hover]");
-
-      if (
-        !(source instanceof HTMLElement) ||
-        !(rail instanceof HTMLElement) ||
-        !(railProgress instanceof HTMLElement) ||
-        !(railHover instanceof HTMLElement)
-      ) {
+      if (!(source instanceof HTMLElement)) {
         return;
       }
 
@@ -560,7 +249,7 @@ const {
       const dialogue = document.createElement("div");
       dialogue.className = "transcript-dialogue";
 
-      const turns = [];
+      let turnCount = 0;
       let currentTextCell = null;
 
       blocks.forEach((block) => {
@@ -595,7 +284,7 @@ const {
         if (parsedSpeaker) {
           const turn = document.createElement("div");
           turn.className = "transcript-dialogue__turn";
-          turn.id = `${transcriptId}-turn-${turns.length}`;
+          turn.id = `${transcriptId}-turn-${turnCount}`;
 
           const labelCell = document.createElement("div");
           labelCell.className = "transcript-dialogue__label";
@@ -616,12 +305,7 @@ const {
           turn.appendChild(textCell);
           dialogue.appendChild(turn);
 
-          turns.push({
-            element: turn,
-            railLabel: toRailLabel(parsedSpeaker.speakerLabel),
-            marker: null,
-          });
-
+          turnCount += 1;
           currentTextCell = textCell;
           return;
         }
@@ -637,69 +321,13 @@ const {
         dialogue.appendChild(standaloneRow);
       });
 
-      if (turns.length === 0) {
+      if (turnCount === 0) {
         return;
       }
 
       source.replaceChildren(dialogue);
       source.classList.add("transcript-source--enhanced");
-
-      railHover.replaceChildren();
-
-      let markerIndex = 0;
-      turns.forEach((turn) => {
-        if (!turn.railLabel) {
-          return;
-        }
-
-        const marker = document.createElement("button");
-        marker.type = "button";
-        marker.className = "transcript-rail-marker";
-        marker.style.setProperty("--marker-delay", `${markerIndex * 15}ms`);
-        marker.setAttribute("aria-label", `Jump to ${turn.railLabel}`);
-        marker.title = `Jump to ${turn.railLabel}`;
-
-        const tick = document.createElement("span");
-        tick.className = "transcript-rail-marker__tick";
-
-        const label = document.createElement("span");
-        label.className = "transcript-rail-marker__label";
-        label.textContent = turn.railLabel;
-
-        marker.appendChild(tick);
-        marker.appendChild(label);
-
-        marker.addEventListener("click", () => {
-          turn.element.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-
-        railHover.appendChild(marker);
-        turn.marker = marker;
-        markerIndex += 1;
-      });
-
-      const instance = {
-        source,
-        rail,
-        railHover,
-        railProgress,
-        turns,
-      };
-
-      transcripts.push(instance);
       shell.dataset.transcriptInitialized = "true";
-
-      positionMarkers(instance);
-      bindGlobalListeners();
-      scheduleRefresh();
-
-      if ("ResizeObserver" in window) {
-        const resizeObserver = new ResizeObserver(() => {
-          positionMarkers(instance);
-          scheduleRefresh();
-        });
-        resizeObserver.observe(source);
-      }
     };
 
     const initAll = () => {
