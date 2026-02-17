@@ -203,6 +203,10 @@ const {
     cursor: pointer;
   }
 
+  .transcript-rail-marker.is-collapsed {
+    display: none;
+  }
+
   .transcript-rail-marker__tick {
     width: 20px;
     height: 2px;
@@ -285,33 +289,47 @@ const {
     let listenersBound = false;
 
     const normalizeWhitespace = (value) => value.replace(/\s+/g, " ").trim();
+    const honorificPattern =
+      /^(?:(?:Mr|Ms|Mdm|Madam|Mrs|Dr|Prof|Professor|Assoc\.?\s*Prof\.?|Associate\s+Professor|Sir)\s+)+/i;
+    const stripHonorific = (label) => label.replace(honorificPattern, "").trim();
+    const stripTrailingSuffix = (label) => label.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    const isFilteredRoleLabel = (label) =>
+      /\bdeputy\s+speakers?\b/i.test(label) || /\bchair(?:man|person)\b/i.test(label);
 
     const isGenericChairLabel = (label) =>
-      /^(Mr|Mdm|Madam|Ms|Mrs)\s+Speaker$/i.test(label) ||
-      /^The\s+Speaker$/i.test(label);
+      /^(?:The\s+)?(?:(?:Mr|Mdm|Madam|Ms|Mrs|Dr|Sir)\s+)?(?:Speaker|Chairman|Chairperson)$/i.test(
+        label,
+      );
 
     const toRailLabel = (speakerLabel) => {
       const cleaned = normalizeWhitespace(
         speakerLabel.replace(/[:：]\s*$/, ""),
       );
 
-      if (isGenericChairLabel(cleaned)) {
+      if (!cleaned || isGenericChairLabel(cleaned) || isFilteredRoleLabel(cleaned)) {
         return null;
       }
 
+      let labelBase = stripTrailingSuffix(cleaned);
       const parenMatches = [...cleaned.matchAll(/\(([^)]+)\)/g)];
 
       for (let i = parenMatches.length - 1; i >= 0; i -= 1) {
         const candidate = normalizeWhitespace(parenMatches[i][1] || "");
-        if (/^(Mr|Ms|Mdm|Mrs|Dr|Prof|Sir)\b/i.test(candidate)) {
-          return candidate;
+        if (honorificPattern.test(candidate)) {
+          labelBase = candidate;
+          break;
         }
       }
 
-      if (cleaned.length > 56) {
-        return `${cleaned.slice(0, 53)}...`;
+      const simplified = normalizeWhitespace(stripHonorific(labelBase));
+      if (!simplified || isGenericChairLabel(simplified) || isFilteredRoleLabel(simplified)) {
+        return null;
       }
-      return cleaned;
+
+      if (simplified.length > 56) {
+        return `${simplified.slice(0, 53)}...`;
+      }
+      return simplified;
     };
 
     const extractSpeakerParagraph = (paragraph) => {
@@ -389,6 +407,36 @@ const {
         const clamped = Math.max(0, Math.min(100, pct));
         turn.marker.style.top = `${clamped}%`;
       });
+
+      collapseNearbyMarkers(instance);
+    };
+
+    const collapseNearbyMarkers = (instance) => {
+      const markerTurns = instance.turns.filter((turn) => turn.marker);
+      if (markerTurns.length === 0) {
+        return;
+      }
+
+      const railHeight = instance.railHover.clientHeight;
+      if (railHeight <= 0) {
+        markerTurns.forEach((turn) => {
+          turn.marker.classList.remove("is-collapsed");
+        });
+        return;
+      }
+
+      const minGapPx = 18;
+      let lastVisibleTopPx = Number.NEGATIVE_INFINITY;
+
+      markerTurns.forEach((turn) => {
+        const markerTopPct = Number.parseFloat(turn.marker.style.top || "0");
+        const markerTopPx = (Number.isFinite(markerTopPct) ? markerTopPct : 0) * (railHeight / 100);
+        const isCollapsed = markerTopPx - lastVisibleTopPx < minGapPx;
+        turn.marker.classList.toggle("is-collapsed", isCollapsed);
+        if (!isCollapsed) {
+          lastVisibleTopPx = markerTopPx;
+        }
+      });
     };
 
     const updateProgress = (instance) => {
@@ -400,7 +448,9 @@ const {
     };
 
     const updateActiveMarker = (instance) => {
-      const markerTurns = instance.turns.filter((turn) => turn.marker);
+      const markerTurns = instance.turns.filter(
+        (turn) => turn.marker && !turn.marker.classList.contains("is-collapsed"),
+      );
       if (markerTurns.length === 0) {
         return;
       }
@@ -624,6 +674,7 @@ const {
       const instance = {
         source,
         rail,
+        railHover,
         railProgress,
         turns,
       };
