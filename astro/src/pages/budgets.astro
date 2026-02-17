@@ -275,8 +275,9 @@ const fmtSignedAmount = (millions: number, decimals = 1) =>
 const fmtSignedPct = (value: number, decimals = 1) =>
   `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
 
-const isNegativeFullDrop = (previousTotal: number, latestTotal: number) =>
-  previousTotal > 0 && latestTotal <= 0;
+const isFullEntryOrExit = (previousTotal: number, latestTotal: number) =>
+  (previousTotal > 0 && latestTotal <= 0) ||
+  (previousTotal <= 0 && latestTotal > 0);
 
 const sectorChangeRows = sectorOrder
   .map((sector) => {
@@ -305,7 +306,7 @@ const sectorChangeRows = sectorOrder
   .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
 const rankedSectorChangeRows = sectorChangeRows.filter(
-  (row) => !isNegativeFullDrop(row.previousTotal, row.latestTotal),
+  (row) => !isFullEntryOrExit(row.previousTotal, row.latestTotal),
 );
 
 const topSectorChange = rankedSectorChangeRows[0];
@@ -369,7 +370,7 @@ const ministryChangeRows = [...ministryKeys]
   .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
 const rankedMinistryChangeRows = ministryChangeRows.filter(
-  (row) => !isNegativeFullDrop(row.previousTotal, row.latestTotal),
+  (row) => !isFullEntryOrExit(row.previousTotal, row.latestTotal),
 );
 
 const topMinistryChange = rankedMinistryChangeRows[0];
