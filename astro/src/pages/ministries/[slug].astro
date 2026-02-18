@@ -38,9 +38,6 @@ const questions = sections.filter((s) =>
 const motions = sections.filter(
   (s) => s.category === "motion" || s.category === "adjournment_motion",
 );
-const statements = sections.filter(
-  (s) => s.sectionType === "OS" || s.sectionType === "WS",
-);
 ---
 
 <Layout
@@ -138,32 +135,6 @@ const statements = sections.filter(
         <Pagination
           containerId="questions-list"
           itemSelector=".question-item"
-          itemsPerPage={10}
-        />
-      </section>
-    )
-  }
-
-  <!-- Statements -->
-  {
-    statements.length > 0 && (
-      <section class="mb-10">
-        <h2 class="font-display text-xl text-ink mb-4">
-          Statements{" "}
-          <span class="font-sans text-sm text-ink-muted font-normal">
-            ({statements.length})
-          </span>
-        </h2>
-        <div id="statements-list" class="flex flex-col border-t border-border">
-          {statements.map((section) => (
-            <div class="statement-item">
-              <QuestionCard section={section} />
-            </div>
-          ))}
-        </div>
-        <Pagination
-          containerId="statements-list"
-          itemSelector=".statement-item"
           itemsPerPage={10}
         />
       </section>

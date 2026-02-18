@@ -152,6 +152,15 @@ const sittingInfo = section.sittingDate
           </span>
         )
       }
+      {
+        section.speakers &&
+          section.speakers.map((speaker) => (
+            <span
+              class="hidden"
+              data-pagefind-filter={`speaker:${speaker.name}`}
+            />
+          ))
+      }
     </header>
 
     <!-- Speakers -->
