@@ -26,7 +26,7 @@ export default function QuestionCard({ item }: Props) {
     >
       <div class="flex flex-wrap items-center gap-2 mb-2">
         <Tag color={badgeConfig.color}>{badgeConfig.label}</Tag>
-        {item.ministry && <Tag color="green">{item.ministry}</Tag>}
+        {item.ministry && item.category !== "adjournment_motion" && <Tag color="green">{item.ministry}</Tag>}
         {item.date && (
           <span class="font-sans text-xs text-ink-muted">{formatDate(item.date)}</span>
         )}

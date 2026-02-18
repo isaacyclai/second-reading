@@ -113,10 +113,16 @@ def process_speaker(section_id, speaker):
 
 def process_section(session_id, idx, section, date_str):
     """Process a single section and its speakers."""
-    ministry_acronym = detect_ministry(section)
-    ministry_id = (
-        find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
-    )
+    # Adjournment motions are raised by individual MPs on any topic;
+    # the answering minister is incidental, so skip ministry tagging.
+    if section.get("category") == "adjournment_motion":
+        ministry_id = None
+        ministry_acronym = None
+    else:
+        ministry_acronym = detect_ministry(section)
+        ministry_id = (
+            find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
+        )
 
     bill_id = None
     section_type = section["section_type"]

@@ -37,7 +37,11 @@ const hasCategory = section.category && categoryLabels[section.category];
         <TypeBadge type={section.sectionType} />
       )
     }
-    {section.ministry && <Tag color="green">{section.ministry}</Tag>}
+    {
+      section.ministry && section.category !== "adjournment_motion" && (
+        <Tag color="green">{section.ministry}</Tag>
+      )
+    }
     {
       showDate && section.sessionDate && (
         <span class="font-sans text-xs text-ink-muted">
