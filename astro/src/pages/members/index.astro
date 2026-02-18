@@ -71,12 +71,26 @@ const totalCount = getMemberCount();
     </div>
   </div>
 
-  <SearchFilter
-    containerId="members-list"
-    itemSelector=".member-item"
-    contentType="member"
-    placeholder="Search by name, constituency, or designation..."
-  />
+  <div class="flex flex-col sm:flex-row gap-4 mb-6">
+    <div class="flex-1">
+      <SearchFilter
+        containerId="members-list"
+        itemSelector=".member-item"
+        contentType="member"
+        placeholder="Search by name, constituency, or designation..."
+      />
+    </div>
+    <div class="flex items-start">
+      <select
+        id="member-sort"
+        class="rounded-lg border border-border bg-surface px-3 py-2.5 font-ui text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors cursor-pointer"
+      >
+        <option value="name-asc">Name (A–Z)</option>
+        <option value="involvements-desc">Most involvements</option>
+        <option value="attendance-desc">Highest attendance</option>
+      </select>
+    </div>
+  </div>
 
   <p
     class="font-sans text-sm text-ink-muted mb-6"
@@ -94,12 +108,21 @@ const totalCount = getMemberCount();
       ) : (
         members.map((member, i) => {
           const isStaggered = i < STAGGER_LIMIT;
+          const attendancePercent =
+            member.attendanceTotal && member.attendanceTotal > 0
+              ? Math.round(
+                  (member.attendancePresent! / member.attendanceTotal) * 100,
+                )
+              : 0;
           return (
             <div
               class={`member-item h-full${isStaggered ? " animate-fade-up" : ""}`}
               style={
                 isStaggered ? `animation-delay: ${0.1 + i * 0.03}s` : undefined
               }
+              data-name={member.name}
+              data-involvements={member.sectionCount || 0}
+              data-attendance={attendancePercent}
             >
               <MemberCard member={member} />
             </div>
@@ -108,4 +131,49 @@ const totalCount = getMemberCount();
       )
     }
   </div>
+
+  <script>
+    function initMemberSort() {
+      const select = document.getElementById(
+        "member-sort",
+      ) as HTMLSelectElement | null;
+      const container = document.getElementById("members-list");
+      if (!select || !container) return;
+      if (select.hasAttribute("data-sort-initialized")) return;
+      select.setAttribute("data-sort-initialized", "true");
+
+      select.addEventListener("change", () => {
+        const [key, dir] = select.value.split("-");
+        const items = Array.from(
+          container.querySelectorAll(".member-item"),
+        ) as HTMLElement[];
+
+        items.sort((a, b) => {
+          if (key === "name") {
+            const aVal = (a.dataset.name || "").toLowerCase();
+            const bVal = (b.dataset.name || "").toLowerCase();
+            return dir === "asc"
+              ? aVal.localeCompare(bVal)
+              : bVal.localeCompare(aVal);
+          }
+          const aVal = parseInt(a.dataset[key] || "0", 10);
+          const bVal = parseInt(b.dataset[key] || "0", 10);
+          return dir === "asc" ? aVal - bVal : bVal - aVal;
+        });
+
+        // Remove stagger animations
+        items.forEach((item) => {
+          item.classList.remove("animate-fade-up");
+          item.style.animationDelay = "";
+        });
+
+        const fragment = document.createDocumentFragment();
+        items.forEach((item) => fragment.appendChild(item));
+        container.appendChild(fragment);
+      });
+    }
+
+    initMemberSort();
+    document.addEventListener("astro:after-swap", initMemberSort);
+  </script>
 </Layout>
