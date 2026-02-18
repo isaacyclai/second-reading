@@ -31,7 +31,7 @@ export interface ListItem {
 export const typeBadgeConfig: Record<string, { label: string; color: TagColor }> = {
   OA: { label: "Oral Answer", color: "blue" },
   WA: { label: "Written Answer", color: "purple" },
-  WANA: { label: "No Answer", color: "muted" },
+  WANA: { label: "Written Answer to Unanswered Oral Question", color: "muted" },
   BI: { label: "1st Reading", color: "green" },
   BP: { label: "2nd Reading", color: "green" },
 };
