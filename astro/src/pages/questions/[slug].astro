@@ -44,8 +44,8 @@ const typeLabel =
     ? categoryLabels[section.category]
     : typeLabels[section.sectionType] || section.sectionType;
 
-const formattedDate = section.sessionDate
-  ? new Date(section.sessionDate).toLocaleDateString("en-SG", {
+const formattedDate = section.sittingDate
+  ? new Date(section.sittingDate).toLocaleDateString("en-SG", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -58,9 +58,9 @@ const isMotion =
 const backLink = isMotion ? "/motions" : "/questions";
 const backLabel = isMotion ? "Motions" : "Questions";
 
-// Get session info for breadcrumb
-const sessionInfo = section.sessionDate
-  ? new Date(section.sessionDate).toLocaleDateString("en-SG", {
+// Get sitting info for breadcrumb
+const sittingInfo = section.sittingDate
+  ? new Date(section.sittingDate).toLocaleDateString("en-SG", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -122,9 +122,9 @@ const sessionInfo = section.sessionDate
         data-pagefind-ignore
       >
         {
-          formattedDate && section.sessionId && section.sessionDate && (
+          formattedDate && section.sittingId && section.sittingDate && (
             <a
-              href={`/sessions/${slugify(section.sessionDate, section.sessionId)}`}
+              href={`/sittings/${slugify(section.sittingDate, section.sittingId)}`}
               class="hover:text-accent no-underline"
             >
               {formattedDate}

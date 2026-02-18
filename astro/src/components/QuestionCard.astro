@@ -2,7 +2,7 @@
 import type { Section } from "../lib/db";
 import TypeBadge from "./TypeBadge.astro";
 import Tag from "./Tag.astro";
-import { slugify } from '../lib/slugify';
+import { slugify } from "../lib/slugify";
 
 interface Props {
   section: Section;
@@ -23,8 +23,8 @@ const categoryLabels: Record<string, string> = {
   statement: "Statement",
 };
 
-const formattedDate = section.sessionDate
-  ? new Date(section.sessionDate).toLocaleDateString("en-SG", {
+const formattedDate = section.sittingDate
+  ? new Date(section.sittingDate).toLocaleDateString("en-SG", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -39,7 +39,7 @@ const snippet =
 <a
   href={`/questions/${slugify(section.sectionTitle, section.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  {...(includePagefindMeta ? { 'data-pagefind-meta': `id:${section.id}` } : {})}
+  {...includePagefindMeta ? { "data-pagefind-meta": `id:${section.id}` } : {}}
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
     {
@@ -77,5 +77,4 @@ const snippet =
       </div>
     )
   }
-
 </a>

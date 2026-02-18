@@ -253,9 +253,9 @@ const party = getParty();
                 {section.ministry && (
                   <Tag color="green">{section.ministry}</Tag>
                 )}
-                {section.sessionDate && (
+                {section.sittingDate && (
                   <span class="font-sans text-xs text-ink-muted">
-                    {new Date(section.sessionDate).toLocaleDateString("en-SG", {
+                    {new Date(section.sittingDate).toLocaleDateString("en-SG", {
                       year: "numeric",
                       month: "short",
                       day: "numeric",

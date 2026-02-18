@@ -17,7 +17,7 @@ export interface ListItem {
   ministry?: string;
   speakers?: string[];
   snippet?: string;
-  // Session-specific fields
+  // Sitting-specific fields
   parliament?: number;
   sessionNo?: number;
   sittingNo?: number;
@@ -65,7 +65,7 @@ export function formatDate(dateStr: string | undefined | null): string {
   });
 }
 
-export function formatSessionDate(dateStr: string | undefined | null): string {
+export function formatSittingDate(dateStr: string | undefined | null): string {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleDateString("en-SG", {
     day: "numeric",

@@ -13,7 +13,7 @@ const questions = getQuestions(PAGE_SIZE, 0);
 const initialItems: ListItem[] = questions.map((q) => ({
   id: q.id,
   title: q.sectionTitle,
-  date: q.sessionDate,
+  date: q.sittingDate,
   type: q.sectionType,
   category: q.category || undefined,
   ministry: q.ministry || undefined,

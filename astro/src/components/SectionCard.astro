@@ -43,9 +43,9 @@ const hasCategory = section.category && categoryLabels[section.category];
       )
     }
     {
-      showDate && section.sessionDate && (
+      showDate && section.sittingDate && (
         <span class="font-sans text-xs text-ink-muted">
-          {new Date(section.sessionDate).toLocaleDateString("en-SG", {
+          {new Date(section.sittingDate).toLocaleDateString("en-SG", {
             year: "numeric",
             month: "short",
             day: "numeric",

@@ -2,15 +2,15 @@
 import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
 import PaginatedList from "../../components/islands/PaginatedList";
-import { getSessions, getSessionCount } from "../../lib/db";
+import { getSittings, getSittingCount } from "../../lib/db";
 import type { ListItem } from "../../lib/types";
 
 const PAGE_SIZE = 20;
-const totalCount = getSessionCount();
-const sessions = getSessions(PAGE_SIZE, 0);
+const totalCount = getSittingCount();
+const sittings = getSittings(PAGE_SIZE, 0);
 
 // Transform to match the ListItem interface
-const initialItems: ListItem[] = sessions.map((s) => ({
+const initialItems: ListItem[] = sittings.map((s) => ({
   id: s.id,
   date: s.date,
   parliament: s.parliament,
@@ -56,8 +56,8 @@ const initialItems: ListItem[] = sessions.map((s) => ({
 
   <PaginatedList
     client:visible
-    contentType="session"
-    dataUrl="/data/sessions.json"
+    contentType="sitting"
+    dataUrl="/data/sittings.json"
     totalCount={totalCount}
     pageSize={PAGE_SIZE}
     showSearch={false}

@@ -3,27 +3,27 @@ import Layout from '../../layouts/Layout.astro';
 import SectionLabel from '../../components/SectionLabel.astro';
 import SectionCard from '../../components/SectionCard.astro';
 import Tag from '../../components/Tag.astro';
-import { getSessions, getSession, getSessionSections, getSessionAttendees, getSessionBills } from '../../lib/db';
+import { getSittings, getSitting, getSittingSections, getSittingAttendees, getSittingBills } from '../../lib/db';
 import { slugify } from '../../lib/slugify';
 
 export async function getStaticPaths() {
-  const sessions = getSessions();
-  return sessions.map((session) => ({
-    params: { slug: slugify(session.date, session.id) },
-    props: { id: session.id },
+  const sittings = getSittings();
+  return sittings.map((sitting) => ({
+    params: { slug: slugify(sitting.date, sitting.id) },
+    props: { id: sitting.id },
   }));
 }
 
 const { id } = Astro.props;
-const session = getSession(id);
+const sitting = getSitting(id);
 
-if (!session) {
-  return Astro.redirect('/sessions');
+if (!sitting) {
+  return Astro.redirect('/sittings');
 }
 
-const sections = getSessionSections(id);
-const attendees = getSessionAttendees(id);
-const bills = getSessionBills(id);
+const sections = getSittingSections(id);
+const attendees = getSittingAttendees(id);
+const bills = getSittingBills(id);
 
 // Helper to format ordinal numbers (1st, 2nd, 3rd, etc.)
 function getOrdinal(n: number): string {
@@ -32,7 +32,7 @@ function getOrdinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-const formattedDate = new Date(session.date).toLocaleDateString('en-SG', {
+const formattedDate = new Date(sitting.date).toLocaleDateString('en-SG', {
   weekday: 'long',
   year: 'numeric',
   month: 'long',
@@ -54,24 +54,24 @@ const absentMembers = attendees.filter(a => !a.present);
 ---
 
 <Layout title={formattedDate} description={`Parliament sitting on ${formattedDate}`}>
-  <a href="/sessions" class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-6">
+  <a href="/sittings" class="inline-flex items-center font-sans text-sm text-accent hover:text-accent-light no-underline mb-6">
     ← Back to Sittings
   </a>
 
   <header class="mb-10">
-    <SectionLabel>{getOrdinal(session.parliament)} Parliament · {getOrdinal(session.sessionNo)} Session</SectionLabel>
+    <SectionLabel>{getOrdinal(sitting.parliament)} Parliament · {getOrdinal(sitting.sessionNo)} Session</SectionLabel>
     
     <h1 class="font-display text-display-lg text-ink mb-3">
       {formattedDate}
     </h1>
     
     <div class="flex flex-wrap gap-3 font-sans text-sm text-ink-muted">
-      <span>{getOrdinal(session.sittingNo)} Sitting</span>
-      {session.url && (
+      <span>{getOrdinal(sitting.sittingNo)} Sitting</span>
+      {sitting.url && (
         <>
           <span class="text-border">·</span>
           <a
-            href={session.url}
+            href={sitting.url}
             target="_blank"
             rel="noopener noreferrer"
             class="text-accent hover:text-accent-light no-underline"
@@ -194,7 +194,7 @@ const absentMembers = attendees.filter(a => !a.present);
       Oral Answers <span class="font-sans text-sm text-ink-muted font-normal">({oralAnswers.length})</span>
     </h2>
     {oralAnswers.length === 0 ? (
-      <p class="py-8 font-body text-ink-muted">No oral answers in this session</p>
+      <p class="py-8 font-body text-ink-muted">No oral answers in this sitting</p>
     ) : (
       <div class="flex flex-col border-t border-border">
         {oralAnswers.map((section) => (
@@ -210,7 +210,7 @@ const absentMembers = attendees.filter(a => !a.present);
       Written Answers <span class="font-sans text-sm text-ink-muted font-normal">({writtenAnswers.length})</span>
     </h2>
     {writtenAnswers.length === 0 ? (
-      <p class="py-8 font-body text-ink-muted">No written answers in this session</p>
+      <p class="py-8 font-body text-ink-muted">No written answers in this sitting</p>
     ) : (
       <div class="flex flex-col border-t border-border">
         {writtenAnswers.map((section) => (

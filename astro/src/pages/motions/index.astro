@@ -13,7 +13,7 @@ const motions = getMotions(PAGE_SIZE, 0);
 const initialItems: ListItem[] = motions.map((m) => ({
   id: m.id,
   title: m.sectionTitle,
-  date: m.sessionDate,
+  date: m.sittingDate,
   type: m.sectionType,
   category: m.category || undefined,
   ministry: m.ministry || undefined,

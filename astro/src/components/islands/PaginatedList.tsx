@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "preact/hooks";
 import type { ListItem } from "../../lib/types";
 import QuestionCard from "./QuestionCard";
 import BillCard from "./BillCard";
-import SessionCard from "./SessionCard";
+import SittingCard from "./SittingCard";
 
 interface DataResponse {
   items: ListItem[];
@@ -30,7 +30,7 @@ interface Pagefind {
 }
 
 interface Props {
-  contentType: "question" | "bill" | "motion" | "session";
+  contentType: "question" | "bill" | "motion" | "sitting";
   dataUrl: string;
   totalCount: number;
   pageSize?: number;
@@ -499,8 +499,8 @@ export default function PaginatedList({
     switch (contentType) {
       case "bill":
         return <BillCard item={item} />;
-      case "session":
-        return <SessionCard item={item} />;
+      case "sitting":
+        return <SittingCard item={item} />;
       case "question":
       case "motion":
       default:

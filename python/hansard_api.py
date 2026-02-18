@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Optional
 from bs4 import BeautifulSoup
-from parliament_session import ParliamentSession
+from parliament_sitting import ParliamentSitting
 
 class HansardAPI:
     BASE_URL = "https://sprs.parl.gov.sg/search/getHansardReport/"
@@ -9,7 +9,7 @@ class HansardAPI:
     def __init__(self):
         self.session = requests.Session()
     
-    def fetch_by_date(self, date_str: str) -> Optional[ParliamentSession]:
+    def fetch_by_date(self, date_str: str) -> Optional[ParliamentSitting]:
         # date_str format: 'DD-MM-YYYY' (e.g., '14-01-2026')
         url = f"{self.BASE_URL}?sittingDate={date_str}"
         
@@ -20,22 +20,22 @@ class HansardAPI:
             if not (data.get('takesSectionVOList') or data.get('htmlFullContent')):
                 return None
             
-            parliament_session = ParliamentSession(date_str)
-            parliament_session.set_metadata(self.get_session_metadata(data))
+            parliament_sitting = ParliamentSitting(date_str)
+            parliament_sitting.set_metadata(self.get_sitting_metadata(data))
             
             # Check format type
             if data.get('takesSectionVOList'):
                 # New format
-                parliament_session.set_attendance(data['attendanceList'])
-                parliament_session.set_sections(data['takesSectionVOList'])
+                parliament_sitting.set_attendance(data['attendanceList'])
+                parliament_sitting.set_sections(data['takesSectionVOList'])
             
             
-            return parliament_session
+            return parliament_sitting
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {date_str}: {e}")
             return None
     
-    def get_session_metadata(self, raw_data: Dict) -> Dict:
+    def get_sitting_metadata(self, raw_data: Dict) -> Dict:
         if 'takesSectionVOList' in raw_data and raw_data['takesSectionVOList']:
             metadata = raw_data.get('metadata', {})
             return {
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     print("=" * 60)
     print("Testing NEW format (22-09-2025)")
     print("=" * 60)
-    session_new = api.fetch_by_date('22-09-2025')
+    sitting = api.fetch_by_date('22-09-2025')
     
-    if session_new:
-        session_new.print_sections()
+    if sitting:
+        sitting.print_sections()

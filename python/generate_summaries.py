@@ -51,23 +51,23 @@ async def generate_summary(prompt_template: str, model='llama-3.1-8b-instant') -
             await asyncio.sleep(AI_COOLDOWN)
             return None
 
-async def generate_section_summaries_for_session(session_id, only_blanks):
+async def generate_section_summaries_for_sitting(sitting_id, only_blanks):
     sections = await execute(
         f'''SELECT id, section_title, content_plain, category, section_type 
            FROM sections    
-           WHERE session_id = $1 
+           WHERE sitting_id = $1 
              AND length(content_plain) > 20
              AND category != 'bill' 
              AND section_type NOT IN ('BI', 'BP')
              {'AND sections.summary IS NULL' if only_blanks else ''}''',
-        session_id,
+        sitting_id,
         fetch=True
     )
     
     if not sections:
         return
         
-    logger.info(f"Generating summaries for {len(sections)} sections in session {session_id}")
+    logger.info(f"Generating summaries for {len(sections)} sections in sitting {sitting_id}")
     
     tasks = []
     for s in sections:
@@ -90,22 +90,22 @@ async def generate_section_summary(section):
     if summary:
         await execute('UPDATE sections SET summary = $1 WHERE id = $2', summary, section['id'])
 
-async def generate_bill_summaries_for_session(session_id, only_blanks):
+async def generate_bill_summaries_for_sitting(sitting_id, only_blanks):
     bills = await execute(
         f'''SELECT DISTINCT b.id, b.title 
            FROM bills b
            JOIN sections s ON b.id = s.bill_id
-           WHERE s.session_id = $1
+           WHERE s.sitting_id = $1
            AND s.section_type = 'BP'
            {'AND b.summary IS NULL' if only_blanks else ''}''',
-        session_id,
+        sitting_id,
         fetch=True
     )
     
     if not bills:
         return
         
-    logger.info(f"Generating summaries for {len(bills)} bills in session {session_id}")
+    logger.info(f"Generating summaries for {len(bills)} bills in sitting {sitting_id}")
     
     for bill in bills:
         sections = await execute(
@@ -134,7 +134,7 @@ async def generate_bill_summaries_for_session(session_id, only_blanks):
             logger.info(f"Generated summary for bill {bill['title']}")
 
 
-async def generate_session_summaries(start_date_str, end_date_str, only_blanks=False):
+async def generate_sitting_summaries(start_date_str, end_date_str, only_blanks=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y')
     end_date = datetime.strptime(end_date_str, '%d-%m-%Y')
     
@@ -146,21 +146,21 @@ async def generate_session_summaries(start_date_str, end_date_str, only_blanks=F
         
     logger.info(f"Summarizing date range: {start_date_str} to {end_date_str} ({len(dates)} days)")
     
-    session_ids_to_process = []
+    sitting_ids_to_process = []
     
     rows = await execute(
-        'SELECT id FROM sessions WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
+        'SELECT id FROM sittings WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
         start_date_str, end_date_str,
         fetch=True
     )
 
-    session_ids_to_process = [r['id'] for r in rows]
+    sitting_ids_to_process = [r['id'] for r in rows]
             
-    logger.info(f"Generating summaries for {len(session_ids_to_process)} sessions...")
+    logger.info(f"Generating summaries for {len(sitting_ids_to_process)} sittings...")
     
-    for sid in session_ids_to_process:
-        await generate_section_summaries_for_session(sid, only_blanks)
-        await generate_bill_summaries_for_session(sid, only_blanks)
+    for sid in sitting_ids_to_process:
+        await generate_section_summaries_for_sitting(sid, only_blanks)
+        await generate_bill_summaries_for_sitting(sid, only_blanks)
 
     logger.info("Batch processing complete!")
     await close_pool()
@@ -185,7 +185,7 @@ async def generate_member_summaries(only_blanks):
                       ss.designation, sess.date
                FROM section_speakers ss
                JOIN sections s ON ss.section_id = s.id
-               JOIN sessions sess ON s.session_id = sess.id
+               JOIN sittings sess ON s.sitting_id = sess.id
                LEFT JOIN ministries m ON s.ministry_id = m.id
                WHERE ss.member_id = $1
                ORDER BY sess.date DESC
@@ -239,12 +239,12 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     flags = [arg for arg in args if arg.startswith('--')]
     
-    summarize_sessions = '--sittings' in flags
+    summarize_sittings = '--sittings' in flags
     summarize_members = '--members' in flags
     only_blank = '--only-blank' in flags # only generate summaries for rows with no summaries
     
-    # Exactly one of summarize_sessions and summarize_members can be specified i.e. XNOR
-    if ((not summarize_sessions) or summarize_members) and (summarize_sessions or (not summarize_members)):
+    # Exactly one of summarize_sittings and summarize_members can be specified i.e. XNOR
+    if ((not summarize_sittings) or summarize_members) and (summarize_sittings or (not summarize_members)):
         print("Error: Exactly one of --sittings and --members can be specified")
         sys.exit(1)
     
@@ -259,4 +259,4 @@ if __name__ == "__main__":
         start = dates[0]
         end = dates[1] if len(dates) > 1 else start
 
-        asyncio.run(generate_session_summaries(start, end, only_blank))
+        asyncio.run(generate_sitting_summaries(start, end, only_blank))

@@ -1,6 +1,6 @@
 """
 Cleanup duplicate sections in the SQLite database.
-Duplicates are identified by (session_id, section_title, section_type).
+Duplicates are identified by (sitting_id, section_title, section_type).
 """
 
 import sys
@@ -16,35 +16,35 @@ def cleanup(start_date_str, end_date_str, keep_newest=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y').strftime('%Y-%m-%d')
     end_date = datetime.strptime(end_date_str, '%d-%m-%Y').strftime('%Y-%m-%d')
 
-    # 1. Get sessions in the date range
-    sessions = conn.execute(
-        "SELECT id, date FROM sessions WHERE date >= ? AND date <= ?",
+    # 1. Get sittings in the date range
+    sittings = conn.execute(
+        "SELECT id, date FROM sittings WHERE date >= ? AND date <= ?",
         (start_date, end_date)
     ).fetchall()
 
-    if not sessions:
-        print(f"No sessions found in range {start_date_str} to {end_date_str}.")
+    if not sittings:
+        print(f"No sittings found in range {start_date_str} to {end_date_str}.")
         return
 
-    session_ids = [row[0] for row in sessions]
-    print(f"Cleaning duplicates in {len(sessions)} session(s)...")
+    sitting_ids = [row[0] for row in sittings]
+    print(f"Cleaning duplicates in {len(sittings)} sitting(s)...")
 
     # 2. Count duplicates before deletion
-    placeholders = ','.join('?' * len(session_ids))
+    placeholders = ','.join('?' * len(sitting_ids))
     order = 'DESC' if keep_newest else 'ASC'
 
     count_query = f"""
     SELECT COUNT(*) FROM (
         SELECT id,
                ROW_NUMBER() OVER (
-                   PARTITION BY session_id, section_title, section_type
+                   PARTITION BY sitting_id, section_title, section_type
                    ORDER BY created_at {order}, id ASC
                ) as rnum
         FROM sections
-        WHERE session_id IN ({placeholders})
+        WHERE sitting_id IN ({placeholders})
     ) WHERE rnum > 1
     """
-    dup_count = conn.execute(count_query, session_ids).fetchone()[0]
+    dup_count = conn.execute(count_query, sitting_ids).fetchone()[0]
     print(f"Found {dup_count} duplicate section(s).")
 
     if dup_count == 0:
@@ -59,15 +59,15 @@ def cleanup(start_date_str, end_date_str, keep_newest=False):
         SELECT id FROM (
             SELECT id,
                    ROW_NUMBER() OVER (
-                       PARTITION BY session_id, section_title, section_type
+                       PARTITION BY sitting_id, section_title, section_type
                        ORDER BY created_at {order}, id ASC
                    ) as rnum
             FROM sections
-            WHERE session_id IN ({placeholders})
+            WHERE sitting_id IN ({placeholders})
         ) WHERE rnum > 1
     )
     """
-    conn.execute(delete_query, session_ids)
+    conn.execute(delete_query, sitting_ids)
     conn.commit()
 
     print(f"Deleted {dup_count} duplicate section(s).")

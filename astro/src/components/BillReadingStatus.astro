@@ -2,25 +2,25 @@
 /**
  * BillReadingStatus — editorial-style reading status card.
  * Shows the readings we have data for (1st and 2nd), with dates
- * linking to sessions, plus a contextual footer about the full
+ * linking to sittings, plus a contextual footer about the full
  * legislative process.
  */
 import { slugify } from "../lib/slugify";
 
 interface Props {
   firstReadingDate?: string | null;
-  firstReadingSessionId?: string | null;
-  secondReadingSessions?: { sessionDate: string; sessionId: string }[];
+  firstReadingSittingId?: string | null;
+  secondReadingSittings?: { sittingDate: string; sittingId: string }[];
 }
 
 const {
   firstReadingDate,
-  firstReadingSessionId,
-  secondReadingSessions = [],
+  firstReadingSittingId,
+  secondReadingSittings = [],
 } = Astro.props;
 
 const hasFirstReading = !!firstReadingDate;
-const hasSecondReading = secondReadingSessions.length > 0;
+const hasSecondReading = secondReadingSittings.length > 0;
 
 const statusLabel = hasSecondReading ? "2nd Reading" : "1st Reading";
 
@@ -38,7 +38,9 @@ const formatLongDate = (dateStr: string) => {
   <!-- Header -->
   <div class="reading-status-header">
     <span class="reading-status-label">Reading Status</span>
-    <span class={`reading-status-badge ${hasSecondReading ? "badge-accent" : "badge-muted"}`}>
+    <span
+      class={`reading-status-badge ${hasSecondReading ? "badge-accent" : "badge-muted"}`}
+    >
       {statusLabel}
     </span>
   </div>
@@ -46,13 +48,13 @@ const formatLongDate = (dateStr: string) => {
   <!-- Reading rows -->
   <div class="reading-status-body">
     {
-      hasFirstReading && firstReadingDate && firstReadingSessionId && (
+      hasFirstReading && firstReadingDate && firstReadingSittingId && (
         <div class="reading-row">
           <div class="reading-detail-row">
             <span class="detail-stage">1st Reading</span>
             <span class="detail-rule" />
             <a
-              href={`/sessions/${slugify(firstReadingDate, firstReadingSessionId)}`}
+              href={`/sittings/${slugify(firstReadingDate, firstReadingSittingId)}`}
               class="detail-date"
             >
               {formatLongDate(firstReadingDate)}
@@ -63,18 +65,18 @@ const formatLongDate = (dateStr: string) => {
       )
     }
     {
-      secondReadingSessions.map((session, idx) => (
+      secondReadingSittings.map((sitting, idx) => (
         <div class="reading-detail-row">
           <span class="detail-stage">
             2nd Reading
-            {secondReadingSessions.length > 1 ? ` (${idx + 1})` : ""}
+            {secondReadingSittings.length > 1 ? ` (${idx + 1})` : ""}
           </span>
           <span class="detail-rule" />
           <a
-            href={`/sessions/${slugify(session.sessionDate, session.sessionId)}`}
+            href={`/sittings/${slugify(sitting.sittingDate, sitting.sittingId)}`}
             class="detail-date"
           >
-            {formatLongDate(session.sessionDate)}
+            {formatLongDate(sitting.sittingDate)}
           </a>
         </div>
       ))

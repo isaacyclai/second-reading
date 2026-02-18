@@ -45,7 +45,7 @@ class MP:
         return f"MP ({self.name}, {self.constituency}, {self.appointment})"
 
 
-class ParliamentSession:
+class ParliamentSitting:
     metadata: dict
     present_members: List[MP]
     absent_members: List[MP]
@@ -337,7 +337,7 @@ class ParliamentSession:
         return self.metadata
     
     def print_attendance(self):
-        print("Attendance for session on", self.date)
+        print("Attendance for sitting on", self.date)
         print("Present Members:")
         for mp in self.present_members:
             print(mp.get_details())
@@ -346,11 +346,11 @@ class ParliamentSession:
             print(mp.get_details())
 
     def print_sections(self):
-        print(f"\nSections for session on {self.metadata['date']}:")
+        print(f"\nSections for sitting on {self.metadata['date']}:")
         print(f"Total: {len(self.sections)} question sections\n")
         for section in self.sections:
             print(f"--- {section['section_type']}: {section['title'][:60]}... ---")
-            print(f"Speakers ({len(section['speakers'])}):")
+            print(f"Speakers ({len(section['speakers'])}):") 
             for speaker in section['speakers']:
                 print(f"  - {speaker.name} ({speaker.constituency})")
             print()
