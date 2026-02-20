@@ -58,20 +58,6 @@ const attendancePercent =
   member.attendanceTotal && member.attendanceTotal > 0
     ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
     : null;
-
-// Try to extract party from designation
-const getParty = (): string | null => {
-  if (member.designation?.includes("Workers")) return "WP";
-  if (member.designation?.includes("Progress")) return "PSP";
-  if (
-    member.designation?.includes("Minister") ||
-    member.designation?.includes("Secretary")
-  )
-    return "PAP";
-  return null;
-};
-
-const party = getParty();
 ---
 
 <Layout
@@ -93,11 +79,7 @@ const party = getParty();
     data-pagefind-meta={`id:${member.id}`}
   >
     <div class="flex items-start gap-5 mb-6">
-      <Avatar
-        name={member.name}
-        party={party || undefined}
-        class="w-16 h-16 text-xl"
-      />
+      <Avatar name={member.name} class="w-16 h-16 text-xl" />
 
       <div class="flex-1">
         <h1
