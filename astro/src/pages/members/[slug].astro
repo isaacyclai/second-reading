@@ -7,7 +7,6 @@ import Pagination from "../../components/Pagination.astro";
 
 import Avatar from "../../components/Avatar.astro";
 import Tag from "../../components/Tag.astro";
-import AttendanceTimeline from "../../components/AttendanceTimeline.astro";
 import AttendanceDotGrid from "../../components/AttendanceDotGrid.astro";
 import {
   getMembersWithInfo,
@@ -233,10 +232,10 @@ const attendancePercent =
 
   <!-- Motions Section -->
   {
-    motions.length > 0 && (
+    (
       <section class="mb-10" data-pagefind-ignore>
         <h2 class="font-display text-xl text-ink mb-4">
-          Motions & Statements{" "}
+          Motions{" "}
           <span class="font-sans text-sm text-ink-muted font-normal">
             ({motions.length})
           </span>
@@ -260,7 +259,7 @@ const attendancePercent =
 
   <!-- Bills Section -->
   {
-    bills.length > 0 && (
+    (
       <section class="mb-10" data-pagefind-ignore>
         <h2 class="font-display text-xl text-ink mb-4">
           Bills{" "}
@@ -347,10 +346,6 @@ const attendancePercent =
       >
     </h2>
     {
-      questions.length === 0 ? (
-        <p class="py-8 font-body text-ink-muted">No recorded questions</p>
-      ) : (
-        <>
           <div id="questions-list" class="flex flex-col border-t border-border">
             {questions.map((section) => (
               <div class="question-item">
@@ -363,8 +358,6 @@ const attendancePercent =
             itemSelector=".question-item"
             itemsPerPage={10}
           />
-        </>
-      )
     }
   </section>
   <script>
