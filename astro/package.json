@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "deploy": "vercel",
+    "deploy": "bunx vercel --prod",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -20,11 +20,9 @@
     "preact": "^10.28.3"
   },
   "devDependencies": {
-    "@astrojs/cloudflare": "^12.1.0",
     "@types/better-sqlite3": "^7.6.13",
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
-    "tailwindcss": "3",
-    "wrangler": "^3.83.0"
+    "tailwindcss": "3"
   }
 }
