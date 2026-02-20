@@ -114,7 +114,7 @@ const attendancePercent =
     <div data-pagefind-ignore>
       <!-- Stats Row -->
       <div
-        class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-border mb-8"
+        class="grid grid-cols-2 md:grid-cols-5 gap-4 py-6 border-y border-border mb-8"
       >
         <div>
           <div class="font-display text-2xl text-ink">{sections.length}</div>
@@ -125,13 +125,19 @@ const attendancePercent =
         <div>
           <div class="font-display text-2xl text-ink">{questions.length}</div>
           <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-            Questions
+            Questions asked or answered
           </div>
         </div>
         <div>
           <div class="font-display text-2xl text-ink">{motions.length}</div>
           <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-            Motions
+            Motions spoken on
+          </div>
+        </div>
+        <div>
+          <div class="font-display text-2xl text-ink">{bills.length}</div>
+          <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+            Bills spoken on
           </div>
         </div>
         {
