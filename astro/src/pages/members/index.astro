@@ -152,12 +152,6 @@ const totalCount = getMemberCount();
           return dir === "asc" ? aVal - bVal : bVal - aVal;
         });
 
-        // Remove stagger animations
-        items.forEach((item) => {
-          item.classList.remove("animate-fade-up");
-          item.style.animationDelay = "";
-        });
-
         const fragment = document.createDocumentFragment();
         items.forEach((item) => fragment.appendChild(item));
         container.appendChild(fragment);

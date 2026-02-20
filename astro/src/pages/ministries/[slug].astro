@@ -122,6 +122,10 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         <div id="bills-list" class="flex flex-col border-t border-border">
           {bills.map((bill) => (
             <div class="bill-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${bill.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <BillCard bill={bill} />
             </div>
           ))}
@@ -148,6 +152,10 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         <div id="motions-list" class="flex flex-col border-t border-border">
           {motions.map((section) => (
             <div class="motion-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <QuestionCard section={section} />
             </div>
           ))}
@@ -177,6 +185,10 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         >
           {clarifications.map((section) => (
             <div class="clarification-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <QuestionCard section={section} />
             </div>
           ))}
@@ -203,6 +215,10 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         <div id="questions-list" class="flex flex-col border-t border-border">
           {questions.map((section) => (
             <div class="question-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <QuestionCard section={section} />
             </div>
           ))}
@@ -301,15 +317,13 @@ const clarifications = sections.filter((s) => s.category === "clarification");
       }[];
 
       function getItemId(item: HTMLElement): string | null {
-        const anchor = item.querySelector(
-          "a[data-pagefind-meta]",
-        ) as HTMLElement;
-        if (anchor) {
-          const meta = anchor.getAttribute("data-pagefind-meta");
-          const match = meta?.match(/id:([^,]+)/);
-          if (match) return match[1];
-        }
-        return null;
+        return (
+          item.getAttribute("data-search-id") ||
+          item
+            .querySelector("[data-search-id]")
+            ?.getAttribute("data-search-id") ||
+          null
+        );
       }
 
       let debounceTimer: ReturnType<typeof setTimeout>;

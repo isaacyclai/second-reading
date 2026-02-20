@@ -7,14 +7,9 @@ import { slugify } from "../lib/slugify";
 interface Props {
   section: Section;
   showSpeakers?: boolean;
-  includePagefindMeta?: boolean;
 }
 
-const {
-  section,
-  showSpeakers = true,
-  includePagefindMeta = true,
-} = Astro.props;
+const { section, showSpeakers = true } = Astro.props;
 
 const categoryLabels: Record<string, string> = {
   motion: "Motion",
@@ -47,7 +42,7 @@ const routePrefix =
 <a
   href={`${routePrefix}/${slugify(section.sectionTitle, section.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  {...includePagefindMeta ? { "data-pagefind-meta": `id:${section.id}` } : {}}
+  data-search-id={section.id}
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
     {

@@ -1,7 +1,7 @@
 ---
 import type { Bill } from "../lib/db";
-import Tag from './Tag.astro';
-import { slugify } from '../lib/slugify';
+import Tag from "./Tag.astro";
+import { slugify } from "../lib/slugify";
 
 interface Props {
   bill: Bill;
@@ -19,9 +19,11 @@ const formatDate = (dateStr: string | null) => {
 };
 
 // Determine bill status based on reading data
-const getStatus = (bill: Bill): { label: string; color: 'green' | 'accent' | 'muted' } => {
-  if (bill.hasSecondReading) return { label: '2nd Reading', color: 'accent' };
-  return { label: '1st Reading', color: 'muted' };
+const getStatus = (
+  bill: Bill,
+): { label: string; color: "green" | "accent" | "muted" } => {
+  if (bill.hasSecondReading) return { label: "2nd Reading", color: "accent" };
+  return { label: "1st Reading", color: "muted" };
 };
 
 const status = getStatus(bill);
@@ -30,24 +32,28 @@ const status = getStatus(bill);
 <a
   href={`/bills/${slugify(bill.title, bill.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  data-pagefind-meta={`id:${bill.id}`}
+  data-search-id={bill.id}
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
     <Tag color={status.color}>{status.label}</Tag>
-    {bill.firstReadingDate && (
-      <span class="font-sans text-xs text-ink-muted">
-        {formatDate(bill.firstReadingDate)}
-      </span>
-    )}
+    {
+      bill.firstReadingDate && (
+        <span class="font-sans text-xs text-ink-muted">
+          {formatDate(bill.firstReadingDate)}
+        </span>
+      )
+    }
   </div>
-  
-  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors">
+
+  <h3
+    class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors"
+  >
     {bill.title}
   </h3>
-  
-  {bill.ministry && (
-    <div class="font-sans text-sm text-ink-muted">
-      {bill.ministry}
-    </div>
-  )}
+
+  {
+    bill.ministry && (
+      <div class="font-sans text-sm text-ink-muted">{bill.ministry}</div>
+    )
+  }
 </a>

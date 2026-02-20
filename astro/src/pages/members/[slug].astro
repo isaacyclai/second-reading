@@ -279,7 +279,7 @@ const attendancePercent =
             <a
               href={`/bills/${slugify((section as any).billTitle || section.sectionTitle, (section as any).billId)}`}
               class="bill-item group block p-5 border-b border-border transition-colors hover:bg-warm no-underline"
-              data-pagefind-meta={`id:${(section as any).billId || section.id}`}
+              data-search-id={(section as any).billId || section.id}
             >
               <div class="flex flex-wrap items-center gap-2 mb-2">
                 <Tag color={section.sectionType === "BI" ? "muted" : "accent"}>
@@ -443,15 +443,7 @@ const attendancePercent =
       }[];
 
       function getItemId(item: HTMLElement): string | null {
-        const anchor = item.querySelector(
-          "a[data-pagefind-meta]",
-        ) as HTMLElement;
-        if (anchor) {
-          const meta = anchor.getAttribute("data-pagefind-meta");
-          const match = meta?.match(/id:([^,]+)/);
-          if (match) return match[1];
-        }
-        return null;
+        return item.getAttribute("data-search-id") || item.querySelector("[data-search-id]")?.getAttribute("data-search-id") || null;
       }
 
       let debounceTimer: ReturnType<typeof setTimeout>;
