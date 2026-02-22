@@ -20,10 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Suppress the "AFC is enabled with max remote calls" warning from the google-genai module
-logging.getLogger("google.genai").setLevel(logging.WARNING)
-
-# Initialize GenAI Client using GEMINI_API_KEY from environment
 client = genai.Client()
 
 AI_SEMAPHORE = asyncio.Semaphore(20)  # Can do more parallel with Gemini but keeping safe limit
@@ -32,7 +28,6 @@ AI_COOLDOWN = 0.5                    # Adjust to Gemini rate limitations (15 RPM
 async def generate_summary(prompt_template: str, model='gemini-3-flash-preview') -> str:
     async with AI_SEMAPHORE:
         try:
-            # google-genai supports asyncio directly via `client.aio`
             response = await client.aio.models.generate_content(
                 model=model,
                 contents=prompt_template,
