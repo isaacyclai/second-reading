@@ -88,7 +88,6 @@ const sittingInfo = section.sittingDate
   </nav>
 
   <article
-    class="max-w-prose"
     data-pagefind-body
     data-pagefind-filter="type:question"
     data-pagefind-meta={`id:${section.id}`}
@@ -217,6 +216,7 @@ const sittingInfo = section.sittingDate
           <TranscriptDialogue
             contentHtml={section.contentHtml}
             instanceId={`question-${section.id}`}
+            italicizeLeadingStandalone={true}
           />
         ) : section.contentPlain ? (
           <div class="font-body text-base text-ink-soft leading-relaxed whitespace-pre-wrap">
