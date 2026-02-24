@@ -367,6 +367,12 @@ const attendancePercent =
     }
   </section>
   <script>
+    import {
+      collectResultMetaIds,
+      countPagefindResourcesSince,
+      getSearchDebugConfig,
+    } from "../../lib/searchDebug";
+
     interface PagefindResult {
       id: string;
       data: () => Promise<{
@@ -490,6 +496,10 @@ const attendancePercent =
       }
 
       async function performSearch(query: string) {
+        const debugConfig = getSearchDebugConfig();
+        const searchStartMs = performance.now();
+        let pagefindSearchMs = 0;
+        let hydrationMs = 0;
         const seq = ++searchSeq;
         const lowerQuery = query.toLowerCase().trim();
 
@@ -519,24 +529,54 @@ const attendancePercent =
         if (seq !== searchSeq) return;
 
         if (pf) {
+          const pagefindSearchStartMs = performance.now();
           const results = await pf.search(query, {
             filters: { speaker: memberName },
           });
+          pagefindSearchMs = performance.now() - pagefindSearchStartMs;
           if (seq !== searchSeq) return;
 
-          const matchingIds = new Set<string>();
-          for (const result of results.results) {
-            const data = await result.data();
-            if (data.meta?.id) matchingIds.add(data.meta.id);
-          }
+          const hydrationStartMs = performance.now();
+          const orderedIds = await collectResultMetaIds(
+            results.results,
+            debugConfig.hydrationMode,
+            debugConfig.hydrationConcurrency,
+          );
+          hydrationMs = performance.now() - hydrationStartMs;
+          const matchingIds = new Set<string>(orderedIds);
           if (seq !== searchSeq) return;
 
           updateSections(matchingIds, lowerQuery);
+          if (debugConfig.enabled) {
+            const totalMs = performance.now() - searchStartMs;
+            const pagefindResources = countPagefindResourcesSince(searchStartMs);
+            console.info("[search-debug] MemberSearch", {
+              query: lowerQuery,
+              speaker: memberName,
+              hydrationMode: debugConfig.hydrationMode,
+              hydrationConcurrency: debugConfig.hydrationConcurrency,
+              resultCount: results.results.length,
+              hydratedResultCount: orderedIds.length,
+              pagefindSearchMs: Number(pagefindSearchMs.toFixed(1)),
+              hydrationMs: Number(hydrationMs.toFixed(1)),
+              totalMs: Number(totalMs.toFixed(1)),
+              pagefindResources,
+            });
+          }
           return;
         }
 
         // Fallback: text matching
         updateSections(null, lowerQuery);
+        if (debugConfig.enabled) {
+          const totalMs = performance.now() - searchStartMs;
+          console.info("[search-debug] MemberSearch", {
+            query: lowerQuery,
+            speaker: memberName,
+            mode: "fallback-text",
+            totalMs: Number(totalMs.toFixed(1)),
+          });
+        }
       }
 
       input.addEventListener("input", () => {

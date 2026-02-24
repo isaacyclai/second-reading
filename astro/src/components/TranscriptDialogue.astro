@@ -3,18 +3,24 @@ interface Props {
   contentHtml?: string | null;
   instanceId: string;
   fallbackText?: string;
+  italicizeLeadingStandalone?: boolean;
 }
 
 const {
   contentHtml = null,
   instanceId,
   fallbackText = "Transcript not available.",
+  italicizeLeadingStandalone = false,
 } = Astro.props;
 ---
 
 {
   contentHtml ? (
-    <div class="transcript-shell" data-transcript-shell data-transcript-id={instanceId}>
+    <div
+      class={`transcript-shell${italicizeLeadingStandalone ? " transcript-shell--italicize-leading-standalone" : ""}`}
+      data-transcript-shell
+      data-transcript-id={instanceId}
+    >
       <div class="transcript-content" data-transcript-source set:html={contentHtml}></div>
     </div>
   ) : (
@@ -123,6 +129,21 @@ const {
     width: 100%;
   }
 
+  .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading {
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading + .transcript-dialogue__standalone--leading {
+    margin-top: 0.8rem;
+  }
+
+  .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading-last {
+    margin-bottom: 1.65rem;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+
   .transcript-dialogue__procedural {
     font-size: 0.9rem;
     font-style: italic;
@@ -171,6 +192,24 @@ const {
 
     .transcript-dialogue__text {
       padding-bottom: 1.15rem;
+    }
+
+    .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading-last {
+      margin-bottom: 1.3rem;
+      padding-bottom: 0.9rem;
+    }
+  }
+
+  @media (min-width: 901px) {
+    .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      column-gap: 2rem;
+    }
+
+    .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading > * {
+      grid-column: 2;
+      min-width: 0;
     }
   }
 </style>
@@ -248,6 +287,10 @@ const {
         return;
       }
 
+      const italicizeLeadingStandalone = shell.classList.contains(
+        "transcript-shell--italicize-leading-standalone",
+      );
+
       const source = shell.querySelector("[data-transcript-source]");
       if (!(source instanceof HTMLElement)) {
         return;
@@ -268,6 +311,7 @@ const {
 
       let turnCount = 0;
       let currentTextCell = null;
+      const leadingStandaloneRows = [];
 
       blocks.forEach((block) => {
         if (!(block instanceof HTMLElement)) {
@@ -299,6 +343,12 @@ const {
 
         const parsedSpeaker = extractSpeakerParagraph(block);
         if (parsedSpeaker) {
+          if (turnCount === 0 && leadingStandaloneRows.length > 0) {
+            leadingStandaloneRows[leadingStandaloneRows.length - 1].classList.add(
+              "transcript-dialogue__standalone--leading-last",
+            );
+          }
+
           const turn = document.createElement("div");
           turn.className = "transcript-dialogue__turn";
           turn.id = `${transcriptId}-turn-${turnCount}`;
@@ -334,6 +384,10 @@ const {
 
         const standaloneRow = document.createElement("div");
         standaloneRow.className = "transcript-dialogue__standalone";
+        if (italicizeLeadingStandalone && turnCount === 0 && block.tagName === "P") {
+          standaloneRow.classList.add("transcript-dialogue__standalone--leading");
+          leadingStandaloneRows.push(standaloneRow);
+        }
         standaloneRow.appendChild(block.cloneNode(true));
         dialogue.appendChild(standaloneRow);
       });
