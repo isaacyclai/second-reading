@@ -1,31 +1,29 @@
 ---
 interface Props {
   name: string;
-  party?: string;
   class?: string;
 }
 
-const { name, party, class: className = '' } = Astro.props;
+const { name, class: className = "" } = Astro.props;
 
 // Get initials from name (first letter of first and last name)
-const initials = name.split(' ')
-  .filter(n => n.length > 0)
-  .map(n => n[0])
+const initials = name
+  .split(" ")
+  .filter((n) => n.length > 0)
+  .map((n) => n[0])
   .slice(0, 2)
-  .join('');
+  .join("");
 
-// Party-based gradient colors
-const isWP = party === 'WP' || party === 'Workers Party' || party === "Workers' Party";
-const gradientClass = isWP 
-  ? 'bg-gradient-to-br from-blue-200 to-blue-400'
-  : 'bg-gradient-to-br from-amber-100 to-amber-300';
+const gradientClass = "bg-gradient-to-br from-amber-100 to-amber-300";
 ---
 
-<div class:list={[
-  'w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center',
-  'font-display text-sm text-white font-medium',
-  gradientClass,
-  className
-]}>
+<div
+  class:list={[
+    "w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center",
+    "font-display text-sm text-white font-medium",
+    gradientClass,
+    className,
+  ]}
+>
   {initials}
 </div>

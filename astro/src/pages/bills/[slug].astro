@@ -37,15 +37,15 @@ const uniqueSpeakers = allSpeakers.filter(
     index === self.findIndex((s) => s && s.memberId === speaker.memberId),
 );
 
-// Group unique second reading sessions (for timeline + transcript headers)
-const secondReadingSessions = secondReadings.reduce(
+// Group unique second reading sittings (for timeline + transcript headers)
+const secondReadingSittings = secondReadings.reduce(
   (acc, curr) => {
-    if (!acc.find((item) => item.sessionDate === curr.sessionDate)) {
-      acc.push({ sessionDate: curr.sessionDate, sessionId: curr.sessionId });
+    if (!acc.find((item) => item.sittingDate === curr.sittingDate)) {
+      acc.push({ sittingDate: curr.sittingDate, sittingId: curr.sittingId });
     }
     return acc;
   },
-  [] as { sessionDate: string; sessionId: string }[],
+  [] as { sittingDate: string; sittingId: string }[],
 );
 
 // Determine bill status from actual data
@@ -105,6 +105,22 @@ const status = getStatus();
           </span>
         )
       }
+      {
+        bill.ministry && (
+          <span
+            class="hidden"
+            data-pagefind-filter={`ministry:${bill.ministry}`}
+          />
+        )
+      }
+      {
+        uniqueSpeakers.map((speaker) => (
+          <span
+            class="hidden"
+            data-pagefind-filter={`speaker:${speaker.name}`}
+          />
+        ))
+      }
     </header>
 
     <!-- Bill Summary -->
@@ -120,8 +136,8 @@ const status = getStatus();
     <div class="mb-8">
       <BillReadingStatus
         firstReadingDate={bill.firstReadingDate}
-        firstReadingSessionId={bill.firstReadingSessionId}
-        secondReadingSessions={secondReadingSessions}
+        firstReadingSittingId={bill.firstReadingSittingId}
+        secondReadingSittings={secondReadingSittings}
       />
     </div>
 
@@ -164,7 +180,7 @@ const status = getStatus();
             <div class="mb-8">
               {secondReadings.length > 1 && (
                 <h3 class="font-sans text-sm font-medium text-ink-soft mb-4">
-                  {new Date(section.sessionDate).toLocaleDateString("en-SG", {
+                  {new Date(section.sittingDate).toLocaleDateString("en-SG", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",

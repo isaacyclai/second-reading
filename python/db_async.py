@@ -60,7 +60,7 @@ async def find_ministry_by_acronym(acronym):
     row = await fetchone('SELECT id FROM ministries WHERE acronym = $1', acronym)
     return row['id'] if row else None
 
-async def find_or_create_bill(title, ministry_id=None, first_reading_date=None, first_reading_session_id=None):
+async def find_or_create_bill(title, ministry_id=None, first_reading_date=None, first_reading_sitting_id=None):
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -84,17 +84,17 @@ async def find_or_create_bill(title, ministry_id=None, first_reading_date=None, 
             if first_reading_date and not existing_first_reading:
                 await conn.execute(
                     '''UPDATE bills SET first_reading_date = TO_DATE($1, 'DD-MM-YYYY'), 
-                       first_reading_session_id = $2
+                       first_reading_sitting_id = $2
                        WHERE id = $3''',
-                    first_reading_date, first_reading_session_id, bill_id
+                    first_reading_date, first_reading_sitting_id, bill_id
                 )
             return bill_id
         
         # Create new bill
         row = await conn.fetchrow(
-            '''INSERT INTO bills (title, ministry_id, first_reading_date, first_reading_session_id)
+            '''INSERT INTO bills (title, ministry_id, first_reading_date, first_reading_sitting_id)
                VALUES ($1, $2, TO_DATE($3, 'DD-MM-YYYY'), $4) RETURNING id''',
-            title, ministry_id, first_reading_date, first_reading_session_id
+            title, ministry_id, first_reading_date, first_reading_sitting_id
         )
         return row['id']
 
@@ -106,15 +106,15 @@ async def add_section_speaker(section_id, member_id, constituency=None, designat
         section_id, member_id, constituency, designation
     )
 
-async def add_session_attendance(session_id, member_id, present=True, constituency=None, designation=None):
+async def add_sitting_attendance(sitting_id, member_id, present=True, constituency=None, designation=None):
     await execute(
-        '''INSERT INTO session_attendance (session_id, member_id, present, constituency, designation)
+        '''INSERT INTO sitting_attendance (sitting_id, member_id, present, constituency, designation)
            VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (session_id, member_id) DO UPDATE SET
+           ON CONFLICT (sitting_id, member_id) DO UPDATE SET
            present = EXCLUDED.present,
            constituency = EXCLUDED.constituency,
            designation = EXCLUDED.designation''',
-        session_id, member_id, present, constituency, designation
+        sitting_id, member_id, present, constituency, designation
     )
 
 

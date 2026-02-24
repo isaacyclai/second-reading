@@ -17,7 +17,7 @@ export interface ListItem {
   ministry?: string;
   speakers?: string[];
   snippet?: string;
-  // Session-specific fields
+  // Sitting-specific fields
   parliament?: number;
   sessionNo?: number;
   sittingNo?: number;
@@ -31,7 +31,7 @@ export interface ListItem {
 export const typeBadgeConfig: Record<string, { label: string; color: TagColor }> = {
   OA: { label: "Oral Answer", color: "blue" },
   WA: { label: "Written Answer", color: "purple" },
-  WANA: { label: "No Answer", color: "muted" },
+  WANA: { label: "Written Answer to Unanswered Oral Question", color: "muted" },
   BI: { label: "1st Reading", color: "green" },
   BP: { label: "2nd Reading", color: "green" },
 };
@@ -65,7 +65,7 @@ export function formatDate(dateStr: string | undefined | null): string {
   });
 }
 
-export function formatSessionDate(dateStr: string | undefined | null): string {
+export function formatSittingDate(dateStr: string | undefined | null): string {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleDateString("en-SG", {
     day: "numeric",

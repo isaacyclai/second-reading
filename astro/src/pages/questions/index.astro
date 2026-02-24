@@ -13,7 +13,7 @@ const questions = getQuestions(PAGE_SIZE, 0);
 const initialItems: ListItem[] = questions.map((q) => ({
   id: q.id,
   title: q.sectionTitle,
-  date: q.sessionDate,
+  date: q.sittingDate,
   type: q.sectionType,
   category: q.category || undefined,
   ministry: q.ministry || undefined,
@@ -26,27 +26,34 @@ const initialItems: ListItem[] = questions.map((q) => ({
   title="Questions"
   description="Browse Singapore Parliament questions and answers"
 >
-  <SectionLabel>Question Time</SectionLabel>
-
   <h1 class="font-display text-display-lg text-ink mb-4">
     Parliamentary Questions
   </h1>
 
   <div
-    class="font-body text-base text-ink-soft leading-relaxed max-w-[72ch] mb-8 space-y-3 text-pretty"
+    class="font-body text-base text-ink-soft leading-relaxed mb-8 space-y-3 text-pretty"
   >
     <p>
-      Parliamentary questions (PQs) are formal inquiries made by MPs to
-      Ministers. Each MP can file up to five PQs per sitting&mdash;three oral
-      and two written. After the initial answer, supplementary questions may be
-      asked by any MP.
+      Here, you can find all parliamentary questions (PQs) that have been asked.
+      PQs are formal inquiries made by MPs to ministers for information,
+      clarification, or updates on specific issues. There are two types of PQs
+      that can be asked: oral and written. Each MP can file up to five PQs per
+      sitting (three oral and two written). After the initial answer from the
+      Minister, supplementary questions may be asked by any MP. PQs may only be
+      filed by backbencher MPs, as it is the job of the political office holders
+      to defend the government's position.
     </p>
     <p>
-      <strong class="text-ink">Oral questions</strong> are answered during question
-      time, the first 90 minutes of each sitting. Unanswered oral questions receive
-      written answers instead. <strong class="text-ink"
-        >Written questions</strong
-      > are answered outside of question time.
+      <strong class="text-ink">Oral questions</strong> are answered and can be debated
+      during question time, the first 90 minutes of each sitting. The order of questions
+      to be answered is decided by the Leader of the House, and is published in the
+      Order Paper prior to the sitting. After 90 minutes, the remaining questions
+      which have not been answered will be provided with written answers.
+    </p>
+    <p>
+      <strong class="text-ink">Written questions</strong> are not answered during
+      question time and are instead provided with written answers. They are also included
+      in the Order Paper.
     </p>
   </div>
 

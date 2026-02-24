@@ -2,19 +2,14 @@
 import type { Section } from "../lib/db";
 import TypeBadge from "./TypeBadge.astro";
 import Tag from "./Tag.astro";
-import { slugify } from '../lib/slugify';
+import { slugify } from "../lib/slugify";
 
 interface Props {
   section: Section;
   showSpeakers?: boolean;
-  includePagefindMeta?: boolean;
 }
 
-const {
-  section,
-  showSpeakers = true,
-  includePagefindMeta = true,
-} = Astro.props;
+const { section, showSpeakers = true } = Astro.props;
 
 const categoryLabels: Record<string, string> = {
   motion: "Motion",
@@ -23,8 +18,8 @@ const categoryLabels: Record<string, string> = {
   statement: "Statement",
 };
 
-const formattedDate = section.sessionDate
-  ? new Date(section.sessionDate).toLocaleDateString("en-SG", {
+const formattedDate = section.sittingDate
+  ? new Date(section.sittingDate).toLocaleDateString("en-SG", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -34,17 +29,27 @@ const formattedDate = section.sessionDate
 const snippet =
   section.contentPlain?.substring(0, 150) +
   (section.contentPlain && section.contentPlain.length > 150 ? "..." : "");
+
+// Route based on category
+const routePrefix =
+  section.category === "motion" || section.category === "adjournment_motion"
+    ? "/motions"
+    : section.category === "clarification"
+      ? "/clarifications"
+      : "/questions";
 ---
 
 <a
-  href={`/questions/${slugify(section.sectionTitle, section.id)}`}
+  href={`${routePrefix}/${slugify(section.sectionTitle, section.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-  {...(includePagefindMeta ? { 'data-pagefind-meta': `id:${section.id}` } : {})}
+  data-search-id={section.id}
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
     {
       section.category && categoryLabels[section.category] ? (
-        <Tag color="indigo">{categoryLabels[section.category]}</Tag>
+        <Tag color={section.category === "clarification" ? "amber" : "indigo"}>
+          {categoryLabels[section.category]}
+        </Tag>
       ) : (
         <TypeBadge type={section.sectionType} />
       )
@@ -75,14 +80,6 @@ const snippet =
           </span>
         )}
       </div>
-    )
-  }
-
-  {
-    snippet && (
-      <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-1">
-        {snippet}
-      </p>
     )
   }
 </a>

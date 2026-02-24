@@ -10,34 +10,34 @@ async def cleanup(start_date_str, end_date_str, keep_newest=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y').date()
     end_date = datetime.strptime(end_date_str, '%d-%m-%Y').date()
 
-    # 1. Get Session IDs for the date range
-    session_query = """
+    # 1. Get Sitting IDs for the date range
+    sitting_query = """
     SELECT id, date 
-    FROM sessions 
+    FROM sittings 
     WHERE date >= $1 AND date <= $2
     """
-    sessions = await execute(session_query, start_date, end_date, fetch=True)
-    session_ids = [str(row['id']) for row in sessions]
+    sittings = await execute(sitting_query, start_date, end_date, fetch=True)
+    sitting_ids = [str(row['id']) for row in sittings]
     
-    if not sessions:
-        print(f"No sessions found in range {start_date_str} to {end_date_str}.")
+    if not sittings:
+        print(f"No sittings found in range {start_date_str} to {end_date_str}.")
         return
 
-    print(f"Cleaning duplicates in {len(sessions)} sessions...")
+    print(f"Cleaning duplicates in {len(sittings)} sittings...")
     
     # 2. De-duplicate using a single SQL command
-    # We identify duplicates by (session_id, section_title, section_type)
+    # We identify duplicates by (sitting_id, section_title, section_type)
     # We keep the one with the oldest created_at (or just pick one if timestamps are identical)
     
     cleanup_query = f"""
     WITH duplicates AS (
         SELECT id,
                ROW_NUMBER() OVER (
-                   PARTITION BY session_id, section_title, section_type 
+                   PARTITION BY sitting_id, section_title, section_type 
                    ORDER BY created_at {'DESC' if keep_newest else 'ASC'}, id ASC
                ) as rnum
         FROM sections
-        WHERE session_id = ANY($1::uuid[])
+        WHERE sitting_id = ANY($1::uuid[])
     )
     DELETE FROM sections
     WHERE id IN (
@@ -46,7 +46,7 @@ async def cleanup(start_date_str, end_date_str, keep_newest=False):
     """
     
     print("Executing cleanup query...")
-    status = await execute(cleanup_query, session_ids)
+    status = await execute(cleanup_query, sitting_ids)
     
     print(f"Cleanup complete. DB Status: {status}")
     await close_pool()

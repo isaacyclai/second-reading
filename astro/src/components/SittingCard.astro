@@ -1,12 +1,12 @@
 ---
-import type { Session } from "../lib/db";
-import { slugify } from '../lib/slugify';
+import type { Sitting } from "../lib/db";
+import { slugify } from "../lib/slugify";
 
 interface Props {
-    session: Session;
+    sitting: Sitting;
 }
 
-const { session } = Astro.props;
+const { sitting } = Astro.props;
 
 // Helper to format ordinal numbers (1st, 2nd, 3rd, etc.)
 function getOrdinal(n: number): string {
@@ -15,7 +15,7 @@ function getOrdinal(n: number): string {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-const formattedDate = new Date(session.date).toLocaleDateString("en-SG", {
+const formattedDate = new Date(sitting.date).toLocaleDateString("en-SG", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -23,19 +23,19 @@ const formattedDate = new Date(session.date).toLocaleDateString("en-SG", {
 ---
 
 <a
-    href={`/sessions/${slugify(session.date, session.id)}`}
+    href={`/sittings/${slugify(sitting.date, sitting.id)}`}
     class="group grid grid-cols-[140px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2"
-    data-pagefind-meta={`id:${session.id}`}
+    data-search-id={sitting.id}
 >
     <div class="font-display text-base text-ink">
         {formattedDate}
     </div>
     <div class="font-sans text-sm text-ink-muted">
-        {getOrdinal(session.parliament)} Parliament · {
-            getOrdinal(session.sessionNo)
-        } Session · {getOrdinal(session.sittingNo)} Sitting
+        {getOrdinal(sitting.parliament)} Parliament · {
+            getOrdinal(sitting.sessionNo)
+        } Session · {getOrdinal(sitting.sittingNo)} Sitting
     </div>
     <div class="font-sans text-xs text-ink-soft">
-        {session.sectionCount !== undefined && `${session.sectionCount} items`}
+        {sitting.sectionCount !== undefined && `${sitting.sectionCount} items`}
     </div>
 </a>

@@ -7,7 +7,7 @@
 interface Props {
   containerId: string;
   itemSelector: string;
-  contentType: "member" | "question" | "bill" | "motion" | "session";
+  contentType: "member" | "question" | "bill" | "motion" | "sitting";
   placeholder?: string;
 }
 
@@ -136,15 +136,13 @@ const {
       const originalOrder: HTMLElement[] = [];
       items.forEach((item) => {
         originalOrder.push(item);
-        const anchor = item.querySelector(
-          "a[data-pagefind-meta]",
-        ) as HTMLElement;
-        if (anchor) {
-          const meta = anchor.getAttribute("data-pagefind-meta");
-          const match = meta?.match(/id:([^,]+)/);
-          if (match) {
-            itemById.set(match[1], item);
-          }
+        const searchId =
+          item.getAttribute("data-search-id") ||
+          item
+            .querySelector("[data-search-id]")
+            ?.getAttribute("data-search-id");
+        if (searchId) {
+          itemById.set(searchId, item);
         }
       });
 
@@ -297,13 +295,13 @@ const {
         // Show/hide items based on matches
         let matchCount = 0;
         items.forEach((item) => {
-          const anchor = item.querySelector(
-            "a[data-pagefind-meta]",
-          ) as HTMLElement;
-          if (anchor) {
-            const meta = anchor.getAttribute("data-pagefind-meta");
-            const match = meta?.match(/id:([^,]+)/);
-            if (match && matchingIds.has(match[1])) {
+          const searchId =
+            item.getAttribute("data-search-id") ||
+            item
+              .querySelector("[data-search-id]")
+              ?.getAttribute("data-search-id");
+          if (searchId) {
+            if (matchingIds.has(searchId)) {
               item.style.display = "";
               item.removeAttribute("data-search-hidden");
               matchCount++;

@@ -1,37 +1,40 @@
 ---
-import Tag from './Tag.astro';
+import Tag from "./Tag.astro";
 
 interface Props {
   type: string;
   class?: string;
 }
 
-const { type, class: className = '' } = Astro.props;
+const { type, class: className = "" } = Astro.props;
 
 // Map section types to display labels
 const typeLabels: Record<string, string> = {
-  'OA': 'Oral Answer',
-  'WA': 'Written Answer',
-  'WANA': 'No Answer',
-  'BI': '1st Reading',
-  'BP': '2nd Reading',
-  'OS': 'Oral Statement',
-  'WS': 'Written Statement',
+  OA: "Oral Answer",
+  WA: "Written Answer",
+  WANA: "Written Answer to Unanswered Oral Question",
+  BI: "1st Reading",
+  BP: "2nd Reading",
+  OS: "Oral Statement",
+  WS: "Written Statement",
 };
 
 // Map section types to colors
-const typeColors: Record<string, 'blue' | 'purple' | 'muted' | 'green' | 'amber'> = {
-  'OA': 'blue',
-  'WA': 'purple',
-  'WANA': 'muted',
-  'BI': 'green',
-  'BP': 'green',
-  'OS': 'amber',
-  'WS': 'amber',
+const typeColors: Record<
+  string,
+  "blue" | "purple" | "muted" | "green" | "amber"
+> = {
+  OA: "blue",
+  WA: "purple",
+  WANA: "purple",
+  BI: "green",
+  BP: "green",
+  OS: "amber",
+  WS: "amber",
 };
 
 const label = typeLabels[type] || type;
-const color = typeColors[type] || 'muted';
+const color = typeColors[type] || "muted";
 ---
 
 <Tag color={color} class={className}>

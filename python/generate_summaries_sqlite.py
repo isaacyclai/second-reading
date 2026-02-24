@@ -4,11 +4,11 @@ import os
 import re
 import sys
 
-from openai import AsyncOpenAI
+from google import genai
 from datetime import datetime, timedelta
-from db_async import close_pool, execute
 from dotenv import load_dotenv
 
+import db_sqlite as db
 from prompts import PQ_PROMPT, SECTION_PROMPT, BILL_PROMPT, MEMBER_PROMPT
 
 load_dotenv()
@@ -20,49 +20,49 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-AI_SEMAPHORE = asyncio.Semaphore(1)  # Sequential AI requests for rate limiting
-AI_COOLDOWN = 2.5                    # Delay in seconds to achieve ~24-30 RPM and respect TPM
+client = genai.Client()
 
-async def generate_summary(prompt_template: str, model='llama-3.1-8b-instant') -> str:
+AI_SEMAPHORE = asyncio.Semaphore(20)  # Can do more parallel with Gemini but keeping safe limit
+AI_COOLDOWN = 0.5                    # Adjust to Gemini rate limitations (15 RPM free, higher paid)
+
+async def generate_summary(prompt_template: str, model='gemini-3-flash-preview') -> str:
     async with AI_SEMAPHORE:
-        client = AsyncOpenAI(
-            base_url="https://api.groq.com/openai/v1",
-            api_key=GROQ_API_KEY,
-        )
         try:
-            response = await client.chat.completions.create(
+            response = await client.aio.models.generate_content(
                 model=model,
-                messages=[
-                    {"role": "user", "content": prompt_template}
-                ],
+                contents=prompt_template,
             )
-            # Add delay to respect 30 RPM limit
+            
             await asyncio.sleep(AI_COOLDOWN)
             
-            content = response.choices[0].message.content.strip()
-            # Normalize whitespace: replace multiple spaces/tabs/non-breaking spaces 
-            # with single space but preserve newlines
-            content = re.sub(r'[ \t\xa0]+', ' ', content)
-            return content
+            if response.text:
+                content = response.text.strip()
+                # Normalize whitespace: replace multiple spaces/tabs/non-breaking spaces 
+                # with single space but preserve newlines
+                content = re.sub(r'[ \t\xa0]+', ' ', content)
+                return content
+            return None
         except Exception as e:
             logger.error(f"Error generating summary: {e}")
-            # Still wait on error to avoid rapid-fire failures hitting limits
             await asyncio.sleep(AI_COOLDOWN)
             return None
 
 async def generate_section_summaries_for_sitting(sitting_id, only_blanks):
-    sections = await execute(
-        f'''SELECT id, section_title, content_plain, category, section_type 
-           FROM sections    
-           WHERE sitting_id = $1 
-             AND length(content_plain) > 20
-             AND category != 'bill' 
-             AND section_type NOT IN ('BI', 'BP')
-             {'AND sections.summary IS NULL' if only_blanks else ''}''',
-        sitting_id,
-        fetch=True
-    )
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    query = '''
+        SELECT id, section_title, content_plain, category, section_type 
+        FROM sections    
+        WHERE sitting_id = ? 
+          AND length(content_plain) > 20
+          AND category != 'bill' 
+          AND section_type NOT IN ('BI', 'BP')
+    '''
+    if only_blanks:
+        query += ' AND summary IS NULL'
+        
+    cursor.execute(query, (sitting_id,))
+    sections = [dict(row) for row in cursor.fetchall()]
     
     if not sections:
         return
@@ -73,8 +73,7 @@ async def generate_section_summaries_for_sitting(sitting_id, only_blanks):
     for s in sections:
         tasks.append(generate_section_summary(s))
         
-        # Batch to avoid hitting rate limits too hard
-        if len(tasks) >= 5:
+        if len(tasks) >= 20:
             await asyncio.gather(*tasks)
             tasks = []
             
@@ -88,19 +87,26 @@ async def generate_section_summary(section):
     summary = await generate_summary(prompt)
     
     if summary:
-        await execute('UPDATE sections SET summary = $1 WHERE id = $2', summary, section['id'])
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE sections SET summary = ? WHERE id = ?', (summary, section['id']))
+        conn.commit()
 
 async def generate_bill_summaries_for_sitting(sitting_id, only_blanks):
-    bills = await execute(
-        f'''SELECT DISTINCT b.id, b.title 
-           FROM bills b
-           JOIN sections s ON b.id = s.bill_id
-           WHERE s.sitting_id = $1
-           AND s.section_type = 'BP'
-           {'AND b.summary IS NULL' if only_blanks else ''}''',
-        sitting_id,
-        fetch=True
-    )
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    query = '''
+        SELECT DISTINCT b.id, b.title 
+        FROM bills b
+        JOIN sections s ON b.id = s.bill_id
+        WHERE s.sitting_id = ?
+        AND s.section_type = 'BP'
+    '''
+    if only_blanks:
+        query += ' AND b.summary IS NULL'
+        
+    cursor.execute(query, (sitting_id,))
+    bills = [dict(row) for row in cursor.fetchall()]
     
     if not bills:
         return
@@ -108,20 +114,19 @@ async def generate_bill_summaries_for_sitting(sitting_id, only_blanks):
     logger.info(f"Generating summaries for {len(bills)} bills in sitting {sitting_id}")
     
     for bill in bills:
-        sections = await execute(
+        cursor.execute(
             '''SELECT content_plain FROM sections 
-               WHERE bill_id = $1 
+               WHERE bill_id = ? 
                ORDER BY section_order''',
-            bill['id'],
-            fetch=True
+            (bill['id'],)
         )
+        sections = [row['content_plain'] for row in cursor.fetchall()]
         
         if not sections:
             continue
             
-        full_text = "\n\n".join([s['content_plain'] for s in sections])
+        full_text = "\n\n".join(sections)
         
-        # Skip if text is too short
         if len(full_text) < 500:
             continue
         
@@ -130,9 +135,9 @@ async def generate_bill_summaries_for_sitting(sitting_id, only_blanks):
         summary = await generate_summary(prompt)
         
         if summary:
-            await execute('UPDATE bills SET summary = $1 WHERE id = $2', summary, bill['id'])
+            cursor.execute('UPDATE bills SET summary = ? WHERE id = ?', (summary, bill['id']))
+            conn.commit()
             logger.info(f"Generated summary for bill {bill['title']}")
-
 
 async def generate_sitting_summaries(start_date_str, end_date_str, only_blanks=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y')
@@ -141,20 +146,22 @@ async def generate_sitting_summaries(start_date_str, end_date_str, only_blanks=F
     dates = []
     curr = start_date
     while curr <= end_date:
-        dates.append(curr.strftime('%d-%m-%Y'))
+        dates.append(curr.strftime('%Y-%m-%d'))
         curr += timedelta(days=1)
         
     logger.info(f"Summarizing date range: {start_date_str} to {end_date_str} ({len(dates)} days)")
     
-    sitting_ids_to_process = []
+    conn = db.get_connection()
+    cursor = conn.cursor()
     
-    rows = await execute(
-        'SELECT id FROM sittings WHERE date >= TO_DATE($1, \'DD-MM-YYYY\') AND date <= TO_DATE($2, \'DD-MM-YYYY\')',
-        start_date_str, end_date_str,
-        fetch=True
+    iso_start = start_date.strftime('%Y-%m-%d')
+    iso_end = end_date.strftime('%Y-%m-%d')
+    
+    cursor.execute(
+        'SELECT id FROM sittings WHERE date >= ? AND date <= ?',
+        (iso_start, iso_end)
     )
-
-    sitting_ids_to_process = [r['id'] for r in rows]
+    sitting_ids_to_process = [row['id'] for row in cursor.fetchall()]
             
     logger.info(f"Generating summaries for {len(sitting_ids_to_process)} sittings...")
     
@@ -163,36 +170,42 @@ async def generate_sitting_summaries(start_date_str, end_date_str, only_blanks=F
         await generate_bill_summaries_for_sitting(sid, only_blanks)
 
     logger.info("Batch processing complete!")
-    await close_pool()
+    db.close_connection()
 
 async def generate_member_summaries(only_blanks):
-    logger.info('Refreshing member_list_view...')
-    await execute('REFRESH MATERIALIZED VIEW CONCURRENTLY member_list_view')
-
     logger.info("Generating member summaries...")
+    
+    conn = db.get_connection()
+    cursor = conn.cursor()
     if only_blanks:
-        members = await execute('''SELECT DISTINCT id, name 
-                                    FROM members JOIN member_summaries ON members.id = member_summaries.member_id
-                                    WHERE member_summaries.summary IS NULL''', fetch=True)
+        cursor.execute('''
+            SELECT DISTINCT m.id, m.name 
+            FROM members m
+            JOIN member_summaries ms ON m.id = ms.member_id
+            WHERE ms.summary IS NULL
+        ''')
     else:
-        members = await execute('SELECT id, name FROM members', fetch=True)
+        cursor.execute('SELECT id, name FROM members')
+    members = [dict(row) for row in cursor.fetchall()]
     
     tasks = []
     
     async def process_member(member):
-        activity = await execute(
-            '''SELECT s.section_title, s.section_type, m.acronym as ministry,
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            '''SELECT s.section_title, s.section_type, min.acronym as ministry,
                       ss.designation, sess.date
                FROM section_speakers ss
                JOIN sections s ON ss.section_id = s.id
                JOIN sittings sess ON s.sitting_id = sess.id
-               LEFT JOIN ministries m ON s.ministry_id = m.id
-               WHERE ss.member_id = $1
+               LEFT JOIN ministries min ON s.ministry_id = min.id
+               WHERE ss.member_id = ?
                ORDER BY sess.date DESC
                LIMIT 20''',
-            member['id'],
-            fetch=True
+            (member['id'],)
         )
+        activity = [dict(row) for row in cursor.fetchall()]
             
         if not activity:
             return
@@ -205,35 +218,38 @@ async def generate_member_summaries(only_blanks):
             activity_lines.append(f"- {a['date']}: {ministry}{a['section_title']}")
         
         context = "\n".join(activity_lines)
-
         prompt = MEMBER_PROMPT.format(name=member['name'], recent_designation=recent_designation, text=context)
 
         summary = await generate_summary(prompt)
         
         if summary:
-            await execute(
+            cursor.execute(
                 '''INSERT INTO member_summaries (member_id, summary, last_updated)
-                   VALUES ($1, $2, NOW())
-                   ON CONFLICT (member_id) DO UPDATE SET summary = EXCLUDED.summary, last_updated = NOW()''',
-                member['id'], summary
+                   VALUES (?, ?, CURRENT_TIMESTAMP)
+                   ON CONFLICT(member_id) DO UPDATE SET 
+                   summary = excluded.summary, 
+                   last_updated = CURRENT_TIMESTAMP''',
+                (member['id'], summary)
             )
+            conn.commit()
     
     for m in members:
         tasks.append(process_member(m))
         
-        if len(tasks) >= 5:
+        if len(tasks) >= 20:
             await asyncio.gather(*tasks)
             tasks = []
             
     if tasks:
         await asyncio.gather(*tasks)
+    
     logger.info("Member summaries complete")
-    await close_pool()
+    db.close_connection()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: uv run generate_summaries.py [--sittings] [START_DATE [END_DATE]] [--members] [--only-blank]")
-        print("Example: uv run generate_summaries.py --sittings 01-10-2024")
+        print("Usage: uv run generate_summaries_sqlite.py [--sittings] [START_DATE [END_DATE]] [--members] [--only-blank]")
+        print("Example: uv run generate_summaries_sqlite.py --sittings 01-10-2024")
         sys.exit(1)
         
     args = sys.argv[1:]
@@ -241,9 +257,8 @@ if __name__ == "__main__":
     
     summarize_sittings = '--sittings' in flags
     summarize_members = '--members' in flags
-    only_blank = '--only-blank' in flags # only generate summaries for rows with no summaries
+    only_blank = '--only-blank' in flags
     
-    # Exactly one of summarize_sittings and summarize_members can be specified i.e. XNOR
     if ((not summarize_sittings) or summarize_members) and (summarize_sittings or (not summarize_members)):
         print("Error: Exactly one of --sittings and --members can be specified")
         sys.exit(1)

@@ -74,6 +74,7 @@ def find_or_create_member(name: str) -> str:
     conn = get_connection()
     cursor = conn.cursor()
 
+    name = name.strip()
     # Try to find existing
     cursor.execute('SELECT id FROM members WHERE name = ?', (name,))
     row = cursor.fetchone()
@@ -105,11 +106,12 @@ def find_ministry_by_acronym(acronym: str) -> str:
 
 def find_or_create_bill(title: str, ministry_id: str = None,
                         first_reading_date: str = None,
-                        first_reading_session_id: str = None) -> str:
+                        first_reading_sitting_id: str = None) -> str:
     """Find existing bill or create new one. Returns bill ID."""
     conn = get_connection()
     cursor = conn.cursor()
 
+    title = title.strip()
     # Try to find existing by title
     cursor.execute(
         'SELECT id, first_reading_date, ministry_id FROM bills WHERE title = ?',
@@ -132,9 +134,9 @@ def find_or_create_bill(title: str, ministry_id: str = None,
         # Update first reading info if not set
         if first_reading_date and not existing_first_reading:
             cursor.execute(
-                '''UPDATE bills SET first_reading_date = ?, first_reading_session_id = ?
+                '''UPDATE bills SET first_reading_date = ?, first_reading_sitting_id = ?
                    WHERE id = ?''',
-                (parse_date(first_reading_date), first_reading_session_id, bill_id)
+                (parse_date(first_reading_date), first_reading_sitting_id, bill_id)
             )
 
         conn.commit()
@@ -143,68 +145,68 @@ def find_or_create_bill(title: str, ministry_id: str = None,
     # Create new bill
     bill_id = generate_id()
     cursor.execute(
-        '''INSERT INTO bills (id, title, ministry_id, first_reading_date, first_reading_session_id)
+        '''INSERT INTO bills (id, title, ministry_id, first_reading_date, first_reading_sitting_id)
            VALUES (?, ?, ?, ?, ?)''',
-        (bill_id, title, ministry_id, parse_date(first_reading_date), first_reading_session_id)
+        (bill_id, title, ministry_id, parse_date(first_reading_date), first_reading_sitting_id)
     )
     conn.commit()
     return bill_id
 
 
-def create_or_update_session(date_str: str, sitting_no: int = None,
+def create_or_update_sitting(date_str: str, sitting_no: int = None,
                               parliament: int = None, session_no: int = None,
                               volume_no: int = None, format_type: str = None,
                               url: str = None) -> str:
-    """Create or update a session. Returns session ID."""
+    """Create or update a sitting. Returns sitting ID."""
     conn = get_connection()
     cursor = conn.cursor()
 
     iso_date = parse_date(date_str)
 
-    # Check if session exists
-    cursor.execute('SELECT id FROM sessions WHERE date = ?', (iso_date,))
+    # Check if sitting exists
+    cursor.execute('SELECT id FROM sittings WHERE date = ?', (iso_date,))
     row = cursor.fetchone()
 
     if row:
-        session_id = row['id']
+        sitting_id = row['id']
         # Update existing
         cursor.execute(
-            '''UPDATE sessions SET sitting_no = ?, parliament = ?, session_no = ?,
+            '''UPDATE sittings SET sitting_no = ?, parliament = ?, session_no = ?,
                volume_no = ?, format = ?, url = ? WHERE id = ?''',
-            (sitting_no, parliament, session_no, volume_no, format_type, url, session_id)
+            (sitting_no, parliament, session_no, volume_no, format_type, url, sitting_id)
         )
     else:
         # Create new
-        session_id = generate_id()
+        sitting_id = generate_id()
         cursor.execute(
-            '''INSERT INTO sessions (id, date, sitting_no, parliament, session_no, volume_no, format, url)
+            '''INSERT INTO sittings (id, date, sitting_no, parliament, session_no, volume_no, format, url)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-            (session_id, iso_date, sitting_no, parliament, session_no, volume_no, format_type, url)
+            (sitting_id, iso_date, sitting_no, parliament, session_no, volume_no, format_type, url)
         )
 
     conn.commit()
-    return session_id
+    return sitting_id
 
 
-def add_session_attendance(session_id: str, member_id: str, present: bool = True,
+def add_sitting_attendance(sitting_id: str, member_id: str, present: bool = True,
                            constituency: str = None, designation: str = None):
-    """Add or update session attendance record."""
+    """Add or update sitting attendance record."""
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
-        '''INSERT INTO session_attendance (session_id, member_id, present, constituency, designation)
+        '''INSERT INTO sitting_attendance (sitting_id, member_id, present, constituency, designation)
            VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT (session_id, member_id) DO UPDATE SET
+           ON CONFLICT (sitting_id, member_id) DO UPDATE SET
            present = excluded.present,
            constituency = excluded.constituency,
            designation = excluded.designation''',
-        (session_id, member_id, 1 if present else 0, constituency, designation)
+        (sitting_id, member_id, 1 if present else 0, constituency, designation)
     )
     conn.commit()
 
 
-def create_section(session_id: str, category: str, section_type: str,
+def create_section(sitting_id: str, category: str, section_type: str,
                    title: str, content_html: str, content_plain: str,
                    section_order: int, source_url: str = None,
                    ministry_id: str = None, bill_id: str = None) -> str:
@@ -215,10 +217,10 @@ def create_section(session_id: str, category: str, section_type: str,
     section_id = generate_id()
     cursor.execute(
         '''INSERT INTO sections
-           (id, session_id, ministry_id, bill_id, category, section_type,
+           (id, sitting_id, ministry_id, bill_id, category, section_type,
             section_title, content_html, content_plain, section_order, source_url)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-        (section_id, session_id, ministry_id, bill_id, category, section_type,
+        (section_id, sitting_id, ministry_id, bill_id, category, section_type,
          title, content_html, content_plain, section_order, source_url)
     )
     conn.commit()
@@ -240,11 +242,11 @@ def add_section_speaker(section_id: str, member_id: str,
     conn.commit()
 
 
-def get_session_count() -> int:
-    """Get total number of sessions in database."""
+def get_sitting_count() -> int:
+    """Get total number of sittings in database."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) as count FROM sessions')
+    cursor.execute('SELECT COUNT(*) as count FROM sittings')
     return cursor.fetchone()['count']
 
 
@@ -276,7 +278,7 @@ if __name__ == '__main__':
     # Initialize database and show stats
     init_db()
     print(f"\nDatabase stats:")
-    print(f"  Sessions: {get_session_count()}")
+    print(f"  Sittings: {get_sitting_count()}")
     print(f"  Members: {get_member_count()}")
     print(f"  Sections: {get_section_count()}")
     print(f"  Bills: {get_bill_count()}")

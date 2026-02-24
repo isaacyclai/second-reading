@@ -4,9 +4,9 @@ import SectionLabel from "../../components/SectionLabel.astro";
 import AISummaryCard from "../../components/AISummaryCard.astro";
 import QuestionCard from "../../components/QuestionCard.astro";
 import Pagination from "../../components/Pagination.astro";
+
 import Avatar from "../../components/Avatar.astro";
 import Tag from "../../components/Tag.astro";
-import AttendanceTimeline from "../../components/AttendanceTimeline.astro";
 import AttendanceDotGrid from "../../components/AttendanceDotGrid.astro";
 import {
   getMembersWithInfo,
@@ -40,34 +40,23 @@ const motions = sections.filter(
     s.category === "motion" ||
     s.category === "adjournment_motion" ||
     s.category === "statement" ||
-    s.category === "clarification" ||
     (!s.category && s.sectionType === "OS"),
 );
+const clarifications = sections.filter((s) => s.category === "clarification");
 const bills = sections.filter(
   (s) => s.sectionType === "BI" || s.sectionType === "BP",
 );
 const questions = sections.filter(
-  (s) => ["OA", "WA", "WANA"].includes(s.sectionType) && !motions.includes(s),
+  (s) =>
+    ["OA", "WA", "WANA"].includes(s.sectionType) &&
+    !motions.includes(s) &&
+    !clarifications.includes(s),
 );
 
 const attendancePercent =
   member.attendanceTotal && member.attendanceTotal > 0
     ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
     : null;
-
-// Try to extract party from designation
-const getParty = (): string | null => {
-  if (member.designation?.includes("Workers")) return "WP";
-  if (member.designation?.includes("Progress")) return "PSP";
-  if (
-    member.designation?.includes("Minister") ||
-    member.designation?.includes("Secretary")
-  )
-    return "PAP";
-  return null;
-};
-
-const party = getParty();
 ---
 
 <Layout
@@ -89,11 +78,7 @@ const party = getParty();
     data-pagefind-meta={`id:${member.id}`}
   >
     <div class="flex items-start gap-5 mb-6">
-      <Avatar
-        name={member.name}
-        party={party || undefined}
-        class="w-16 h-16 text-xl"
-      />
+      <Avatar name={member.name} class="w-16 h-16 text-xl" />
 
       <div class="flex-1">
         <h1
@@ -129,24 +114,30 @@ const party = getParty();
     <div data-pagefind-ignore>
       <!-- Stats Row -->
       <div
-        class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-border mb-8"
+        class="grid grid-cols-2 md:grid-cols-5 gap-4 py-6 border-y border-border mb-8"
       >
         <div>
           <div class="font-display text-2xl text-ink">{sections.length}</div>
           <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-            Speeches
+            Involvements
           </div>
         </div>
         <div>
           <div class="font-display text-2xl text-ink">{questions.length}</div>
           <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-            Questions
+            Questions asked or answered
           </div>
         </div>
         <div>
           <div class="font-display text-2xl text-ink">{motions.length}</div>
           <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-            Motions
+            Motions spoken on
+          </div>
+        </div>
+        <div>
+          <div class="font-display text-2xl text-ink">{bills.length}</div>
+          <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+            Bills spoken on
           </div>
         </div>
         {
@@ -200,24 +191,66 @@ const party = getParty();
     </div><!-- end data-pagefind-ignore -->
   </section>
 
+  <!-- Unified search across all sections -->
+  <div class="mb-8" data-pagefind-ignore data-member-name={member.name}>
+    <div class="relative">
+      <svg
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 pointer-events-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <input
+        type="text"
+        id="member-search-input"
+        class="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+        placeholder="Search this member's parliamentary activity..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button
+        type="button"
+        id="member-search-clear"
+        class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 hover:text-ink transition-colors hidden"
+        aria-label="Clear search"
+      >
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <p
+      id="member-search-status"
+      class="mt-2 font-sans text-sm text-ink-muted hidden"
+    >
+    </p>
+  </div>
+
   <!-- Motions Section -->
   {
-    motions.length > 0 && (
+    (
       <section class="mb-10" data-pagefind-ignore>
         <h2 class="font-display text-xl text-ink mb-4">
-          Motions & Statements{" "}
+          Motions{" "}
           <span class="font-sans text-sm text-ink-muted font-normal">
             ({motions.length})
           </span>
         </h2>
+
         <div id="motions-list" class="flex flex-col border-t border-border">
           {motions.map((section) => (
             <div class="motion-item">
-              <QuestionCard
-                section={section}
-                showSpeakers={false}
-                includePagefindMeta={false}
-              />
+              <QuestionCard section={section} showSpeakers={false} />
             </div>
           ))}
         </div>
@@ -232,7 +265,7 @@ const party = getParty();
 
   <!-- Bills Section -->
   {
-    bills.length > 0 && (
+    (
       <section class="mb-10" data-pagefind-ignore>
         <h2 class="font-display text-xl text-ink mb-4">
           Bills{" "}
@@ -240,11 +273,13 @@ const party = getParty();
             ({bills.length})
           </span>
         </h2>
+
         <div id="bills-list" class="flex flex-col border-t border-border">
           {bills.map((section) => (
             <a
               href={`/bills/${slugify((section as any).billTitle || section.sectionTitle, (section as any).billId)}`}
               class="bill-item group block p-5 border-b border-border transition-colors hover:bg-warm no-underline"
+              data-search-id={(section as any).billId || section.id}
             >
               <div class="flex flex-wrap items-center gap-2 mb-2">
                 <Tag color={section.sectionType === "BI" ? "muted" : "accent"}>
@@ -253,9 +288,9 @@ const party = getParty();
                 {section.ministry && (
                   <Tag color="green">{section.ministry}</Tag>
                 )}
-                {section.sessionDate && (
+                {section.sittingDate && (
                   <span class="font-sans text-xs text-ink-muted">
-                    {new Date(section.sessionDate).toLocaleDateString("en-SG", {
+                    {new Date(section.sittingDate).toLocaleDateString("en-SG", {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
@@ -278,6 +313,36 @@ const party = getParty();
     )
   }
 
+  <!-- Clarifications Section -->
+  {
+    clarifications.length > 0 && (
+      <section class="mb-10" data-pagefind-ignore>
+        <h2 class="font-display text-xl text-ink mb-4">
+          Clarifications{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({clarifications.length})
+          </span>
+        </h2>
+
+        <div
+          id="clarifications-list"
+          class="flex flex-col border-t border-border"
+        >
+          {clarifications.map((section) => (
+            <div class="clarification-item">
+              <QuestionCard section={section} showSpeakers={false} />
+            </div>
+          ))}
+        </div>
+        <Pagination
+          containerId="clarifications-list"
+          itemSelector=".clarification-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
+  }
+
   <!-- Questions Section -->
   <section data-pagefind-ignore>
     <h2 class="font-display text-xl text-ink mb-4">
@@ -287,18 +352,10 @@ const party = getParty();
       >
     </h2>
     {
-      questions.length === 0 ? (
-        <p class="py-8 font-body text-ink-muted">No recorded questions</p>
-      ) : (
-        <>
           <div id="questions-list" class="flex flex-col border-t border-border">
             {questions.map((section) => (
               <div class="question-item">
-                <QuestionCard
-                  section={section}
-                  showSpeakers={false}
-                  includePagefindMeta={false}
-                />
+                <QuestionCard section={section} showSpeakers={false} />
               </div>
             ))}
           </div>
@@ -307,8 +364,210 @@ const party = getParty();
             itemSelector=".question-item"
             itemsPerPage={10}
           />
-        </>
-      )
     }
   </section>
+  <script>
+    interface PagefindResult {
+      id: string;
+      data: () => Promise<{
+        meta?: { id?: string };
+        url: string;
+        excerpt: string;
+      }>;
+    }
+
+    interface PagefindSearch {
+      results: PagefindResult[];
+    }
+
+    interface Pagefind {
+      search: (
+        query: string,
+        options?: { filters?: Record<string, string> },
+      ) => Promise<PagefindSearch>;
+    }
+
+    let pagefind: Pagefind | null = null;
+
+    async function loadPagefind(): Promise<Pagefind | null> {
+      if (pagefind) return pagefind;
+      try {
+        const base = import.meta.env.BASE_URL || "/";
+        const pagefindPath = `${base}pagefind/pagefind.js`.replace(/\/+/g, "/");
+        pagefind = (await import(/* @vite-ignore */ pagefindPath)) as Pagefind;
+        return pagefind;
+      } catch {
+        return null;
+      }
+    }
+
+    function initMemberSearch() {
+      const wrapper = document.querySelector(
+        "[data-member-name]",
+      ) as HTMLElement;
+      if (!wrapper) return;
+      const memberName = wrapper.getAttribute("data-member-name")!;
+
+      const input = document.getElementById(
+        "member-search-input",
+      ) as HTMLInputElement;
+      const clearBtn = document.getElementById(
+        "member-search-clear",
+      ) as HTMLButtonElement;
+      const status = document.getElementById(
+        "member-search-status",
+      ) as HTMLElement;
+      if (!input) return;
+      if (input.hasAttribute("data-search-initialized")) return;
+      input.setAttribute("data-search-initialized", "true");
+
+      const sectionConfigs = [
+        { id: "motions-list", selector: ".motion-item" },
+        { id: "bills-list", selector: ".bill-item" },
+        { id: "clarifications-list", selector: ".clarification-item" },
+        { id: "questions-list", selector: ".question-item" },
+      ]
+        .map((s) => {
+          const container = document.getElementById(s.id);
+          if (!container) return null;
+          const sectionEl = container.closest("section");
+          const items = Array.from(
+            container.querySelectorAll(s.selector),
+          ) as HTMLElement[];
+          return { container, sectionEl, items };
+        })
+        .filter(Boolean) as {
+        container: HTMLElement;
+        sectionEl: Element | null;
+        items: HTMLElement[];
+      }[];
+
+      function getItemId(item: HTMLElement): string | null {
+        return item.getAttribute("data-search-id") || item.querySelector("[data-search-id]")?.getAttribute("data-search-id") || null;
+      }
+
+      let debounceTimer: ReturnType<typeof setTimeout>;
+      let searchSeq = 0;
+
+      function updateSections(
+        matchingIds: Set<string> | null,
+        lowerQuery: string,
+      ) {
+        let totalMatches = 0;
+        for (const sec of sectionConfigs) {
+          let sectionMatches = 0;
+          for (const item of sec.items) {
+            let isMatch: boolean;
+            if (matchingIds !== null) {
+              const id = getItemId(item);
+              isMatch = id !== null && matchingIds.has(id);
+            } else {
+              const text = item.textContent?.toLowerCase() || "";
+              isMatch = text.includes(lowerQuery);
+            }
+            if (isMatch) {
+              item.style.display = "";
+              item.removeAttribute("data-search-hidden");
+              sectionMatches++;
+            } else {
+              item.style.display = "none";
+              item.setAttribute("data-search-hidden", "true");
+            }
+          }
+          if (sec.sectionEl) {
+            (sec.sectionEl as HTMLElement).style.display =
+              sectionMatches === 0 ? "none" : "";
+          }
+          totalMatches += sectionMatches;
+          sec.container.dispatchEvent(
+            new CustomEvent("search-updated", {
+              detail: { matchCount: sectionMatches, reordered: false },
+            }),
+          );
+        }
+        status.textContent = `Found ${totalMatches} result${totalMatches !== 1 ? "s" : ""}`;
+        status.classList.remove("hidden");
+      }
+
+      async function performSearch(query: string) {
+        const seq = ++searchSeq;
+        const lowerQuery = query.toLowerCase().trim();
+
+        if (!lowerQuery) {
+          for (const sec of sectionConfigs) {
+            if (sec.sectionEl)
+              (sec.sectionEl as HTMLElement).style.display = "";
+            for (const item of sec.items) {
+              item.style.display = "";
+              item.removeAttribute("data-search-hidden");
+            }
+            sec.container.dispatchEvent(
+              new CustomEvent("search-cleared", {
+                detail: { reordered: false },
+              }),
+            );
+          }
+          status.classList.add("hidden");
+          clearBtn.classList.add("hidden");
+          return;
+        }
+
+        clearBtn.classList.remove("hidden");
+
+        // Try Pagefind first
+        const pf = await loadPagefind();
+        if (seq !== searchSeq) return;
+
+        if (pf) {
+          const results = await pf.search(query, {
+            filters: { speaker: memberName },
+          });
+          if (seq !== searchSeq) return;
+
+          const matchingIds = new Set<string>();
+          for (const result of results.results) {
+            const data = await result.data();
+            if (data.meta?.id) matchingIds.add(data.meta.id);
+          }
+          if (seq !== searchSeq) return;
+
+          updateSections(matchingIds, lowerQuery);
+          return;
+        }
+
+        // Fallback: text matching
+        updateSections(null, lowerQuery);
+      }
+
+      input.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => performSearch(input.value), 100);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        performSearch("");
+        input.focus();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && input.value) {
+          input.value = "";
+          performSearch("");
+        }
+      });
+
+      // Preload pagefind on focus
+      input.addEventListener(
+        "focus",
+        () => {
+          loadPagefind();
+        },
+        { once: true },
+      );
+    }
+
+    initMemberSearch();
+    document.addEventListener("astro:after-swap", initMemberSearch);
+  </script>
 </Layout>

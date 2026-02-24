@@ -6,68 +6,36 @@ import SectionLabel from "../components/SectionLabel.astro";
 
 <Layout
   title="About"
-  description="About Scribe - Singapore Parliament proceedings made accessible"
+  description="About Second Reading - Singapore Parliament proceedings made accessible"
 >
   <PageTitle
-    title="About Scribe"
+    title="About Second Reading"
     subtitle="Making Singapore Parliament proceedings accessible and searchable"
   />
 
   <div class="max-w-3xl">
-    <!-- What is Scribe -->
     <section class="mb-12">
-      <SectionLabel>What is Scribe?</SectionLabel>
+      <SectionLabel>What is Second Reading?</SectionLabel>
       <div class="mt-4 space-y-4">
         <p class="font-body text-ink/80 leading-relaxed">
-          Scribe was born out of a desire to make it easier for the general
-          public to keep up with what's happening in Singapore's Parliament.
-          Despite the Hansard being publicly available, the format of the
-          official reports can be rather unwieldy for sifting through, and it
-          is our hope that this site will provide a cleaner, more modern
+          Second Reading was born out of a desire to make it easier for the
+          general public to keep up with what's happening in Singapore's
+          Parliament. Despite the Hansard being publicly available, the format
+          of the official reports can be rather unwieldy for sifting through,
+          and it is our hope that this site will provide a cleaner, more modern
           interface to access the information they contain.
         </p>
         <p class="font-body text-ink/80 leading-relaxed">
-          Scribe is an independent project and is not affiliated with the
-          Singapore Government in any way. It is open sourced under the MIT
+          Second Reading is an independent project and is not affiliated with
+          the Singapore Government in any way. It is open sourced under the MIT
           license, and the code is available on <a
-            href="https://github.com/isaacyclai/scribe"
+            href="https://github.com/isaacyclai/second-reading"
             target="_blank"
             rel="noopener noreferrer"
             class="text-accent hover:underline">GitHub</a
-          >. If you have any feedback, suggestions, or bug reports, please
-          feel free to open an issue on the GitHub repository.
+          >. If you have any feedback, suggestions, or bug reports, please feel
+          free to open an issue on the GitHub repository.
         </p>
-      </div>
-    </section>
-
-    <!-- Data Sources -->
-    <section class="mb-12">
-      <SectionLabel>Data Sources</SectionLabel>
-      <div class="mt-4 space-y-4">
-        <p class="font-body text-ink/80 leading-relaxed">
-          All data is sourced from the official Singapore Parliament Hansard,
-          available at
-          <a
-            href="https://www.parliament.gov.sg/parliamentary-business/hansard"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-accent hover:underline">parliament.gov.sg</a
-          >.
-        </p>
-        <p class="font-body text-ink/80 leading-relaxed">
-          The Hansard is the official record of parliamentary debates and
-          includes:
-        </p>
-        <ul class="list-none space-y-2 pl-4 border-l-2 border-accent/20">
-          <li class="font-body text-ink/80">
-            Questions and answers (oral and written)
-          </li>
-          <li class="font-body text-ink/80">Bill readings and debates</li>
-          <li class="font-body text-ink/80">
-            Motions and ministerial statements
-          </li>
-          <li class="font-body text-ink/80">Member attendance records</li>
-        </ul>
       </div>
     </section>
 
@@ -97,18 +65,24 @@ import SectionLabel from "../components/SectionLabel.astro";
       <div class="mt-4 space-y-4">
         <p class="font-body text-ink/80 leading-relaxed">
           All data on parliamentary proceedings is sourced from the official
-          Hansard, whose copyright is owned by the Singapore Government.
-          Additional information about the structure of Parliament is sourced
-          from the official <a
+          <a
+            href="https://sprs.parl.gov.sg/search/#/home"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-accent hover:underline">Hansard</a
+          >, whose copyright is owned by the Singapore Government. Additional
+          information about the structure of Parliament is sourced from the
+          official <a
             href="https://www.parliament.gov.sg/"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-accent hover:underline">Parliament of Singapore website</a
+            class="text-accent hover:underline"
+            >Parliament of Singapore website</a
           >.
         </p>
         <p class="font-body text-ink/80 leading-relaxed">
           This project is inspired by <a
-            href="https://telescope.sg"
+            href="https://telescope.gov.sg"
             target="_blank"
             rel="noopener noreferrer"
             class="text-accent hover:underline">Telescope</a
@@ -118,19 +92,6 @@ import SectionLabel from "../components/SectionLabel.astro";
             rel="noopener noreferrer"
             class="text-accent hover:underline">Pair Search</a
           >.
-        </p>
-      </div>
-    </section>
-
-    <!-- Disclaimer -->
-    <section class="mb-12">
-      <SectionLabel>Disclaimer</SectionLabel>
-      <div class="mt-4 space-y-4">
-        <p class="font-body text-ink/80 leading-relaxed">
-          This is an unofficial project and is not affiliated with the Singapore
-          Parliament or the Government of Singapore. While we strive for
-          accuracy, the official Hansard should be consulted for authoritative
-          records.
         </p>
       </div>
     </section>
@@ -233,7 +194,7 @@ import SectionLabel from "../components/SectionLabel.astro";
           <div>
             <span
               class="font-display text-sm font-medium text-ink group-hover:text-accent"
-              >Order Paper</span
+              >Order Papers</span
             >
             <span class="block font-ui text-xs text-ink/50"
               >Parliament agenda</span

@@ -3,16 +3,16 @@ export default {
   content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}"],
   theme: {
     borderRadius: {
-        none: "0",
-        sm: "0",
-        DEFAULT: "0",
-        md: "0",
-        lg: "0",
-        xl: "0",
-        "2xl": "0",
-        "3xl": "0",
-        full: "9999px",
-      },
+      none: "0",
+      sm: "0",
+      DEFAULT: "0",
+      md: "0",
+      lg: "0",
+      xl: "0",
+      "2xl": "0",
+      "3xl": "0",
+      full: "9999px",
+    },
     extend: {
       colors: {
         // Hansard Editorial palette
@@ -26,11 +26,6 @@ export default {
         "accent-light": "#a63a14",
         border: "#e8e0d4",
         "border-light": "#f0ece5",
-        // Party colors
-        "wp-blue": "#2a5fa0",
-        "wp-blue-bg": "#e8f0fa",
-        "pap-red": "#8b2500",
-        "pap-red-bg": "#faeee8",
         // Status colors
         "status-passed": "#2d6a3f",
         "status-passed-bg": "#e6f2eb",

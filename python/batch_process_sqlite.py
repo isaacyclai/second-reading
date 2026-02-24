@@ -9,9 +9,9 @@ from datetime import datetime, timedelta
 
 from db_sqlite import (
     add_section_speaker,
-    add_session_attendance,
+    add_sitting_attendance,
     close_connection,
-    create_or_update_session,
+    create_or_update_sitting,
     create_section,
     find_ministry_by_acronym,
     find_or_create_bill,
@@ -19,11 +19,11 @@ from db_sqlite import (
     get_bill_count,
     get_member_count,
     get_section_count,
-    get_session_count,
+    get_sitting_count,
     init_db,
 )
 from hansard_api import HansardAPI
-from parliament_session import BILL_TYPES
+from parliament_sitting import BILL_TYPES
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,8 +68,8 @@ def detect_ministry_from_content(content_plain):
     if not content_plain:
         return None
 
-    # Look in the first 500 chars (the question preamble)
-    preamble = content_plain[:500]
+    # Look in the first 1000 chars (the question preamble)
+    preamble = content_plain[:1000]
 
     for designation, acronym in DESIGNATION_TO_MINISTRY.items():
         if designation in preamble:
@@ -111,12 +111,23 @@ def process_speaker(section_id, speaker):
     )
 
 
-def process_section(session_id, idx, section, date_str):
+def process_section(sitting_id, idx, section, date_str):
     """Process a single section and its speakers."""
-    ministry_acronym = detect_ministry(section)
-    ministry_id = (
-        find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
-    )
+    # Adjournment motions are raised by individual MPs on any topic;
+    # the answering minister is incidental, so skip ministry tagging.
+    if section.get("category") == "adjournment_motion":
+        ministry_id = None
+        ministry_acronym = None
+    elif section.get("category") == "motion":
+        ministry_acronym = detect_ministry_from_content(section.get("content_plain", ""))
+        ministry_id = (
+            find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
+        )
+    else:
+        ministry_acronym = detect_ministry(section)
+        ministry_id = (
+            find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
+        )
 
     bill_id = None
     section_type = section["section_type"]
@@ -124,18 +135,18 @@ def process_section(session_id, idx, section, date_str):
     # Handle bill sections
     if section_type in BILL_TYPES:
         first_reading_date = date_str if section_type == "BI" else None
-        first_reading_session_id = session_id if section_type == "BI" else None
+        first_reading_sitting_id = sitting_id if section_type == "BI" else None
 
         bill_id = find_or_create_bill(
             title=section["title"],
             ministry_id=ministry_id,
             first_reading_date=first_reading_date,
-            first_reading_session_id=first_reading_session_id,
+            first_reading_sitting_id=first_reading_sitting_id,
         )
 
     # Create section
     section_id = create_section(
-        session_id=session_id,
+        sitting_id=sitting_id,
         ministry_id=ministry_id,
         bill_id=bill_id,
         category=section.get("category", "other"),
@@ -154,11 +165,11 @@ def process_section(session_id, idx, section, date_str):
     return section_id
 
 
-def process_attendance(session_id, mp, present):
+def process_attendance(sitting_id, mp, present):
     """Process attendance for a single MP."""
     member_id = find_or_create_member(mp.name)
-    add_session_attendance(
-        session_id=session_id,
+    add_sitting_attendance(
+        sitting_id=sitting_id,
         member_id=member_id,
         present=present,
         constituency=mp.constituency,
@@ -166,51 +177,51 @@ def process_attendance(session_id, mp, present):
     )
 
 
-def ingest_session(date_str: str) -> str:
+def ingest_sitting(date_str: str) -> str:
     """
-    Fetch and ingest a single session into SQLite.
-    Returns session ID if successful, None otherwise.
+    Fetch and ingest a single sitting into SQLite.
+    Returns sitting ID if successful, None otherwise.
     """
-    logger.info(f"Processing session for {date_str}...")
+    logger.info(f"Processing sitting for {date_str}...")
 
     # Fetch from Hansard API
     api = HansardAPI()
-    parliament_session = api.fetch_by_date(date_str)
+    parliament_sitting = api.fetch_by_date(date_str)
 
-    if not parliament_session:
+    if not parliament_sitting:
         logger.info(f"No data found for {date_str}")
         return None
 
-    sections = parliament_session.get_sections()
-    metadata = parliament_session.get_metadata()
+    sections = parliament_sitting.get_sections()
+    metadata = parliament_sitting.get_metadata()
 
     if not sections:
         logger.info(f"No sections found for {date_str}")
         return None
 
-    # Create session URL
-    session_url = f"https://sprs.parl.gov.sg/search/#/fullreport?sittingdate={date_str}"
+    # Create sitting URL
+    sitting_url = f"https://sprs.parl.gov.sg/search/#/fullreport?sittingdate={date_str}"
 
-    # Create/Update Session
-    session_id = create_or_update_session(
+    # Create/Update Sitting
+    sitting_id = create_or_update_sitting(
         date_str=metadata.get("date"),
         sitting_no=metadata.get("sitting_no"),
         parliament=metadata.get("parliament"),
         session_no=metadata.get("session_no"),
         volume_no=metadata.get("volume_no"),
         format_type=metadata.get("format"),
-        url=session_url,
+        url=sitting_url,
     )
-    logger.info(f"   Session ID: {session_id}")
+    logger.info(f"   Sitting ID: {sitting_id}")
 
     # Process attendance
     attendance_count = 0
-    for mp in parliament_session.present_members:
-        process_attendance(session_id, mp, True)
+    for mp in parliament_sitting.present_members:
+        process_attendance(sitting_id, mp, True)
         attendance_count += 1
 
-    for mp in parliament_session.absent_members:
-        process_attendance(session_id, mp, False)
+    for mp in parliament_sitting.absent_members:
+        process_attendance(sitting_id, mp, False)
         attendance_count += 1
 
     logger.info(f"   Saved attendance for {attendance_count} members")
@@ -220,7 +231,7 @@ def ingest_session(date_str: str) -> str:
     section_ids = []
 
     for idx, section in enumerate(sections):
-        section_id = process_section(session_id, idx, section, metadata.get("date"))
+        section_id = process_section(sitting_id, idx, section, metadata.get("date"))
         section_ids.append(section_id)
 
         # Log progress every 10 sections
@@ -228,12 +239,12 @@ def ingest_session(date_str: str) -> str:
             logger.info(f"     Processed {idx + 1}/{len(sections)} sections")
 
     logger.info(f"   Processed {len(section_ids)} sections for {date_str}")
-    return session_id
+    return sitting_id
 
 
 def batch_process(start_date_str: str, end_date_str: str):
     """
-    Process all sessions in a date range.
+    Process all sittings in a date range.
     """
     # Initialize database
     init_db()
@@ -252,19 +263,19 @@ def batch_process(start_date_str: str, end_date_str: str):
         f"Checking date range: {start_date_str} to {end_date_str} ({len(dates)} days)"
     )
 
-    ingested_sessions = []
+    ingested_sittings = []
 
     for date_str in dates:
-        session_id = ingest_session(date_str)
-        if session_id:
-            ingested_sessions.append(session_id)
+        sitting_id = ingest_sitting(date_str)
+        if sitting_id:
+            ingested_sittings.append(sitting_id)
 
     # Print summary
     logger.info("\n" + "=" * 50)
     logger.info("Batch processing complete!")
-    logger.info(f"Sessions ingested: {len(ingested_sessions)}")
+    logger.info(f"Sittings ingested: {len(ingested_sittings)}")
     logger.info(f"\nDatabase stats:")
-    logger.info(f"  Total sessions: {get_session_count()}")
+    logger.info(f"  Total sittings: {get_sitting_count()}")
     logger.info(f"  Total members: {get_member_count()}")
     logger.info(f"  Total sections: {get_section_count()}")
     logger.info(f"  Total bills: {get_bill_count()}")
@@ -276,7 +287,7 @@ def show_stats():
     """Show current database statistics."""
     init_db()
     print(f"\nDatabase stats:")
-    print(f"  Sessions: {get_session_count()}")
+    print(f"  Sittings: {get_sitting_count()}")
     print(f"  Members: {get_member_count()}")
     print(f"  Sections: {get_section_count()}")
     print(f"  Bills: {get_bill_count()}")

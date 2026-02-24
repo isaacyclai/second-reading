@@ -4,8 +4,8 @@
 -- Enable foreign key support
 PRAGMA foreign_keys = ON;
 
--- Sessions table (Parliament sitting dates)
-CREATE TABLE IF NOT EXISTS sessions (
+-- Sittings table (Parliament sitting dates)
+CREATE TABLE IF NOT EXISTS sittings (
     id TEXT PRIMARY KEY,
     date TEXT UNIQUE NOT NULL,  -- ISO format: YYYY-MM-DD
     sitting_no INTEGER,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
+CREATE INDEX IF NOT EXISTS idx_sittings_date ON sittings(date);
 
 -- Members table (MP identities - time-invariant)
 CREATE TABLE IF NOT EXISTS members (
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS bills (
     title TEXT NOT NULL,
     ministry_id TEXT REFERENCES ministries(id),
     first_reading_date TEXT,  -- ISO format: YYYY-MM-DD
-    first_reading_session_id TEXT REFERENCES sessions(id),
+    first_reading_sitting_id TEXT REFERENCES sittings(id),
     summary TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_bills_title ON bills(title);
 -- Sections table (main content: questions, bills, motions)
 CREATE TABLE IF NOT EXISTS sections (
     id TEXT PRIMARY KEY,
-    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    sitting_id TEXT NOT NULL REFERENCES sittings(id) ON DELETE CASCADE,
     ministry_id TEXT REFERENCES ministries(id),
     bill_id TEXT REFERENCES bills(id),
     category TEXT CHECK (category IN ('question', 'bill', 'motion', 'clarification', 'adjournment_motion', 'other')),
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS sections (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_sections_session ON sections(session_id);
+CREATE INDEX IF NOT EXISTS idx_sections_sitting ON sections(sitting_id);
 CREATE INDEX IF NOT EXISTS idx_sections_ministry ON sections(ministry_id);
 CREATE INDEX IF NOT EXISTS idx_sections_category ON sections(category);
 CREATE INDEX IF NOT EXISTS idx_sections_type ON sections(section_type);
@@ -88,18 +88,18 @@ CREATE TABLE IF NOT EXISTS section_speakers (
 CREATE INDEX IF NOT EXISTS idx_section_speakers_section ON section_speakers(section_id);
 CREATE INDEX IF NOT EXISTS idx_section_speakers_member ON section_speakers(member_id);
 
--- Session attendance (who attended each session)
-CREATE TABLE IF NOT EXISTS session_attendance (
-    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+-- Sitting attendance (who attended each sitting)
+CREATE TABLE IF NOT EXISTS sitting_attendance (
+    sitting_id TEXT NOT NULL REFERENCES sittings(id) ON DELETE CASCADE,
     member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
     present INTEGER NOT NULL DEFAULT 1,  -- 1 = present, 0 = absent
     constituency TEXT,
     designation TEXT,
-    PRIMARY KEY (session_id, member_id)
+    PRIMARY KEY (sitting_id, member_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_session_attendance_session ON session_attendance(session_id);
-CREATE INDEX IF NOT EXISTS idx_session_attendance_member ON session_attendance(member_id);
+CREATE INDEX IF NOT EXISTS idx_sitting_attendance_sitting ON sitting_attendance(sitting_id);
+CREATE INDEX IF NOT EXISTS idx_sitting_attendance_member ON sitting_attendance(member_id);
 
 -- Pre-seed ministries
 INSERT OR IGNORE INTO ministries (id, name, acronym) VALUES
@@ -118,8 +118,7 @@ INSERT OR IGNORE INTO ministries (id, name, acronym) VALUES
     ('13', 'Ministry of Social and Family Development', 'MSF'),
     ('14', 'Ministry of Sustainability and the Environment', 'MSE'),
     ('15', 'Ministry of Trade and Industry', 'MTI'),
-    ('16', 'Ministry of Transport', 'MOT'),
-    ('17', 'Ministry of Communications and Information', 'MCI');
+    ('16', 'Ministry of Transport', 'MOT')
 
 -- FTS virtual table for full-text search on sections (optional, for search feature)
 -- CREATE VIRTUAL TABLE IF NOT EXISTS sections_fts USING fts5(

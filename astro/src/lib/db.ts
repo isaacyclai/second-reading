@@ -9,7 +9,7 @@ const db = new Database(dbPath, { readonly: true });
 db.pragma('journal_mode = WAL');
 
 // Types
-export interface Session {
+export interface Sitting {
   id: string;
   date: string;
   sittingNo: number;
@@ -48,8 +48,8 @@ export interface Speaker {
 
 export interface Section {
   id: string;
-  sessionId: string;
-  sessionDate?: string;
+  sittingId: string;
+  sittingDate?: string;
   sittingNo?: number;
   sectionType: string;
   sectionTitle: string;
@@ -70,7 +70,7 @@ export interface Bill {
   ministryId: string | null;
   ministry?: string | null;
   firstReadingDate: string | null;
-  firstReadingSessionId: string | null;
+  firstReadingSittingId: string | null;
   hasSecondReading?: boolean;
   summary?: string | null;
 }
@@ -85,7 +85,7 @@ export interface Attendee {
 
 // Query functions
 
-export function getSessions(limit?: number, offset?: number): Session[] {
+export function getSittings(limit?: number, offset?: number): Sitting[] {
   const sql = `
     SELECT
       s.id,
@@ -97,22 +97,22 @@ export function getSessions(limit?: number, offset?: number): Session[] {
       s.format,
       s.url,
       COUNT(sec.id) as sectionCount
-    FROM sessions s
-    LEFT JOIN sections sec ON s.id = sec.session_id
+    FROM sittings s
+    LEFT JOIN sections sec ON s.id = sec.sitting_id
     GROUP BY s.id
     ORDER BY s.date DESC
     ${limit ? `LIMIT ${limit}` : ''}
     ${offset ? `OFFSET ${offset}` : ''}
   `;
-  return db.prepare(sql).all() as Session[];
+  return db.prepare(sql).all() as Sitting[];
 }
 
-export function getSessionCount(): number {
-  const result = db.prepare('SELECT COUNT(*) as count FROM sessions').get() as { count: number };
+export function getSittingCount(): number {
+  const result = db.prepare('SELECT COUNT(*) as count FROM sittings').get() as { count: number };
   return result.count;
 }
 
-export function getSession(id: string): Session | undefined {
+export function getSitting(id: string): Sitting | undefined {
   const sql = `
     SELECT
       id,
@@ -123,17 +123,17 @@ export function getSession(id: string): Session | undefined {
       volume_no as volumeNo,
       format,
       url
-    FROM sessions
+    FROM sittings
     WHERE id = ?
   `;
-  return db.prepare(sql).get(id) as Session | undefined;
+  return db.prepare(sql).get(id) as Sitting | undefined;
 }
 
-export function getSessionSections(sessionId: string): Section[] {
+export function getSittingSections(sittingId: string): Section[] {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
+      sec.sitting_id as sittingId,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
       sec.content_html as contentHtml,
@@ -147,10 +147,10 @@ export function getSessionSections(sessionId: string): Section[] {
       sec.bill_id as billId
     FROM sections sec
     LEFT JOIN ministries m ON sec.ministry_id = m.id
-    WHERE sec.session_id = ?
+    WHERE sec.sitting_id = ?
     ORDER BY sec.section_order ASC
   `;
-  const sections = db.prepare(sql).all(sessionId) as Section[];
+  const sections = db.prepare(sql).all(sittingId) as Section[];
 
   // Get speakers for each section
   const speakerSql = `
@@ -189,7 +189,7 @@ export function getSessionSections(sessionId: string): Section[] {
   return sections;
 }
 
-export function getSessionAttendees(sessionId: string): Attendee[] {
+export function getSittingAttendees(sittingId: string): Attendee[] {
   const sql = `
     SELECT
       m.id,
@@ -197,19 +197,19 @@ export function getSessionAttendees(sessionId: string): Attendee[] {
       sa.present,
       sa.constituency,
       sa.designation
-    FROM session_attendance sa
+    FROM sitting_attendance sa
     JOIN members m ON sa.member_id = m.id
-    WHERE sa.session_id = ?
+    WHERE sa.sitting_id = ?
     ORDER BY m.name ASC
   `;
-  const results = db.prepare(sql).all(sessionId) as { id: string; name: string; present: number; constituency: string | null; designation: string | null }[];
+  const results = db.prepare(sql).all(sittingId) as { id: string; name: string; present: number; constituency: string | null; designation: string | null }[];
   return results.map(r => ({
     ...r,
     present: r.present === 1,
   }));
 }
 
-export function getSessionBills(sessionId: string): { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }[] {
+export function getSittingBills(sittingId: string): { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }[] {
   const sql = `
     SELECT
       sec.bill_id as billId,
@@ -222,10 +222,10 @@ export function getSessionBills(sessionId: string): { billId: string; billTitle:
     FROM sections sec
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     LEFT JOIN bills b ON sec.bill_id = b.id
-    WHERE sec.session_id = ? AND sec.bill_id IS NOT NULL
+    WHERE sec.sitting_id = ? AND sec.bill_id IS NOT NULL
     ORDER BY sec.section_order ASC
   `;
-  const results = db.prepare(sql).all(sessionId) as { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; sectionType: string; sectionOrder: number }[];
+  const results = db.prepare(sql).all(sittingId) as { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; sectionType: string; sectionOrder: number }[];
 
   // Group by bill and collect reading types
   const billMap = new Map<string, { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }>();
@@ -278,18 +278,18 @@ export function getMember(id: string): Member | undefined {
       m.name,
       ms.summary,
       COUNT(DISTINCT ss.section_id) as sectionCount,
-      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id) as attendanceTotal,
-      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
+      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id) as attendanceTotal,
+      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
       (
-        SELECT sa.constituency FROM session_attendance sa
-        JOIN sessions s ON sa.session_id = s.id
+        SELECT sa.constituency FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
         WHERE sa.member_id = m.id
         ORDER BY s.date DESC
         LIMIT 1
       ) as constituency,
       (
-        SELECT sa.designation FROM session_attendance sa
-        JOIN sessions s ON sa.session_id = s.id
+        SELECT sa.designation FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
         WHERE sa.member_id = m.id
         ORDER BY s.date DESC
         LIMIT 1
@@ -311,7 +311,7 @@ export function getBills(limit?: number, offset?: number): Bill[] {
       b.ministry_id as ministryId,
       m.name as ministry,
       b.first_reading_date as firstReadingDate,
-      b.first_reading_session_id as firstReadingSessionId,
+      b.first_reading_sitting_id as firstReadingSittingId,
       b.summary,
       EXISTS(
         SELECT 1 FROM sections sec
@@ -340,7 +340,7 @@ export function getBill(id: string): Bill | undefined {
       b.ministry_id as ministryId,
       m.name as ministry,
       b.first_reading_date as firstReadingDate,
-      b.first_reading_session_id as firstReadingSessionId,
+      b.first_reading_sitting_id as firstReadingSittingId,
       b.summary,
       EXISTS(
         SELECT 1 FROM sections sec
@@ -390,8 +390,8 @@ export function getQuestions(limit?: number, offset?: number): Section[] {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
-      s.date as sessionDate,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
       s.sitting_no as sittingNo,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
@@ -403,7 +403,7 @@ export function getQuestions(limit?: number, offset?: number): Section[] {
       m.name as ministry,
       sec.ministry_id as ministryId
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     WHERE sec.section_type IN ('OA', 'WA', 'WANA')
       AND sec.section_type NOT IN ('BI', 'BP')
@@ -463,8 +463,8 @@ export function getMotions(limit?: number, offset?: number): Section[] {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
-      s.date as sessionDate,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
       s.sitting_no as sittingNo,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
@@ -476,7 +476,7 @@ export function getMotions(limit?: number, offset?: number): Section[] {
       m.name as ministry,
       sec.ministry_id as ministryId
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     WHERE sec.category IN ('motion', 'adjournment_motion')
     ORDER BY s.date DESC, sec.section_order ASC
@@ -529,15 +529,86 @@ export function getMotionCount(): number {
   return result.count;
 }
 
+// Clarifications - sections categorized as clarification
+export function getClarifications(limit?: number, offset?: number): Section[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
+      s.sitting_no as sittingNo,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_plain as contentPlain,
+      sec.section_order as sectionOrder,
+      sec.category,
+      sec.source_url as sourceUrl,
+      sec.summary,
+      m.name as ministry,
+      sec.ministry_id as ministryId
+    FROM sections sec
+    JOIN sittings s ON sec.sitting_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    WHERE sec.category = 'clarification'
+    ORDER BY s.date DESC, sec.section_order ASC
+    ${limit ? `LIMIT ${limit}` : ''}
+    ${offset ? `OFFSET ${offset}` : ''}
+  `;
+  const sections = db.prepare(sql).all() as Section[];
+
+  // Get speakers for each section
+  if (sections.length > 0) {
+    const speakerSql = `
+      SELECT
+        ss.section_id as sectionId,
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id IN (${sections.map(() => '?').join(',')})
+    `;
+    const speakers = db.prepare(speakerSql).all(...sections.map(s => s.id)) as (Speaker & { sectionId: string })[];
+    const speakerMap = new Map<string, Speaker[]>();
+
+    for (const speaker of speakers) {
+      if (!speakerMap.has(speaker.sectionId)) {
+        speakerMap.set(speaker.sectionId, []);
+      }
+      speakerMap.get(speaker.sectionId)!.push({
+        memberId: speaker.memberId,
+        name: speaker.name,
+        constituency: speaker.constituency,
+        designation: speaker.designation,
+      });
+    }
+
+    for (const section of sections) {
+      section.speakers = speakerMap.get(section.id) || [];
+    }
+  }
+
+  return sections;
+}
+
+export function getClarificationCount(): number {
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM sections
+    WHERE category = 'clarification'
+  `).get() as { count: number };
+  return result.count;
+}
+
 // Get a single section with full content
 export function getSection(id: string): Section | undefined {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
-      s.date as sessionDate,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
       s.sitting_no as sittingNo,
-      s.url as sessionUrl,
+      s.url as sittingUrl,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
       sec.content_html as contentHtml,
@@ -549,7 +620,7 @@ export function getSection(id: string): Section | undefined {
       m.name as ministry,
       sec.ministry_id as ministryId
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     WHERE sec.id = ?
   `;
@@ -578,8 +649,8 @@ export function getMemberSections(memberId: string): Section[] {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
-      s.date as sessionDate,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
       s.sitting_no as sittingNo,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
@@ -593,7 +664,7 @@ export function getMemberSections(memberId: string): Section[] {
       sec.bill_id as billId,
       b.title as billTitle
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     LEFT JOIN bills b ON sec.bill_id = b.id
     JOIN section_speakers ss ON sec.id = ss.section_id
@@ -640,7 +711,7 @@ export function getMemberSections(memberId: string): Section[] {
 
 // Get attendance history for a member
 export interface AttendanceRecord {
-  sessionId: string;
+  sittingId: string;
   date: string;
   sittingNo: number;
   present: boolean;
@@ -649,16 +720,16 @@ export interface AttendanceRecord {
 export function getMemberAttendance(memberId: string): AttendanceRecord[] {
   const sql = `
     SELECT
-      sa.session_id as sessionId,
+      sa.sitting_id as sittingId,
       s.date,
       s.sitting_no as sittingNo,
       sa.present
-    FROM session_attendance sa
-    JOIN sessions s ON sa.session_id = s.id
+    FROM sitting_attendance sa
+    JOIN sittings s ON sa.sitting_id = s.id
     WHERE sa.member_id = ?
     ORDER BY s.date DESC
   `;
-  const results = db.prepare(sql).all(memberId) as { sessionId: string; date: string; sittingNo: number; present: number }[];
+  const results = db.prepare(sql).all(memberId) as { sittingId: string; date: string; sittingNo: number; present: number }[];
   return results.map(r => ({
     ...r,
     present: r.present === 1,
@@ -668,8 +739,8 @@ export function getMemberAttendance(memberId: string): AttendanceRecord[] {
 // Get all sections for a bill
 export interface BillSection {
   id: string;
-  sessionId: string;
-  sessionDate: string;
+  sittingId: string;
+  sittingDate: string;
   sittingNo: number;
   sectionType: string;
   sectionTitle: string;
@@ -683,8 +754,8 @@ export function getBillSections(billId: string): BillSection[] {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
-      s.date as sessionDate,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
       s.sitting_no as sittingNo,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
@@ -692,7 +763,7 @@ export function getBillSections(billId: string): BillSection[] {
       sec.content_plain as contentPlain,
       sec.source_url as sourceUrl
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     WHERE sec.bill_id = ?
     ORDER BY s.date ASC, sec.section_order ASC
   `;
@@ -739,8 +810,8 @@ export function getMinistrySections(ministryId: string): Section[] {
   const sql = `
     SELECT
       sec.id,
-      sec.session_id as sessionId,
-      s.date as sessionDate,
+      sec.sitting_id as sittingId,
+      s.date as sittingDate,
       s.sitting_no as sittingNo,
       sec.section_type as sectionType,
       sec.section_title as sectionTitle,
@@ -753,7 +824,7 @@ export function getMinistrySections(ministryId: string): Section[] {
       sec.ministry_id as ministryId,
       sec.bill_id as billId
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     WHERE sec.ministry_id = ?
     ORDER BY s.date DESC, sec.section_order ASC
@@ -805,7 +876,7 @@ export function getMinistryBills(ministryId: string): Bill[] {
       b.ministry_id as ministryId,
       m.name as ministry,
       b.first_reading_date as firstReadingDate,
-      b.first_reading_session_id as firstReadingSessionId,
+      b.first_reading_sitting_id as firstReadingSittingId,
       b.summary,
       EXISTS(
         SELECT 1 FROM sections sec
@@ -828,18 +899,18 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
       m.name,
       ms.summary,
       COUNT(DISTINCT ss.section_id) as sectionCount,
-      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id) as attendanceTotal,
-      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
+      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id) as attendanceTotal,
+      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
       (
-        SELECT sa.constituency FROM session_attendance sa
-        JOIN sessions s ON sa.session_id = s.id
+        SELECT sa.constituency FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
         WHERE sa.member_id = m.id
         ORDER BY s.date DESC
         LIMIT 1
       ) as constituency,
       (
-        SELECT sa.designation FROM session_attendance sa
-        JOIN sessions s ON sa.session_id = s.id
+        SELECT sa.designation FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
         WHERE sa.member_id = m.id
         ORDER BY s.date DESC
         LIMIT 1
@@ -862,17 +933,17 @@ export function getAllSections(): { id: string; sectionTitle: string }[] {
 }
 
 // Stats for home page
-export function getStats(): { sessionCount: number; memberCount: number; billCount: number; sectionCount: number } {
-  const sessionCount = (db.prepare('SELECT COUNT(*) as count FROM sessions').get() as { count: number }).count;
+export function getStats(): { sittingCount: number; memberCount: number; billCount: number; sectionCount: number } {
+  const sittingCount = (db.prepare('SELECT COUNT(*) as count FROM sittings').get() as { count: number }).count;
   const memberCount = (db.prepare('SELECT COUNT(*) as count FROM members').get() as { count: number }).count;
   const billCount = (db.prepare('SELECT COUNT(*) as count FROM bills').get() as { count: number }).count;
   const sectionCount = (db.prepare('SELECT COUNT(*) as count FROM sections').get() as { count: number }).count;
 
-  return { sessionCount, memberCount, billCount, sectionCount };
+  return { sittingCount, memberCount, billCount, sectionCount };
 }
 
-// Get the most recent session for masthead info
-export function getLatestSession(): Session | undefined {
+// Get the most recent sitting for masthead info
+export function getLatestSitting(): Sitting | undefined {
   const sql = `
     SELECT
       id,
@@ -883,18 +954,18 @@ export function getLatestSession(): Session | undefined {
       volume_no as volumeNo,
       format,
       url
-    FROM sessions
+    FROM sittings
     ORDER BY date DESC
     LIMIT 1
   `;
-  return db.prepare(sql).get() as Session | undefined;
+  return db.prepare(sql).get() as Sitting | undefined;
 }
 
 // Get count of sittings in current year
 export function getSittingsThisYear(): number {
   const currentYear = new Date().getFullYear();
   const result = db.prepare(`
-    SELECT COUNT(*) as count FROM sessions
+    SELECT COUNT(*) as count FROM sittings
     WHERE strftime('%Y', date) = ?
   `).get(String(currentYear)) as { count: number };
   return result.count;
@@ -905,7 +976,7 @@ export interface RecentBillReading {
   billId: string;
   billTitle: string;
   sectionType: string;
-  sessionDate: string;
+  sittingDate: string;
   ministry: string | null;
 }
 
@@ -915,27 +986,27 @@ export function getRecentBillReadings(limit: number = 5): RecentBillReading[] {
       billId,
       billTitle,
       sectionType,
-      sessionDate,
+      sittingDate,
       ministry
     FROM (
       SELECT
         b.id as billId,
         b.title as billTitle,
         sec.section_type as sectionType,
-        s.date as sessionDate,
+        s.date as sittingDate,
         m.name as ministry,
         ROW_NUMBER() OVER (
           PARTITION BY b.id
           ORDER BY s.date DESC, sec.section_order DESC
         ) as rowNumber
       FROM sections sec
-      JOIN sessions s ON sec.session_id = s.id
+      JOIN sittings s ON sec.sitting_id = s.id
       JOIN bills b ON sec.bill_id = b.id
       LEFT JOIN ministries m ON b.ministry_id = m.id
       WHERE sec.bill_id IS NOT NULL
     )
     WHERE rowNumber = 1
-    ORDER BY sessionDate DESC
+    ORDER BY sittingDate DESC
     LIMIT ?
   `;
   return db.prepare(sql).all(limit) as RecentBillReading[];
@@ -945,7 +1016,7 @@ export function getRecentBillReadings(limit: number = 5): RecentBillReading[] {
 export interface LatestQuestion {
   id: string;
   sectionTitle: string;
-  sessionDate: string;
+  sittingDate: string;
   askerName: string | null;
   askerId: string | null;
   ministry: string | null;
@@ -956,16 +1027,16 @@ export function getLatestQuestion(): LatestQuestion | undefined {
     SELECT
       sec.id,
       sec.section_title as sectionTitle,
-      s.date as sessionDate,
+      s.date as sittingDate,
       m.name as ministry
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
     WHERE sec.section_type IN ('OA', 'WA', 'WANA')
     ORDER BY s.date DESC, sec.section_order ASC
     LIMIT 1
   `;
-  const question = db.prepare(sql).get() as { id: string; sectionTitle: string; sessionDate: string; ministry: string | null } | undefined;
+  const question = db.prepare(sql).get() as { id: string; sectionTitle: string; sittingDate: string; ministry: string | null } | undefined;
 
   if (!question) return undefined;
 
@@ -995,14 +1066,14 @@ export function getBillReadingsFromLastSitting(): RecentBillReading[] {
       b.id as billId,
       b.title as billTitle,
       sec.section_type as sectionType,
-      s.date as sessionDate,
+      s.date as sittingDate,
       m.name as ministry
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     JOIN bills b ON sec.bill_id = b.id
     LEFT JOIN ministries m ON b.ministry_id = m.id
     WHERE sec.bill_id IS NOT NULL
-      AND s.date = (SELECT MAX(date) FROM sessions)
+      AND s.date = (SELECT MAX(date) FROM sittings)
     ORDER BY sec.section_order ASC
   `;
   return db.prepare(sql).all() as RecentBillReading[];
@@ -1012,7 +1083,7 @@ export function getBillReadingsFromLastSitting(): RecentBillReading[] {
 export interface RecentMotion {
   id: string;
   sectionTitle: string;
-  sessionDate: string;
+  sittingDate: string;
 }
 
 export function getRecentMotions(limit: number = 3): RecentMotion[] {
@@ -1020,9 +1091,9 @@ export function getRecentMotions(limit: number = 3): RecentMotion[] {
     SELECT
       sec.id,
       sec.section_title as sectionTitle,
-      s.date as sessionDate
+      s.date as sittingDate
     FROM sections sec
-    JOIN sessions s ON sec.session_id = s.id
+    JOIN sittings s ON sec.sitting_id = s.id
     WHERE sec.category IN ('motion', 'adjournment_motion')
     ORDER BY s.date DESC, sec.section_order ASC
     LIMIT ?

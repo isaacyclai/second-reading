@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "preact/hooks";
 import type { ListItem } from "../../lib/types";
 import QuestionCard from "./QuestionCard";
 import BillCard from "./BillCard";
-import SessionCard from "./SessionCard";
+import SittingCard from "./SittingCard";
 
 interface DataResponse {
   items: ListItem[];
@@ -30,11 +30,12 @@ interface Pagefind {
 }
 
 interface Props {
-  contentType: "question" | "bill" | "motion" | "session";
+  contentType: "question" | "bill" | "motion" | "sitting" | "clarification";
   dataUrl: string;
   totalCount: number;
   pageSize?: number;
   placeholder?: string;
+  showSearch?: boolean;
   initialItems: ListItem[];
 }
 
@@ -59,6 +60,7 @@ export default function PaginatedList({
   totalCount,
   pageSize = 20,
   placeholder = "Search...",
+  showSearch = true,
   initialItems,
 }: Props) {
   const STAGGER_LIMIT = 12;
@@ -497,10 +499,11 @@ export default function PaginatedList({
     switch (contentType) {
       case "bill":
         return <BillCard item={item} />;
-      case "session":
-        return <SessionCard item={item} />;
+      case "sitting":
+        return <SittingCard item={item} />;
       case "question":
       case "motion":
+      case "clarification":
       default:
         return <QuestionCard item={item} />;
     }
@@ -509,51 +512,53 @@ export default function PaginatedList({
   return (
     <div class="paginated-list-wrapper">
       {/* Search input */}
-      <div class="mb-4">
-        <div class="relative">
-          <svg
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 pointer-events-none"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            ref={inputRef}
-            type="text"
-            class="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
-            placeholder={placeholder}
-            autocomplete="off"
-            spellcheck={false}
-            value={query}
-            onInput={handleSearchInput}
-            onKeyDown={handleKeyDown}
-          />
-          {query && (
-            <button
-              type="button"
-              class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 hover:text-ink transition-colors"
-              aria-label="Clear search"
-              onClick={handleClear}
+      {showSearch && (
+        <div class="mb-4">
+          <div class="relative">
+            <svg
+              class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 pointer-events-none"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          )}
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              class="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+              placeholder={placeholder}
+              autocomplete="off"
+              spellcheck={false}
+              value={query}
+              onInput={handleSearchInput}
+              onKeyDown={handleKeyDown}
+            />
+            {query && (
+              <button
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 hover:text-ink transition-colors"
+                aria-label="Clear search"
+                onClick={handleClear}
+              >
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Date range filters */}
       <div class="mb-6 flex flex-wrap items-center gap-3">

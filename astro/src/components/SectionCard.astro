@@ -1,8 +1,8 @@
 ---
-import type { Section } from '../lib/db';
-import TypeBadge from './TypeBadge.astro';
-import Tag from './Tag.astro';
-import { slugify } from '../lib/slugify';
+import type { Section } from "../lib/db";
+import TypeBadge from "./TypeBadge.astro";
+import Tag from "./Tag.astro";
+import { slugify } from "../lib/slugify";
 
 interface Props {
   section: Section;
@@ -12,49 +12,79 @@ interface Props {
 const { section, showDate = false } = Astro.props;
 
 // Truncate content for snippet
-const snippet = section.contentPlain?.substring(0, 200) + (section.contentPlain && section.contentPlain.length > 200 ? '...' : '');
+const snippet =
+  section.contentPlain?.substring(0, 200) +
+  (section.contentPlain && section.contentPlain.length > 200 ? "..." : "");
+
+// Category labels take precedence over section type for badge display
+const categoryLabels: Record<string, string> = {
+  motion: "Motion",
+  adjournment_motion: "Adjournment Motion",
+  clarification: "Clarification",
+};
+const hasCategory = section.category && categoryLabels[section.category];
+
+// Route based on category
+const routePrefix =
+  section.category === "motion" || section.category === "adjournment_motion"
+    ? "/motions"
+    : section.category === "clarification"
+      ? "/clarifications"
+      : "/questions";
 ---
 
 <a
-  href={`/questions/${slugify(section.sectionTitle, section.id)}`}
+  href={`${routePrefix}/${slugify(section.sectionTitle, section.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">
-    <TypeBadge type={section.sectionType} />
-    {section.ministry && (
-      <Tag color="green">{section.ministry}</Tag>
-    )}
-    {showDate && section.sessionDate && (
-      <span class="font-sans text-xs text-ink-muted">
-        {new Date(section.sessionDate).toLocaleDateString('en-SG', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        })}
-      </span>
-    )}
+    {
+      hasCategory ? (
+        <Tag color={section.category === "clarification" ? "amber" : "indigo"}>
+          {categoryLabels[section.category!]}
+        </Tag>
+      ) : (
+        <TypeBadge type={section.sectionType} />
+      )
+    }
+    {
+      section.ministry && section.category !== "adjournment_motion" && (
+        <Tag color="green">{section.ministry}</Tag>
+      )
+    }
+    {
+      showDate && section.sittingDate && (
+        <span class="font-sans text-xs text-ink-muted">
+          {new Date(section.sittingDate).toLocaleDateString("en-SG", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+      )
+    }
   </div>
-  
-  <h3 class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors">
+
+  <h3
+    class="font-display text-lg text-ink leading-snug mb-2 group-hover:text-accent transition-colors"
+  >
     {section.sectionTitle}
   </h3>
-  
-  {section.speakers && section.speakers.length > 0 && (
-    <div class="flex flex-wrap gap-2 mb-2">
-      {section.speakers.slice(0, 3).map((speaker) => (
-        <span class="font-sans text-xs text-accent hover:underline">
-          {speaker.name}
-        </span>
-      ))}
-      {section.speakers.length > 3 && (
-        <span class="font-sans text-xs text-ink-muted">+{section.speakers.length - 3} more</span>
-      )}
-    </div>
-  )}
-  
-  {snippet && (
-    <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-2">
-      {snippet}
-    </p>
-  )}
+
+  {
+    section.speakers && section.speakers.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-2">
+        {section.speakers.slice(0, 3).map((speaker) => (
+          <span class="font-sans text-xs text-accent hover:underline">
+            {speaker.name}
+          </span>
+        ))}
+        {section.speakers.length > 3 && (
+          <span class="font-sans text-xs text-ink-muted">
+            +{section.speakers.length - 3} more
+          </span>
+        )}
+      </div>
+    )
+  }
 </a>

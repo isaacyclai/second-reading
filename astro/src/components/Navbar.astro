@@ -5,10 +5,10 @@ const pathname = rawPathname
     .replace(/\.html$/, "");
 
 const navLinks = [
-    { href: "/sessions", label: "Sittings" },
+    { href: "/sittings", label: "Sittings" },
+    { href: "/motions", label: "Motions" },
     { href: "/bills", label: "Bills" },
     { href: "/questions", label: "Questions" },
-    { href: "/motions", label: "Motions" },
     { href: "/members", label: "MPs" },
     { href: "/ministries", label: "Ministries" },
     { href: "/budgets", label: "Budgets" },
@@ -49,7 +49,7 @@ const isActive = (href: string) =>
             href="/"
             class="font-display text-xl text-ink tracking-tight no-underline hover:text-ink"
         >
-            <span class="text-accent">S</span>cribe
+            <span class="text-accent">S</span>econd Reading
         </a>
 
         <!-- Desktop Navigation -->

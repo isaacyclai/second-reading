@@ -1,13 +1,13 @@
 ---
 /**
  * AttendanceDotGrid — calendar-style dot matrix showing attendance
- * at a glance, grouped by year. Each dot links to its session.
+ * at a glance, grouped by year. Each dot links to its sitting.
  */
 import { slugify } from "../lib/slugify";
 
 interface Props {
   attendance: {
-    sessionId: string;
+    sittingId: string;
     date: string;
     sittingNo: number;
     present: boolean;
@@ -24,11 +24,7 @@ const percent =
     : 0;
 
 const percentColor =
-  percent >= 80
-    ? "#2d6a3f"
-    : percent >= 50
-      ? "#6b5b2e"
-      : "#b91c1c";
+  percent >= 80 ? "#2d6a3f" : percent >= 50 ? "#6b5b2e" : "#b91c1c";
 
 // Chronological order, grouped by year
 const chronological = [...attendance].reverse();
@@ -56,58 +52,62 @@ const formatDate = (dateStr: string) => {
   <div class="att-dg-header">
     <span class="att-dg-label">Attendance Record</span>
     <div class="att-dg-header-right">
-      <span class="att-dg-percent" style={`color: ${percentColor}`}>{percent}%</span>
-      <span class="att-dg-fraction">{attendancePresent} / {attendanceTotal}</span>
+      <span class="att-dg-percent" style={`color: ${percentColor}`}
+        >{percent}%</span
+      >
+      <span class="att-dg-fraction"
+        >{attendancePresent} / {attendanceTotal}</span
+      >
     </div>
   </div>
 
   <!-- Dot grid by year -->
   <div class="att-dg-body">
-    {years.map(([year, records]) => (
-      <div class="att-dg-year-row">
-        <span class="att-dg-year">{year}</span>
-        <div class="att-dg-dots">
-          {records.map((record) => (
-            <a
-              href={`/sessions/${slugify(record.date, record.sessionId)}`}
-              class:list={[
-                "att-dot",
-                record.present ? "dot-present" : "dot-absent",
-              ]}
-              title={`${formatDate(record.date)} — ${record.present ? "Present" : "Absent"}`}
-            >
-              <span class="att-dot-tooltip">
-                {formatDate(record.date)}
-              </span>
-            </a>
-          ))}
+    {
+      years.map(([year, records]) => (
+        <div class="att-dg-year-row">
+          <span class="att-dg-year">{year}</span>
+          <div class="att-dg-dots">
+            {records.map((record) => (
+              <a
+                href={`/sittings/${slugify(record.date, record.sittingId)}`}
+                class:list={[
+                  "att-dot",
+                  record.present ? "dot-present" : "dot-absent",
+                ]}
+                title={`${formatDate(record.date)} — ${record.present ? "Present" : "Absent"}`}
+              >
+                <span class="att-dot-tooltip">{formatDate(record.date)}</span>
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
-    ))}
+      ))
+    }
   </div>
 
   <!-- Legend -->
   <div class="att-dg-legend">
     <div class="att-dg-legend-items">
       <span class="att-dg-legend-item">
-        <span class="att-dot-mini dot-present" />
+        <span class="att-dot-mini dot-present"></span>
         Present
       </span>
       <span class="att-dg-legend-item">
-        <span class="att-dot-mini dot-absent" />
+        <span class="att-dot-mini dot-absent"></span>
         Absent
       </span>
     </div>
     <span class="att-dg-legend-count">
-      {attendancePresent} / {attendanceTotal} sessions
+      {attendancePresent} / {attendanceTotal} sittings
     </span>
   </div>
 
   <!-- Footer -->
   <div class="att-dg-footer">
     <p>
-      Attendance records indicate physical presence in the chamber.
-      A recorded session does not imply the member spoke or voted.
+      Attendance records indicate physical presence in the chamber. A recorded
+      sitting does not imply the member spoke or voted.
     </p>
   </div>
 </section>
@@ -200,7 +200,9 @@ const formatDate = (dateStr: string) => {
     height: 10px;
     border-radius: 9999px;
     text-decoration: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
     cursor: pointer;
   }
 
@@ -223,7 +225,9 @@ const formatDate = (dateStr: string) => {
   }
 
   .att-dot.dot-absent:hover {
-    box-shadow: inset 0 0 0 1.5px var(--ink-muted), 0 0 0 3px var(--border);
+    box-shadow:
+      inset 0 0 0 1.5px var(--ink-muted),
+      0 0 0 3px var(--border);
   }
 
   /* ── Tooltip ── */

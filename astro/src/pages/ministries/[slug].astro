@@ -38,9 +38,7 @@ const questions = sections.filter((s) =>
 const motions = sections.filter(
   (s) => s.category === "motion" || s.category === "adjournment_motion",
 );
-const statements = sections.filter(
-  (s) => s.sectionType === "OS" || s.sectionType === "WS",
-);
+const clarifications = sections.filter((s) => s.category === "clarification");
 ---
 
 <Layout
@@ -66,6 +64,51 @@ const statements = sections.filter(
     </p>
   </header>
 
+  <!-- Unified search across all sections -->
+  <div class="mb-8" data-pagefind-ignore data-ministry-name={ministry.name}>
+    <div class="relative">
+      <svg
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 pointer-events-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <input
+        type="text"
+        id="ministry-search-input"
+        class="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+        placeholder="Search this ministry's parliamentary activity..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button
+        type="button"
+        id="ministry-search-clear"
+        class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 hover:text-ink transition-colors hidden"
+        aria-label="Clear search"
+      >
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <p
+      id="ministry-search-status"
+      class="mt-2 font-sans text-sm text-ink-muted hidden"
+    >
+    </p>
+  </div>
+
   <!-- Bills -->
   {
     bills.length > 0 && (
@@ -79,6 +122,10 @@ const statements = sections.filter(
         <div id="bills-list" class="flex flex-col border-t border-border">
           {bills.map((bill) => (
             <div class="bill-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${bill.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <BillCard bill={bill} />
             </div>
           ))}
@@ -105,6 +152,10 @@ const statements = sections.filter(
         <div id="motions-list" class="flex flex-col border-t border-border">
           {motions.map((section) => (
             <div class="motion-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <QuestionCard section={section} />
             </div>
           ))}
@@ -112,6 +163,39 @@ const statements = sections.filter(
         <Pagination
           containerId="motions-list"
           itemSelector=".motion-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
+  }
+
+  <!-- Clarifications -->
+  {
+    clarifications.length > 0 && (
+      <section class="mb-10">
+        <h2 class="font-display text-xl text-ink mb-4">
+          Clarifications{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({clarifications.length})
+          </span>
+        </h2>
+        <div
+          id="clarifications-list"
+          class="flex flex-col border-t border-border"
+        >
+          {clarifications.map((section) => (
+            <div class="clarification-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
+              <QuestionCard section={section} />
+            </div>
+          ))}
+        </div>
+        <Pagination
+          containerId="clarifications-list"
+          itemSelector=".clarification-item"
           itemsPerPage={10}
         />
       </section>
@@ -131,6 +215,10 @@ const statements = sections.filter(
         <div id="questions-list" class="flex flex-col border-t border-border">
           {questions.map((section) => (
             <div class="question-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
               <QuestionCard section={section} />
             </div>
           ))}
@@ -144,32 +232,6 @@ const statements = sections.filter(
     )
   }
 
-  <!-- Statements -->
-  {
-    statements.length > 0 && (
-      <section class="mb-10">
-        <h2 class="font-display text-xl text-ink mb-4">
-          Statements{" "}
-          <span class="font-sans text-sm text-ink-muted font-normal">
-            ({statements.length})
-          </span>
-        </h2>
-        <div id="statements-list" class="flex flex-col border-t border-border">
-          {statements.map((section) => (
-            <div class="statement-item">
-              <QuestionCard section={section} />
-            </div>
-          ))}
-        </div>
-        <Pagination
-          containerId="statements-list"
-          itemSelector=".statement-item"
-          itemsPerPage={10}
-        />
-      </section>
-    )
-  }
-
   {
     sections.length === 0 && bills.length === 0 && (
       <p class="py-12 text-center font-body text-ink-muted">
@@ -177,4 +239,213 @@ const statements = sections.filter(
       </p>
     )
   }
+
+  <script>
+    interface PagefindResult {
+      id: string;
+      data: () => Promise<{
+        meta?: { id?: string };
+        url: string;
+        excerpt: string;
+      }>;
+    }
+
+    interface PagefindSearch {
+      results: PagefindResult[];
+    }
+
+    interface Pagefind {
+      search: (
+        query: string,
+        options?: { filters?: Record<string, string> },
+      ) => Promise<PagefindSearch>;
+    }
+
+    let pagefind: Pagefind | null = null;
+
+    async function loadPagefind(): Promise<Pagefind | null> {
+      if (pagefind) return pagefind;
+      try {
+        const base = import.meta.env.BASE_URL || "/";
+        const pagefindPath = `${base}pagefind/pagefind.js`.replace(/\/+/g, "/");
+        pagefind = (await import(/* @vite-ignore */ pagefindPath)) as Pagefind;
+        return pagefind;
+      } catch {
+        return null;
+      }
+    }
+
+    function initMinistrySearch() {
+      const wrapper = document.querySelector(
+        "[data-ministry-name]",
+      ) as HTMLElement;
+      if (!wrapper) return;
+      const ministryName = wrapper.getAttribute("data-ministry-name")!;
+
+      const input = document.getElementById(
+        "ministry-search-input",
+      ) as HTMLInputElement;
+      const clearBtn = document.getElementById(
+        "ministry-search-clear",
+      ) as HTMLButtonElement;
+      const status = document.getElementById(
+        "ministry-search-status",
+      ) as HTMLElement;
+      if (!input) return;
+      if (input.hasAttribute("data-search-initialized")) return;
+      input.setAttribute("data-search-initialized", "true");
+
+      const sectionConfigs = [
+        { id: "bills-list", selector: ".bill-item" },
+        { id: "motions-list", selector: ".motion-item" },
+        { id: "clarifications-list", selector: ".clarification-item" },
+        { id: "questions-list", selector: ".question-item" },
+      ]
+        .map((s) => {
+          const container = document.getElementById(s.id);
+          if (!container) return null;
+          const sectionEl = container.closest("section");
+          const items = Array.from(
+            container.querySelectorAll(s.selector),
+          ) as HTMLElement[];
+          return { container, sectionEl, items };
+        })
+        .filter(Boolean) as {
+        container: HTMLElement;
+        sectionEl: Element | null;
+        items: HTMLElement[];
+      }[];
+
+      function getItemId(item: HTMLElement): string | null {
+        return (
+          item.getAttribute("data-search-id") ||
+          item
+            .querySelector("[data-search-id]")
+            ?.getAttribute("data-search-id") ||
+          null
+        );
+      }
+
+      let debounceTimer: ReturnType<typeof setTimeout>;
+      let searchSeq = 0;
+
+      function updateSections(
+        matchingIds: Set<string> | null,
+        lowerQuery: string,
+      ) {
+        let totalMatches = 0;
+        for (const sec of sectionConfigs) {
+          let sectionMatches = 0;
+          for (const item of sec.items) {
+            let isMatch: boolean;
+            if (matchingIds !== null) {
+              const id = getItemId(item);
+              isMatch = id !== null && matchingIds.has(id);
+            } else {
+              const text = item.textContent?.toLowerCase() || "";
+              isMatch = text.includes(lowerQuery);
+            }
+            if (isMatch) {
+              item.style.display = "";
+              item.removeAttribute("data-search-hidden");
+              sectionMatches++;
+            } else {
+              item.style.display = "none";
+              item.setAttribute("data-search-hidden", "true");
+            }
+          }
+          if (sec.sectionEl) {
+            (sec.sectionEl as HTMLElement).style.display =
+              sectionMatches === 0 ? "none" : "";
+          }
+          totalMatches += sectionMatches;
+          sec.container.dispatchEvent(
+            new CustomEvent("search-updated", {
+              detail: { matchCount: sectionMatches, reordered: false },
+            }),
+          );
+        }
+        status.textContent = `Found ${totalMatches} result${totalMatches !== 1 ? "s" : ""}`;
+        status.classList.remove("hidden");
+      }
+
+      async function performSearch(query: string) {
+        const seq = ++searchSeq;
+        const lowerQuery = query.toLowerCase().trim();
+
+        if (!lowerQuery) {
+          for (const sec of sectionConfigs) {
+            if (sec.sectionEl)
+              (sec.sectionEl as HTMLElement).style.display = "";
+            for (const item of sec.items) {
+              item.style.display = "";
+              item.removeAttribute("data-search-hidden");
+            }
+            sec.container.dispatchEvent(
+              new CustomEvent("search-cleared", {
+                detail: { reordered: false },
+              }),
+            );
+          }
+          status.classList.add("hidden");
+          clearBtn.classList.add("hidden");
+          return;
+        }
+
+        clearBtn.classList.remove("hidden");
+
+        const pf = await loadPagefind();
+        if (seq !== searchSeq) return;
+
+        if (pf) {
+          const results = await pf.search(query, {
+            filters: { ministry: ministryName },
+          });
+          if (seq !== searchSeq) return;
+
+          const matchingIds = new Set<string>();
+          for (const result of results.results) {
+            const data = await result.data();
+            if (data.meta?.id) matchingIds.add(data.meta.id);
+          }
+          if (seq !== searchSeq) return;
+
+          updateSections(matchingIds, lowerQuery);
+          return;
+        }
+
+        // Fallback: text matching
+        updateSections(null, lowerQuery);
+      }
+
+      input.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => performSearch(input.value), 100);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        performSearch("");
+        input.focus();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && input.value) {
+          input.value = "";
+          performSearch("");
+        }
+      });
+
+      input.addEventListener(
+        "focus",
+        () => {
+          loadPagefind();
+        },
+        { once: true },
+      );
+    }
+
+    initMinistrySearch();
+    document.addEventListener("astro:after-swap", initMinistrySearch);
+  </script>
 </Layout>

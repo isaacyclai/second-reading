@@ -1,0 +1,50 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import SectionLabel from "../../components/SectionLabel.astro";
+import PaginatedList from "../../components/islands/PaginatedList";
+import { getClarifications, getClarificationCount } from "../../lib/db";
+import type { ListItem } from "../../lib/types";
+
+const PAGE_SIZE = 20;
+const totalCount = getClarificationCount();
+const clarifications = getClarifications(PAGE_SIZE, 0);
+
+// Transform to match the ListItem interface
+const initialItems: ListItem[] = clarifications.map((c) => ({
+    id: c.id,
+    title: c.sectionTitle,
+    date: c.sittingDate,
+    type: c.sectionType,
+    category: c.category || undefined,
+    ministry: c.ministry || undefined,
+    speakers: c.speakers?.map((s) => s.name) || [],
+    snippet: c.contentPlain?.substring(0, 150),
+}));
+---
+
+<Layout
+    title="Clarifications"
+    description="Browse Singapore Parliament ministerial clarifications"
+>
+    <h1 class="font-display text-display-lg text-ink mb-4">Clarifications</h1>
+
+    <div
+        class="font-body text-base text-ink-soft leading-relaxed mb-8 space-y-3 text-pretty"
+    >
+        <p>
+            Ministerial clarifications are statements made by ministers to
+            clarify matters of public interest or correct inaccurate
+            information.
+        </p>
+    </div>
+
+    <PaginatedList
+        client:visible
+        contentType="clarification"
+        dataUrl="/data/clarifications.json"
+        totalCount={totalCount}
+        pageSize={PAGE_SIZE}
+        placeholder="Search clarifications by title, speaker, or content..."
+        initialItems={initialItems}
+    />
+</Layout>

@@ -1,0 +1,213 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import SectionLabel from "../../components/SectionLabel.astro";
+import AISummaryCard from "../../components/AISummaryCard.astro";
+import SpeakerPills from "../../components/SpeakerPills.astro";
+import Tag from "../../components/Tag.astro";
+import { getClarifications, getSection } from "../../lib/db";
+import { slugify } from "../../lib/slugify";
+
+export async function getStaticPaths() {
+    const allClarifications = getClarifications();
+    return allClarifications.map((section) => ({
+        params: { slug: slugify(section.sectionTitle, section.id) },
+        props: { id: section.id },
+    }));
+}
+
+const { id } = Astro.props;
+const section = getSection(id);
+
+if (!section) {
+    return Astro.redirect("/clarifications");
+}
+
+const typeLabel = "Clarification";
+
+const formattedDate = section.sittingDate
+    ? new Date(section.sittingDate).toLocaleDateString("en-SG", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+      })
+    : null;
+
+// Get sitting info for breadcrumb
+const sittingInfo = section.sittingDate
+    ? new Date(section.sittingDate).toLocaleDateString("en-SG", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+      })
+    : null;
+---
+
+<Layout
+    title={section.sectionTitle}
+    description={`Clarification: ${section.sectionTitle}`}
+>
+    <!-- Breadcrumb -->
+    <nav class="font-sans text-xs text-ink-muted mb-6" data-pagefind-ignore>
+        <a href="/clarifications" class="hover:text-accent no-underline"
+            >Clarifications</a
+        >
+        <span class="mx-2">→</span>
+        <span>{typeLabel}</span>
+        {
+            section.ministry && (
+                <>
+                    <span class="mx-2">→</span>
+                    <a
+                        href={`/ministries/${slugify(section.ministry, section.ministryId!)}`}
+                        class="hover:text-accent no-underline"
+                    >
+                        {section.ministry}
+                    </a>
+                </>
+            )
+        }
+    </nav>
+
+    <article
+        class="max-w-prose"
+        data-pagefind-body
+        data-pagefind-filter="type:clarification"
+        data-pagefind-meta={`id:${section.id}`}
+    >
+        <!-- Header -->
+        <header class="mb-8">
+            <div
+                class="flex flex-wrap items-center gap-2 mb-3"
+                data-pagefind-ignore
+            >
+                <Tag color="indigo">{typeLabel}</Tag>
+            </div>
+
+            <h1
+                class="font-display text-display-md text-ink leading-snug mb-4 text-balance"
+                data-pagefind-weight="10"
+            >
+                {section.sectionTitle}
+            </h1>
+
+            <div
+                class="flex flex-wrap items-center gap-2 font-sans text-sm text-ink-muted"
+                data-pagefind-ignore
+            >
+                {
+                    formattedDate &&
+                        section.sittingId &&
+                        section.sittingDate && (
+                            <a
+                                href={`/sittings/${slugify(section.sittingDate, section.sittingId)}`}
+                                class="hover:text-accent no-underline"
+                            >
+                                {formattedDate}
+                            </a>
+                        )
+                }
+                {
+                    section.ministry && (
+                        <>
+                            <span class="text-border">·</span>
+                            <a
+                                href={`/ministries/${slugify(section.ministry!, section.ministryId!)}`}
+                                class="text-accent hover:text-accent-light no-underline"
+                            >
+                                {section.ministry}
+                            </a>
+                        </>
+                    )
+                }
+            </div>
+            {
+                section.ministry && (
+                    <span class="hidden" data-pagefind-weight="5">
+                        {section.ministry}
+                    </span>
+                )
+            }
+            {
+                section.ministry && (
+                    <span
+                        class="hidden"
+                        data-pagefind-filter={`ministry:${section.ministry}`}
+                    />
+                )
+            }
+            {
+                section.speakers &&
+                    section.speakers.map((speaker) => (
+                        <span
+                            class="hidden"
+                            data-pagefind-filter={`speaker:${speaker.name}`}
+                        />
+                    ))
+            }
+        </header>
+
+        <!-- Speakers -->
+        {
+            section.speakers && section.speakers.length > 0 && (
+                <section class="mb-8" data-pagefind-weight="3">
+                    <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold mb-3">
+                        Speakers
+                    </h2>
+                    <SpeakerPills speakers={section.speakers} />
+                </section>
+            )
+        }
+
+        <!-- AI Summary -->
+        {
+            section.summary && (
+                <div class="mb-8" data-pagefind-weight="3">
+                    <AISummaryCard title="Summary" content={section.summary} />
+                </div>
+            )
+        }
+
+        <!-- Transcript -->
+        <section data-pagefind-weight="1">
+            <div
+                class="flex items-center justify-between mb-4 border-t-2 border-ink pt-4"
+                data-pagefind-ignore
+            >
+                <h2
+                    class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold"
+                >
+                    Transcript
+                </h2>
+                {
+                    section.sourceUrl && (
+                        <a
+                            href={section.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-sans text-sm text-accent hover:text-accent-light no-underline"
+                        >
+                            View Original Hansard ↗
+                        </a>
+                    )
+                }
+            </div>
+
+            {
+                section.contentHtml ? (
+                    <div
+                        class="transcript-content"
+                        set:html={section.contentHtml}
+                    />
+                ) : section.contentPlain ? (
+                    <div class="font-body text-base text-ink-soft leading-relaxed whitespace-pre-wrap">
+                        {section.contentPlain}
+                    </div>
+                ) : (
+                    <p class="font-body text-ink-muted italic py-8">
+                        Transcript not available.
+                    </p>
+                )
+            }
+        </section>
+    </article>
+</Layout>

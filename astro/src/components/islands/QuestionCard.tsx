@@ -11,22 +11,33 @@ export default function QuestionCard({ item }: Props) {
   // Determine badge config - category takes precedence
   let badgeConfig: { label: string; color: TagColor };
   if (item.category && categoryLabels[item.category]) {
-    badgeConfig = { label: categoryLabels[item.category], color: "indigo" };
+    badgeConfig = {
+      label: categoryLabels[item.category],
+      color: item.category === "clarification" ? "amber" : "indigo"
+    };
   } else if (item.type && typeBadgeConfig[item.type]) {
     badgeConfig = typeBadgeConfig[item.type];
   } else {
     badgeConfig = { label: item.type || "", color: "muted" };
   }
 
+  // Route based on category
+  const routePrefix =
+    item.category === "motion" || item.category === "adjournment_motion"
+      ? "/motions"
+      : item.category === "clarification"
+        ? "/clarifications"
+        : "/questions";
+
   return (
     <a
-      href={`/questions/${slugify(item.title || "", item.id)}`}
+      href={`${routePrefix}/${slugify(item.title || "", item.id)}`}
       class="group block p-6 sm:p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
-      data-pagefind-meta={`id:${item.id}`}
+      data-search-id={item.id}
     >
       <div class="flex flex-wrap items-center gap-2 mb-2">
         <Tag color={badgeConfig.color}>{badgeConfig.label}</Tag>
-        {item.ministry && <Tag color="green">{item.ministry}</Tag>}
+        {item.ministry && item.category !== "adjournment_motion" && <Tag color="green">{item.ministry}</Tag>}
         {item.date && (
           <span class="font-sans text-xs text-ink-muted">{formatDate(item.date)}</span>
         )}
@@ -51,11 +62,6 @@ export default function QuestionCard({ item }: Props) {
         </div>
       )}
 
-      {item.snippet && (
-        <p class="font-body text-sm text-ink-soft leading-relaxed line-clamp-1">
-          {item.snippet}
-        </p>
-      )}
     </a>
   );
 }
