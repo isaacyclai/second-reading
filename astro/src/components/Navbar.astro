@@ -40,11 +40,9 @@ const isActive = (href: string) =>
     }
 </style>
 
-<nav
-    class="sticky top-0 z-50 border-b border-border bg-page-bg/90 backdrop-blur-md"
->
+<nav class="sticky top-0 z-50 pointer-events-none">
     <div
-        class="mx-auto flex h-14 max-w-content items-center justify-between px-6"
+        class="mx-auto flex h-14 max-w-content items-center justify-between border-b border-border bg-page-bg/90 px-6 backdrop-blur-md pointer-events-auto"
     >
         <!-- Logo -->
         <a
@@ -113,7 +111,7 @@ const isActive = (href: string) =>
     <!-- Mobile Navigation Dropdown -->
     <div
         id="mobile-menu"
-        class="hidden border-t border-border bg-surface px-6 py-4 md:hidden"
+        class="mx-auto hidden max-w-content border-t border-border bg-surface px-6 py-4 pointer-events-auto md:hidden"
     >
         <div class="flex flex-col gap-4">
             {

@@ -54,6 +54,9 @@ function filterByDateRange(
   });
 }
 
+// Number of extra pages to prefetch ahead of the current page
+const PREFETCH_PAGES = 2;
+
 export default function PaginatedList({
   contentType,
   dataUrl,
@@ -67,25 +70,36 @@ export default function PaginatedList({
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
+  // In search mode without date filter: holds only the current page's items
+  // In search mode with date filter: holds ALL matched+filtered items (for client-side pagination)
   const [searchResults, setSearchResults] = useState<ListItem[]>([]);
+  const [searchTotalCount, setSearchTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [allData, setAllData] = useState<ListItem[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filteredResults, setFilteredResults] = useState<ListItem[]>([]);
+  // Whether search results include date filtering (affects pagination strategy)
+  const [searchHasDateFilter, setSearchHasDateFilter] = useState(false);
 
   const pagefindRef = useRef<Pagefind | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchSeqRef = useRef(0);
+  // Store raw pagefind results for lazy fragment fetching
+  const pagefindResultsRef = useRef<PagefindResult[]>([]);
+  // Cache of resolved pagefind result index -> meta.id
+  const resolvedIdsRef = useRef<Map<number, string>>(new Map());
 
   const hasDateFilter = dateFrom !== "" || dateTo !== "";
   const isDateFilterMode = hasDateFilter && !isSearchMode;
 
   // Calculate pagination values
   const totalPages = Math.ceil(totalCount / pageSize);
-  const searchTotalPages = Math.ceil(searchResults.length / pageSize);
+  const searchTotalPages = searchHasDateFilter
+    ? Math.ceil(searchResults.length / pageSize)
+    : Math.ceil(searchTotalCount / pageSize);
   const filteredTotalPages = Math.ceil(filteredResults.length / pageSize);
   const currentTotalPages = isSearchMode
     ? searchTotalPages
@@ -93,14 +107,18 @@ export default function PaginatedList({
       ? filteredTotalPages
       : totalPages;
   const currentTotalCount = isSearchMode
-    ? searchResults.length
+    ? (searchHasDateFilter ? searchResults.length : searchTotalCount)
     : isDateFilterMode
       ? filteredResults.length
       : totalCount;
 
   // Get current page items
+  // In lazy search mode (no date filter): searchResults IS the current page's items
+  // In date-filtered search mode: searchResults holds all items, slice for current page
   const currentItems = isSearchMode
-    ? searchResults.slice((page - 1) * pageSize, page * pageSize)
+    ? (searchHasDateFilter
+        ? searchResults.slice((page - 1) * pageSize, page * pageSize)
+        : searchResults)
     : isDateFilterMode
       ? filteredResults.slice((page - 1) * pageSize, page * pageSize)
       : items;
@@ -150,6 +168,70 @@ export default function PaginatedList({
       return [];
     }
   }, [dataUrl, allData]);
+
+  // Resolve pagefind fragments for a page window and return current page's ListItems.
+  // Fetches fragments for pageNum through pageNum + PREFETCH_PAGES in parallel,
+  // skipping any already-resolved indices. Returns items for pageNum only.
+  const resolveSearchPage = useCallback(
+    async (
+      pageNum: number,
+      data: ListItem[],
+      seq: number,
+    ): Promise<ListItem[] | null> => {
+      const pfResults = pagefindResultsRef.current;
+      if (!pfResults.length) return [];
+
+      const dataById = new Map(data.map((item) => [item.id, item]));
+
+      // Determine the window of indices to resolve (current page + prefetch buffer)
+      const startIdx = (pageNum - 1) * pageSize;
+      const endIdx = Math.min(
+        (pageNum + PREFETCH_PAGES) * pageSize,
+        pfResults.length,
+      );
+
+      // Find indices that haven't been resolved yet
+      const unresolvedIndices: number[] = [];
+      for (let i = startIdx; i < endIdx; i++) {
+        if (!resolvedIdsRef.current.has(i)) {
+          unresolvedIndices.push(i);
+        }
+      }
+
+      // Fetch unresolved fragments in parallel
+      if (unresolvedIndices.length > 0) {
+        const fragmentPromises = unresolvedIndices.map(async (idx) => {
+          const resultData = await pfResults[idx].data();
+          return { idx, id: resultData.meta?.id };
+        });
+        const resolved = await Promise.all(fragmentPromises);
+
+        // Check if search was superseded
+        if (seq !== searchSeqRef.current) return null;
+
+        // Cache resolved mappings
+        for (const { idx, id } of resolved) {
+          if (id) {
+            resolvedIdsRef.current.set(idx, id);
+          }
+        }
+      }
+
+      // Build ListItems for the current page only
+      const pageEndIdx = Math.min(pageNum * pageSize, pfResults.length);
+      const pageItems: ListItem[] = [];
+      for (let i = startIdx; i < pageEndIdx; i++) {
+        const id = resolvedIdsRef.current.get(i);
+        if (id) {
+          const item = dataById.get(id);
+          if (item) pageItems.push(item);
+        }
+      }
+
+      return pageItems;
+    },
+    [pageSize],
+  );
 
   // Update URL parameters
   const updateUrlParams = useCallback(
@@ -217,6 +299,10 @@ export default function PaginatedList({
       if (!trimmedQuery || trimmedQuery.length <= 2) {
         setIsSearchMode(false);
         setSearchResults([]);
+        setSearchTotalCount(0);
+        setSearchHasDateFilter(false);
+        pagefindResultsRef.current = [];
+        resolvedIdsRef.current = new Map();
         setPage(1);
         setItems(initialItems);
         // If date filter active, apply it
@@ -253,7 +339,9 @@ export default function PaginatedList({
         matched = filterByDateRange(matched, filterFrom, filterTo);
 
         setIsSearchMode(true);
+        setSearchHasDateFilter(true); // fallback always has all results
         setSearchResults(matched);
+        setSearchTotalCount(matched.length);
         setPage(1);
         updateUrlParams(1, searchQuery, filterFrom, filterTo);
         if (searchSeq === searchSeqRef.current) {
@@ -268,34 +356,58 @@ export default function PaginatedList({
       });
       if (searchSeq !== searchSeqRef.current) return;
 
-      // Get matching IDs in relevance order
-      const matchedIds = new Set<string>();
-      for (const result of results.results) {
-        const resultData = await result.data();
-        if (resultData.meta?.id) {
-          matchedIds.add(resultData.meta.id);
+      const hasDateRange = !!(filterFrom || filterTo);
+
+      if (hasDateRange) {
+        // Date filter active: resolve ALL fragments in parallel so we can
+        // filter by date and get an accurate count for client-side pagination.
+        const allFragments = await Promise.all(
+          results.results.map((r) => r.data()),
+        );
+        if (searchSeq !== searchSeqRef.current) return;
+
+        const dataById = new Map(data.map((item) => [item.id, item]));
+        let matched: ListItem[] = [];
+        for (const fragment of allFragments) {
+          if (fragment.meta?.id) {
+            const item = dataById.get(fragment.meta.id);
+            if (item) matched.push(item);
+          }
         }
-      }
-      if (searchSeq !== searchSeqRef.current) return;
 
-      // Build search results from full data in relevance order
-      const dataById = new Map(data.map((item) => [item.id, item]));
-      let matched: ListItem[] = [];
-      for (const id of matchedIds) {
-        const item = dataById.get(id);
-        if (item) {
-          matched.push(item);
+        matched = filterByDateRange(matched, filterFrom, filterTo);
+
+        pagefindResultsRef.current = [];
+        resolvedIdsRef.current = new Map();
+        setIsSearchMode(true);
+        setSearchHasDateFilter(true);
+        setSearchResults(matched);
+        setSearchTotalCount(matched.length);
+        setPage(1);
+        updateUrlParams(1, trimmedQuery, filterFrom, filterTo);
+        if (searchSeq === searchSeqRef.current) {
+          setIsLoading(false);
         }
-      }
+      } else {
+        // No date filter: use lazy page-based fragment fetching.
+        // Store raw results and only resolve fragments for the first few pages.
+        pagefindResultsRef.current = results.results;
+        resolvedIdsRef.current = new Map();
 
-      matched = filterByDateRange(matched, filterFrom, filterTo);
+        setIsSearchMode(true);
+        setSearchHasDateFilter(false);
+        setSearchTotalCount(results.results.length);
+        setPage(1);
 
-      setIsSearchMode(true);
-      setSearchResults(matched);
-      setPage(1);
-      updateUrlParams(1, trimmedQuery, filterFrom, filterTo);
-      if (searchSeq === searchSeqRef.current) {
-        setIsLoading(false);
+        // Resolve fragments for page 1 (+ prefetch buffer)
+        const pageItems = await resolveSearchPage(1, data, searchSeq);
+        if (pageItems === null) return; // superseded
+
+        setSearchResults(pageItems);
+        updateUrlParams(1, trimmedQuery, filterFrom, filterTo);
+        if (searchSeq === searchSeqRef.current) {
+          setIsLoading(false);
+        }
       }
     },
     [
@@ -305,6 +417,7 @@ export default function PaginatedList({
       fetchAllData,
       initialItems,
       loadPagefind,
+      resolveSearchPage,
       updateUrlParams,
       applyDateFilter,
     ],
@@ -333,8 +446,19 @@ export default function PaginatedList({
     async (newPage: number) => {
       if (newPage < 1 || newPage > currentTotalPages) return;
       setPage(newPage);
-      if (isSearchMode || isDateFilterMode) {
-        // Client-side pagination — no need to load page
+      if (isSearchMode && !searchHasDateFilter) {
+        // Lazy search mode: resolve fragments for the new page
+        setIsLoading(true);
+        const data = await fetchAllData();
+        const seq = searchSeqRef.current;
+        const pageItems = await resolveSearchPage(newPage, data, seq);
+        if (pageItems !== null) {
+          setSearchResults(pageItems);
+          setIsLoading(false);
+        }
+        updateUrlParams(newPage, query);
+      } else if (isSearchMode || isDateFilterMode) {
+        // Date-filtered search or date filter mode: client-side slice
         updateUrlParams(newPage, isSearchMode ? query : "");
       } else {
         await loadPage(newPage);
@@ -344,7 +468,10 @@ export default function PaginatedList({
     [
       currentTotalPages,
       isSearchMode,
+      searchHasDateFilter,
       isDateFilterMode,
+      fetchAllData,
+      resolveSearchPage,
       loadPage,
       query,
       updateUrlParams,
@@ -471,11 +598,19 @@ export default function PaginatedList({
         setQuery("");
         setIsSearchMode(false);
         setSearchResults([]);
+        setSearchTotalCount(0);
+        setSearchHasDateFilter(false);
+        pagefindResultsRef.current = [];
+        resolvedIdsRef.current = new Map();
         applyDateFilter(fromParam, toParam);
       } else {
         setQuery("");
         setIsSearchMode(false);
         setSearchResults([]);
+        setSearchTotalCount(0);
+        setSearchHasDateFilter(false);
+        pagefindResultsRef.current = [];
+        resolvedIdsRef.current = new Map();
         setFilteredResults([]);
         const pageNum = pageParam ? parseInt(pageParam, 10) : 1;
         const validPage =

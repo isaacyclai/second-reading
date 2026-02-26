@@ -5,6 +5,7 @@ import AISummaryCard from "../../components/AISummaryCard.astro";
 import SpeakerPills from "../../components/SpeakerPills.astro";
 import TypeBadge from "../../components/TypeBadge.astro";
 import Tag from "../../components/Tag.astro";
+import TranscriptDialogue from "../../components/TranscriptDialogue.astro";
 import { getQuestions, getSection } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
 
@@ -87,7 +88,6 @@ const sittingInfo = section.sittingDate
   </nav>
 
   <article
-    class="max-w-prose"
     data-pagefind-body
     data-pagefind-filter="type:question"
     data-pagefind-meta={`id:${section.id}`}
@@ -213,7 +213,11 @@ const sittingInfo = section.sittingDate
 
       {
         section.contentHtml ? (
-          <div class="transcript-content" set:html={section.contentHtml} />
+          <TranscriptDialogue
+            contentHtml={section.contentHtml}
+            instanceId={`question-${section.id}`}
+            italicizeLeadingStandalone={true}
+          />
         ) : section.contentPlain ? (
           <div class="font-body text-base text-ink-soft leading-relaxed whitespace-pre-wrap">
             {section.contentPlain}

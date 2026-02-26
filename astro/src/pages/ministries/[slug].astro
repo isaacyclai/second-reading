@@ -403,12 +403,19 @@ const clarifications = sections.filter((s) => s.category === "clarification");
           });
           if (seq !== searchSeq) return;
 
-          const matchingIds = new Set<string>();
-          for (const result of results.results) {
-            const data = await result.data();
-            if (data.meta?.id) matchingIds.add(data.meta.id);
-          }
+          // Fetch all fragments in parallel
+          const allFragments = await Promise.all(
+            results.results.map((r) => r.data()),
+          );
           if (seq !== searchSeq) return;
+
+          const orderedIds: string[] = [];
+          for (const data of allFragments) {
+            if (data.meta?.id) {
+              orderedIds.push(data.meta.id);
+            }
+          }
+          const matchingIds = new Set<string>(orderedIds);
 
           updateSections(matchingIds, lowerQuery);
           return;

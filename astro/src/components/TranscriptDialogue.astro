@@ -1,0 +1,416 @@
+---
+interface Props {
+  contentHtml?: string | null;
+  instanceId: string;
+  fallbackText?: string;
+  italicizeLeadingStandalone?: boolean;
+}
+
+const {
+  contentHtml = null,
+  instanceId,
+  fallbackText = "Transcript not available.",
+  italicizeLeadingStandalone = false,
+} = Astro.props;
+---
+
+{
+  contentHtml ? (
+    <div
+      class={`transcript-shell${italicizeLeadingStandalone ? " transcript-shell--italicize-leading-standalone" : ""}`}
+      data-transcript-shell
+      data-transcript-id={instanceId}
+    >
+      <div class="transcript-content" data-transcript-source set:html={contentHtml}></div>
+    </div>
+  ) : (
+    <p class="font-body text-ink-muted italic py-8">{fallbackText}</p>
+  )
+}
+
+<style is:global>
+  .transcript-shell {
+    position: relative;
+    --transcript-sticky-offset: calc(var(--site-nav-height, 3.5rem) + 1rem);
+  }
+
+  .transcript-shell [data-transcript-source] {
+    position: relative;
+  }
+
+  .transcript-shell [data-transcript-source].transcript-source--enhanced {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 1rem;
+    line-height: 1.625;
+    color: #3a342c;
+  }
+
+  .transcript-source--enhanced p {
+    margin: 0;
+  }
+
+  .transcript-source--enhanced p + p {
+    margin-top: 0.9rem;
+  }
+
+  .transcript-dialogue {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .transcript-dialogue__turn {
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    column-gap: 2rem;
+    align-items: start;
+    scroll-margin-top: var(--transcript-sticky-offset);
+  }
+
+  .transcript-dialogue__label {
+    border-right: 1px solid var(--border-light);
+    padding-right: 1.25rem;
+    padding-top: 0.15rem;
+    text-align: right;
+    position: sticky;
+    top: var(--transcript-sticky-offset);
+    z-index: 5;
+  }
+
+  .transcript-dialogue__speaker {
+    display: inline-block;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    line-height: 1.35;
+  }
+
+  .transcript-dialogue__text {
+    min-width: 0;
+    padding-bottom: 1.5rem;
+  }
+
+  .transcript-dialogue__text > * + * {
+    margin-top: 0.9rem;
+  }
+
+  .transcript-dialogue__timestamp {
+    position: relative;
+    text-align: center;
+    padding: 1.25rem 0;
+  }
+
+  .transcript-dialogue__timestamp::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-light);
+  }
+
+  .transcript-dialogue__timestamp span {
+    position: relative;
+    background: var(--page-bg);
+    padding: 0 1rem;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .transcript-dialogue__procedural,
+  .transcript-dialogue__standalone {
+    width: 100%;
+  }
+
+  .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading {
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading + .transcript-dialogue__standalone--leading {
+    margin-top: 0.8rem;
+  }
+
+  .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading-last {
+    margin-bottom: 1.65rem;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .transcript-dialogue__procedural {
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--ink-muted);
+    text-align: center;
+    margin-bottom: 0.6rem;
+  }
+
+  .transcript-dialogue__procedural .proc {
+    display: block;
+    margin: 0;
+  }
+
+  @media (max-width: 900px) {
+    .transcript-shell {
+      --transcript-sticky-offset: calc(var(--site-nav-height, 3.5rem) + 0.6rem);
+    }
+
+    .transcript-dialogue__turn {
+      grid-template-columns: 1fr;
+      row-gap: 0.2rem;
+    }
+
+    .transcript-dialogue__label {
+      border-right: none;
+      padding: 0.1rem 0 0.4rem;
+      text-align: center;
+      background: transparent;
+    }
+
+    .transcript-dialogue__speaker {
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      max-width: min(88vw, 22rem);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0.22rem 0.55rem;
+      border-radius: 2px;
+      background: #d9d5cd;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .transcript-dialogue__text {
+      padding-bottom: 1.15rem;
+    }
+
+    .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading-last {
+      margin-bottom: 1.3rem;
+      padding-bottom: 0.9rem;
+    }
+  }
+
+  @media (min-width: 901px) {
+    .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      column-gap: 2rem;
+    }
+
+    .transcript-shell--italicize-leading-standalone .transcript-dialogue__standalone--leading > * {
+      grid-column: 2;
+      min-width: 0;
+    }
+  }
+</style>
+
+<script>
+  (() => {
+    const normalizeWhitespace = (value) => value.replace(/\s+/g, " ").trim();
+    const honorificPattern =
+      /^(?:(?:Mr|Ms|Mdm|Madam|Mrs|Dr|Prof|Professor|Assoc\.?\s*Prof\.?|Associate\s+Professor|Sir)\s+)+/i;
+
+    const extractSpeakerParagraph = (paragraph) => {
+      if (!(paragraph instanceof HTMLParagraphElement)) {
+        return null;
+      }
+
+      const firstElement = paragraph.firstElementChild;
+      if (!(firstElement instanceof HTMLElement) || firstElement.tagName !== "STRONG") {
+        return null;
+      }
+
+      for (const node of paragraph.childNodes) {
+        if (node === firstElement) {
+          break;
+        }
+        if (node.nodeType !== Node.TEXT_NODE || (node.textContent || "").trim() !== "") {
+          return null;
+        }
+      }
+
+      const speakerRaw = normalizeWhitespace(firstElement.textContent || "");
+      if (!speakerRaw) {
+        return null;
+      }
+
+      let tail = "";
+      let cursor = firstElement.nextSibling;
+      while (cursor) {
+        tail += cursor.textContent || "";
+        cursor = cursor.nextSibling;
+      }
+
+      const hasDelimiter = /[:：]\s*$/.test(speakerRaw) || /^\s*[:：]/.test(tail);
+      if (!hasDelimiter) {
+        return null;
+      }
+
+      const speakerLabel = speakerRaw.replace(/[:：]\s*$/, "").trim();
+      if (!speakerLabel) {
+        return null;
+      }
+
+      const cleanedParagraph = paragraph.cloneNode(true);
+      if (!(cleanedParagraph instanceof HTMLParagraphElement)) {
+        return null;
+      }
+
+      const clonedFirst = cleanedParagraph.firstElementChild;
+      if (clonedFirst && clonedFirst.tagName === "STRONG") {
+        clonedFirst.remove();
+      }
+
+      const firstNode = cleanedParagraph.firstChild;
+      if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+        firstNode.textContent = (firstNode.textContent || "").replace(/^\s*[:：]\s*/, "");
+      }
+
+      return {
+        speakerLabel,
+        paragraphNode: cleanedParagraph,
+      };
+    };
+
+    const initTranscript = (shell) => {
+      if (shell.dataset.transcriptInitialized === "true") {
+        return;
+      }
+
+      const italicizeLeadingStandalone = shell.classList.contains(
+        "transcript-shell--italicize-leading-standalone",
+      );
+
+      const source = shell.querySelector("[data-transcript-source]");
+      if (!(source instanceof HTMLElement)) {
+        return;
+      }
+
+      const blocks = Array.from(source.children);
+      if (blocks.length === 0) {
+        return;
+      }
+
+      const transcriptId = (shell.dataset.transcriptId || "transcript").replace(
+        /[^a-zA-Z0-9_-]/g,
+        "-",
+      );
+
+      const dialogue = document.createElement("div");
+      dialogue.className = "transcript-dialogue";
+
+      let turnCount = 0;
+      let currentTextCell = null;
+      const leadingStandaloneRows = [];
+
+      blocks.forEach((block) => {
+        if (!(block instanceof HTMLElement)) {
+          return;
+        }
+
+        if (block.tagName === "H6") {
+          const timestampRow = document.createElement("div");
+          timestampRow.className = "transcript-dialogue__timestamp";
+          const timestampText = normalizeWhitespace(block.textContent || "");
+          if (timestampText) {
+            const span = document.createElement("span");
+            span.textContent = timestampText;
+            timestampRow.appendChild(span);
+            dialogue.appendChild(timestampRow);
+          }
+          currentTextCell = null;
+          return;
+        }
+
+        if (block.matches(".proc") || block.querySelector(".proc")) {
+          const proceduralRow = document.createElement("div");
+          proceduralRow.className = "transcript-dialogue__procedural";
+          proceduralRow.appendChild(block.cloneNode(true));
+          dialogue.appendChild(proceduralRow);
+          currentTextCell = null;
+          return;
+        }
+
+        const parsedSpeaker = extractSpeakerParagraph(block);
+        if (parsedSpeaker) {
+          if (turnCount === 0 && leadingStandaloneRows.length > 0) {
+            leadingStandaloneRows[leadingStandaloneRows.length - 1].classList.add(
+              "transcript-dialogue__standalone--leading-last",
+            );
+          }
+
+          const turn = document.createElement("div");
+          turn.className = "transcript-dialogue__turn";
+          turn.id = `${transcriptId}-turn-${turnCount}`;
+
+          const labelCell = document.createElement("div");
+          labelCell.className = "transcript-dialogue__label";
+
+          const speaker = document.createElement("span");
+          speaker.className = "transcript-dialogue__speaker";
+          speaker.textContent = parsedSpeaker.speakerLabel;
+          labelCell.appendChild(speaker);
+
+          const textCell = document.createElement("div");
+          textCell.className = "transcript-dialogue__text";
+
+          if (parsedSpeaker.paragraphNode.textContent?.trim()) {
+            textCell.appendChild(parsedSpeaker.paragraphNode);
+          }
+
+          turn.appendChild(labelCell);
+          turn.appendChild(textCell);
+          dialogue.appendChild(turn);
+
+          turnCount += 1;
+          currentTextCell = textCell;
+          return;
+        }
+
+        if (currentTextCell) {
+          currentTextCell.appendChild(block.cloneNode(true));
+          return;
+        }
+
+        const standaloneRow = document.createElement("div");
+        standaloneRow.className = "transcript-dialogue__standalone";
+        if (italicizeLeadingStandalone && turnCount === 0 && block.tagName === "P") {
+          standaloneRow.classList.add("transcript-dialogue__standalone--leading");
+          leadingStandaloneRows.push(standaloneRow);
+        }
+        standaloneRow.appendChild(block.cloneNode(true));
+        dialogue.appendChild(standaloneRow);
+      });
+
+      if (turnCount === 0) {
+        return;
+      }
+
+      source.replaceChildren(dialogue);
+      source.classList.add("transcript-source--enhanced");
+      shell.dataset.transcriptInitialized = "true";
+    };
+
+    const initAll = () => {
+      document
+        .querySelectorAll("[data-transcript-shell]")
+        .forEach((shell) => initTranscript(shell));
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAll, { once: true });
+    } else {
+      initAll();
+    }
+  })();
+</script>

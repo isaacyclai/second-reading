@@ -280,15 +280,18 @@ const {
         });
         if (seq !== searchSeq) return;
 
-        // Get matching IDs in relevance order (array preserves order)
+        // Get matching IDs in relevance order (fetch all fragments in parallel)
+        const allFragments = await Promise.all(
+          results.results.map((r) => r.data()),
+        );
+        if (seq !== searchSeq) return;
+
         const orderedIds: string[] = [];
-        for (const result of results.results) {
-          const data = await result.data();
+        for (const data of allFragments) {
           if (data.meta?.id) {
             orderedIds.push(data.meta.id);
           }
         }
-        if (seq !== searchSeq) return;
 
         const matchingIds = new Set(orderedIds);
 
@@ -331,7 +334,7 @@ const {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           performSearch(input.value);
-        }, 50);
+        }, 200);
       });
 
       clearBtn.addEventListener("click", () => {

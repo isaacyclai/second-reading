@@ -275,8 +275,9 @@ const fmtSignedAmount = (millions: number, decimals = 1) =>
 const fmtSignedPct = (value: number, decimals = 1) =>
   `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
 
-const isNegativeFullDrop = (previousTotal: number, latestTotal: number) =>
-  previousTotal > 0 && latestTotal <= 0;
+const isFullEntryOrExit = (previousTotal: number, latestTotal: number) =>
+  (previousTotal > 0 && latestTotal <= 0) ||
+  (previousTotal <= 0 && latestTotal > 0);
 
 const sectorChangeRows = sectorOrder
   .map((sector) => {
@@ -305,21 +306,26 @@ const sectorChangeRows = sectorOrder
   .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
 const rankedSectorChangeRows = sectorChangeRows.filter(
-  (row) => !isNegativeFullDrop(row.previousTotal, row.latestTotal),
+  (row) => !isFullEntryOrExit(row.previousTotal, row.latestTotal),
 );
 
 const topSectorChange = rankedSectorChangeRows[0];
 
 const ministryTotalsByYear = new Map<
   number,
-  Map<string, { sector: string; total: number }>
+  Map<string, { ministry: string; sector: string; total: number }>
 >();
 for (const [year, entries] of yearMap) {
-  const byMinistry = new Map<string, { sector: string; total: number }>();
+  const byMinistry = new Map<
+    string,
+    { ministry: string; sector: string; total: number }
+  >();
   for (const entry of entries.values()) {
     const total = entry.operating + entry.development;
     if (total <= 0) continue;
-    byMinistry.set(entry.ministry, {
+    const ministryKey = `${entry.sector}|||${entry.ministry}`;
+    byMinistry.set(ministryKey, {
+      ministry: entry.ministry,
       sector: entry.sector,
       total,
     });
@@ -332,18 +338,19 @@ const previousMinistryTotals = previousYear
   ? ministryTotalsByYear.get(previousYear) || new Map()
   : new Map();
 
-const ministryNames = new Set([
+const ministryKeys = new Set([
   ...latestMinistryTotals.keys(),
   ...previousMinistryTotals.keys(),
 ]);
 
-const ministryChangeRows = [...ministryNames]
-  .map((ministry) => {
-    const latest = latestMinistryTotals.get(ministry);
-    const previous = previousMinistryTotals.get(ministry);
+const ministryChangeRows = [...ministryKeys]
+  .map((key) => {
+    const latest = latestMinistryTotals.get(key);
+    const previous = previousMinistryTotals.get(key);
     const latestTotal = latest?.total || 0;
     const previousTotal = previous?.total || 0;
     const change = latestTotal - previousTotal;
+    const ministry = latest?.ministry || previous?.ministry || "Unknown";
     const sector = latest?.sector || previous?.sector || "Unknown";
     return {
       ministry,
@@ -363,7 +370,7 @@ const ministryChangeRows = [...ministryNames]
   .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
 const rankedMinistryChangeRows = ministryChangeRows.filter(
-  (row) => !isNegativeFullDrop(row.previousTotal, row.latestTotal),
+  (row) => !isFullEntryOrExit(row.previousTotal, row.latestTotal),
 );
 
 const topMinistryChange = rankedMinistryChangeRows[0];

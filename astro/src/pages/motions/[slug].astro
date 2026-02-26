@@ -4,6 +4,7 @@ import SectionLabel from "../../components/SectionLabel.astro";
 import AISummaryCard from "../../components/AISummaryCard.astro";
 import SpeakerPills from "../../components/SpeakerPills.astro";
 import Tag from "../../components/Tag.astro";
+import TranscriptDialogue from "../../components/TranscriptDialogue.astro";
 import { getMotions, getSection } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
 
@@ -75,7 +76,6 @@ const sittingInfo = section.sittingDate
     </nav>
 
     <article
-        class="max-w-prose"
         data-pagefind-body
         data-pagefind-filter="type:motion"
         data-pagefind-meta={`id:${section.id}`}
@@ -200,9 +200,9 @@ const sittingInfo = section.sittingDate
 
             {
                 section.contentHtml ? (
-                    <div
-                        class="transcript-content"
-                        set:html={section.contentHtml}
+                    <TranscriptDialogue
+                        contentHtml={section.contentHtml}
+                        instanceId={`motion-${section.id}`}
                     />
                 ) : section.contentPlain ? (
                     <div class="font-body text-base text-ink-soft leading-relaxed whitespace-pre-wrap">
