@@ -8,8 +8,6 @@ import {
   getBillReadingsFromLastSitting,
   getLatestQuestion,
   getRecentMotions,
-  getQuestionCount,
-  getMotionCount,
 } from "../lib/db";
 import { slugify } from "../lib/slugify";
 
@@ -20,8 +18,8 @@ const recentBillReadings = getRecentBillReadings(3);
 const billReadingsFromLastSitting = getBillReadingsFromLastSitting();
 const latestQuestion = getLatestQuestion();
 const recentMotions = getRecentMotions(2);
-const questionCount = getQuestionCount();
-const motionCount = getMotionCount();
+const questionCount = stats.questionCount;
+const motionCount = stats.motionCount;
 
 // Format date for masthead
 const today = new Date();

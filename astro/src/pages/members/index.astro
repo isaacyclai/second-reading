@@ -2,10 +2,19 @@
 import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
 import MemberCard from "../../components/MemberCard.astro";
+import Avatar from "../../components/Avatar.astro";
 import SearchFilter from "../../components/SearchFilter.astro";
-import { getMembersWithInfo, getMemberCount } from "../../lib/db";
+import {
+  getMembersWithInfo,
+  getMemberCount,
+  getAllMembersWithInfo,
+} from "../../lib/db";
+import { slugify } from "../../lib/slugify";
 
-const members = getMembersWithInfo();
+const currentMembers = getMembersWithInfo();
+const allMembers = getAllMembersWithInfo();
+const currentMemberIds = new Set(currentMembers.map((m) => m.id));
+const formerMembers = allMembers.filter((m) => !currentMemberIds.has(m.id));
 const STAGGER_LIMIT = 12;
 const totalCount = getMemberCount();
 ---
@@ -68,10 +77,10 @@ const totalCount = getMemberCount();
         containerId="members-list"
         itemSelector=".member-item"
         contentType="member"
-        placeholder="Search by name, constituency, or designation..."
+        placeholder="Search MPs (past and present) by name, constituency, or designation..."
       />
     </div>
-    <div class="flex items-start">
+    <div class="flex items-start gap-3">
       <select
         id="member-sort"
         class="rounded-lg border border-border bg-surface px-3 py-2.5 font-ui text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors cursor-pointer"
@@ -83,21 +92,23 @@ const totalCount = getMemberCount();
     </div>
   </div>
 
-  <p
-    class="font-sans text-sm text-ink-muted mb-6"
-    data-search-count="members-list"
-  >
-    Showing {members.length} of {totalCount} members
-  </p>
+  <h1 class="font-display text-lg text-ink mb-2 flex items-center gap-2">
+    Current MPs
+    <span
+      class="font-sans text-xs font-normal text-ink-muted bg-surface-alt px-2 py-0.5 rounded-full"
+    >
+      {currentMembers.length}
+    </span>
+  </h1>
 
   <div id="members-list" class="grid gap-4 sm:grid-cols-2">
     {
-      members.length === 0 ? (
+      currentMembers.length === 0 ? (
         <p class="col-span-full py-12 text-center font-body text-ink-muted">
           No members found
         </p>
       ) : (
-        members.map((member, i) => {
+        currentMembers.map((member, i) => {
           const isStaggered = i < STAGGER_LIMIT;
           const attendancePercent =
             member.attendanceTotal && member.attendanceTotal > 0
@@ -114,6 +125,7 @@ const totalCount = getMemberCount();
               data-name={member.name}
               data-involvements={member.sectionCount || 0}
               data-attendance={attendancePercent}
+              data-parliament="current"
             >
               <MemberCard member={member} />
             </div>
@@ -121,44 +133,107 @@ const totalCount = getMemberCount();
         })
       )
     }
+
+    {/* Former members: hidden by default, shown only when matching search */}
+    {
+      formerMembers.map((member) => (
+        <div
+          class="member-item member-former h-full"
+          style="display: none;"
+          data-name={member.name}
+          data-involvements={member.sectionCount || 0}
+          data-attendance={0}
+          data-parliament="former"
+        >
+          <a
+            href={`/members/${slugify(member.name, member.id)}`}
+            class="group flex h-full gap-4 items-start p-4 bg-surface border border-border rounded-md transition-colors hover:bg-warm hover:border-ink-muted cursor-pointer opacity-75"
+            data-search-id={member.id}
+          >
+            <Avatar name={member.name} />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="font-display text-base text-ink font-medium group-hover:text-accent transition-colors">
+                  {member.name}
+                </span>
+                <span class="font-sans text-[10px] uppercase tracking-wider text-ink-muted bg-surface-alt px-1.5 py-0.5 rounded">
+                  Former
+                </span>
+              </div>
+              <div class="font-sans text-xs text-accent font-medium">
+                {member.sectionCount !== undefined &&
+                  member.sectionCount > 0 && (
+                    <span>{member.sectionCount} involvements</span>
+                  )}
+              </div>
+            </div>
+          </a>
+        </div>
+      ))
+    }
   </div>
 
   <script>
-    function initMemberSort() {
+    function initMemberPage() {
       const select = document.getElementById(
         "member-sort",
       ) as HTMLSelectElement | null;
       const container = document.getElementById("members-list");
-      if (!select || !container) return;
-      if (select.hasAttribute("data-sort-initialized")) return;
-      select.setAttribute("data-sort-initialized", "true");
 
-      select.addEventListener("change", () => {
-        const [key, dir] = select.value.split("-");
-        const items = Array.from(
-          container.querySelectorAll(".member-item"),
-        ) as HTMLElement[];
+      if (
+        select &&
+        container &&
+        !select.hasAttribute("data-sort-initialized")
+      ) {
+        select.setAttribute("data-sort-initialized", "true");
 
-        items.sort((a, b) => {
-          if (key === "name") {
-            const aVal = (a.dataset.name || "").toLowerCase();
-            const bVal = (b.dataset.name || "").toLowerCase();
-            return dir === "asc"
-              ? aVal.localeCompare(bVal)
-              : bVal.localeCompare(aVal);
+        select.addEventListener("change", () => {
+          const [key, dir] = select.value.split("-");
+          // Only sort visible current parliament items
+          const items = Array.from(
+            container.querySelectorAll(
+              '.member-item[data-parliament="current"]',
+            ),
+          ) as HTMLElement[];
+
+          items.sort((a, b) => {
+            if (key === "name") {
+              const aVal = (a.dataset.name || "").toLowerCase();
+              const bVal = (b.dataset.name || "").toLowerCase();
+              return dir === "asc"
+                ? aVal.localeCompare(bVal)
+                : bVal.localeCompare(aVal);
+            }
+            const aVal = parseInt(a.dataset[key] || "0", 10);
+            const bVal = parseInt(b.dataset[key] || "0", 10);
+            return dir === "asc" ? aVal - bVal : bVal - aVal;
+          });
+
+          const fragment = document.createDocumentFragment();
+          items.forEach((item) => fragment.appendChild(item));
+          // Insert before the first former member (or at end)
+          const firstFormer = container.querySelector(".member-former");
+          if (firstFormer) {
+            container.insertBefore(fragment, firstFormer);
+          } else {
+            container.appendChild(fragment);
           }
-          const aVal = parseInt(a.dataset[key] || "0", 10);
-          const bVal = parseInt(b.dataset[key] || "0", 10);
-          return dir === "asc" ? aVal - bVal : bVal - aVal;
         });
+      }
 
-        const fragment = document.createDocumentFragment();
-        items.forEach((item) => fragment.appendChild(item));
-        container.appendChild(fragment);
-      });
+      // Re-hide former members when search is cleared
+      if (container && !container.hasAttribute("data-former-initialized")) {
+        container.setAttribute("data-former-initialized", "true");
+
+        container.addEventListener("search-cleared", () => {
+          container.querySelectorAll(".member-former").forEach((el) => {
+            (el as HTMLElement).style.display = "none";
+          });
+        });
+      }
     }
 
-    initMemberSort();
-    document.addEventListener("astro:after-swap", initMemberSort);
+    initMemberPage();
+    document.addEventListener("astro:after-swap", initMemberPage);
   </script>
 </Layout>

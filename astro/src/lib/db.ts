@@ -249,6 +249,7 @@ export function getSittingBills(sittingId: string): { billId: string; billTitle:
 }
 
 export function getMembers(limit?: number, offset?: number): Member[] {
+  const latestParl = getLatestParliament();
   const sql = `
     SELECT
       m.id,
@@ -258,16 +259,27 @@ export function getMembers(limit?: number, offset?: number): Member[] {
     FROM members m
     LEFT JOIN member_summaries ms ON m.id = ms.member_id
     LEFT JOIN section_speakers ss ON m.id = ss.member_id
+    WHERE m.id IN (
+      SELECT DISTINCT sa.member_id FROM sitting_attendance sa
+      JOIN sittings s ON sa.sitting_id = s.id
+      WHERE s.parliament = ?
+    )
     GROUP BY m.id
     ORDER BY m.name ASC
     ${limit ? `LIMIT ${limit}` : ''}
     ${offset ? `OFFSET ${offset}` : ''}
   `;
-  return db.prepare(sql).all() as Member[];
+  return db.prepare(sql).all(latestParl) as Member[];
 }
 
 export function getMemberCount(): number {
-  const result = db.prepare('SELECT COUNT(*) as count FROM members').get() as { count: number };
+  const latestParl = getLatestParliament();
+  const result = db.prepare(`
+    SELECT COUNT(DISTINCT sa.member_id) as count
+    FROM sitting_attendance sa
+    JOIN sittings s ON sa.sitting_id = s.id
+    WHERE s.parliament = ?
+  `).get(latestParl) as { count: number };
   return result.count;
 }
 
@@ -356,18 +368,21 @@ export function getBill(id: string): Bill | undefined {
 }
 
 export function getMinistries(): Ministry[] {
+  const latestParl = getLatestParliament();
   const sql = `
     SELECT
       m.id,
       m.name,
       m.acronym,
-      COUNT(sec.id) as sectionCount
+      (
+        SELECT COUNT(*) FROM sections sec
+        JOIN sittings sit ON sec.sitting_id = sit.id
+        WHERE sec.ministry_id = m.id AND sit.parliament = ?
+      ) as sectionCount
     FROM ministries m
-    LEFT JOIN sections sec ON m.id = sec.ministry_id
-    GROUP BY m.id
     ORDER BY m.name ASC
   `;
-  return db.prepare(sql).all() as Ministry[];
+  return db.prepare(sql).all(latestParl) as Ministry[];
 }
 
 export function getMinistry(id: string): Ministry | undefined {
@@ -736,6 +751,79 @@ export function getMemberAttendance(memberId: string): AttendanceRecord[] {
   }));
 }
 
+// Get current parliament stats for a member (returns null if not in current parliament)
+export interface CurrentParliamentStats {
+  involvements: number;
+  questions: number;
+  motions: number;
+  bills: number;
+  attendancePresent: number;
+  attendanceTotal: number;
+}
+
+export function getMemberCurrentParliamentStats(memberId: string): CurrentParliamentStats | null {
+  const latestParl = getLatestParliament();
+
+  // Check if member is in the current parliament
+  const inCurrentParl = db.prepare(`
+    SELECT 1 FROM sitting_attendance sa
+    JOIN sittings s ON sa.sitting_id = s.id
+    WHERE sa.member_id = ? AND s.parliament = ?
+    LIMIT 1
+  `).get(memberId, latestParl);
+
+  if (!inCurrentParl) return null;
+
+  const involvements = (db.prepare(`
+    SELECT COUNT(DISTINCT ss.section_id) as count
+    FROM section_speakers ss
+    JOIN sections sec ON ss.section_id = sec.id
+    JOIN sittings sit ON sec.sitting_id = sit.id
+    WHERE ss.member_id = ? AND sit.parliament = ?
+  `).get(memberId, latestParl) as { count: number }).count;
+
+  const questions = (db.prepare(`
+    SELECT COUNT(DISTINCT ss.section_id) as count
+    FROM section_speakers ss
+    JOIN sections sec ON ss.section_id = sec.id
+    JOIN sittings sit ON sec.sitting_id = sit.id
+    WHERE ss.member_id = ? AND sit.parliament = ?
+      AND sec.section_type IN ('OA', 'WA', 'WANA')
+  `).get(memberId, latestParl) as { count: number }).count;
+
+  const motions = (db.prepare(`
+    SELECT COUNT(DISTINCT ss.section_id) as count
+    FROM section_speakers ss
+    JOIN sections sec ON ss.section_id = sec.id
+    JOIN sittings sit ON sec.sitting_id = sit.id
+    WHERE ss.member_id = ? AND sit.parliament = ?
+      AND sec.category IN ('motion', 'adjournment_motion', 'statement')
+  `).get(memberId, latestParl) as { count: number }).count;
+
+  const bills = (db.prepare(`
+    SELECT COUNT(DISTINCT ss.section_id) as count
+    FROM section_speakers ss
+    JOIN sections sec ON ss.section_id = sec.id
+    JOIN sittings sit ON sec.sitting_id = sit.id
+    WHERE ss.member_id = ? AND sit.parliament = ?
+      AND sec.section_type IN ('BI', 'BP')
+  `).get(memberId, latestParl) as { count: number }).count;
+
+  const attendanceTotal = (db.prepare(`
+    SELECT COUNT(*) as count FROM sitting_attendance sa
+    JOIN sittings s ON sa.sitting_id = s.id
+    WHERE sa.member_id = ? AND s.parliament = ?
+  `).get(memberId, latestParl) as { count: number }).count;
+
+  const attendancePresent = (db.prepare(`
+    SELECT COUNT(*) as count FROM sitting_attendance sa
+    JOIN sittings s ON sa.sitting_id = s.id
+    WHERE sa.member_id = ? AND s.parliament = ? AND sa.present = 1
+  `).get(memberId, latestParl) as { count: number }).count;
+
+  return { involvements, questions, motions, bills, attendancePresent, attendanceTotal };
+}
+
 // Get all sections for a bill
 export interface BillSection {
   id: string;
@@ -892,7 +980,55 @@ export function getMinistryBills(ministryId: string): Bill[] {
 }
 
 // Get members with extended info (constituency, designation from latest attendance)
+// Scoped to latest parliament only
 export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
+  const latestParl = getLatestParliament();
+  const sql = `
+    SELECT
+      m.id,
+      m.name,
+      ms.summary,
+      COUNT(DISTINCT ss.section_id) as sectionCount,
+      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id) as attendanceTotal,
+      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
+      (
+        SELECT sa.constituency FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
+        WHERE sa.member_id = m.id
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as constituency,
+      (
+        SELECT sa.designation FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
+        WHERE sa.member_id = m.id
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as designation
+    FROM members m
+    LEFT JOIN member_summaries ms ON m.id = ms.member_id
+    LEFT JOIN section_speakers ss ON m.id = ss.member_id
+    WHERE m.id IN (
+      SELECT DISTINCT sa.member_id FROM sitting_attendance sa
+      JOIN sittings s ON sa.sitting_id = s.id
+      WHERE s.parliament = ?
+    )
+    GROUP BY m.id
+    ORDER BY m.name ASC
+    ${limit ? `LIMIT ${limit}` : ''}
+    ${offset ? `OFFSET ${offset}` : ''}
+  `;
+  return db.prepare(sql).all(latestParl) as Member[];
+}
+
+// Get all sections (for static path generation)
+export function getAllSections(): { id: string; sectionTitle: string }[] {
+  const sql = `SELECT id, section_title as sectionTitle FROM sections`;
+  return db.prepare(sql).all() as { id: string; sectionTitle: string }[];
+}
+
+// Get ALL members with info (unscoped, for static path generation)
+export function getAllMembersWithInfo(): Member[] {
   const sql = `
     SELECT
       m.id,
@@ -920,26 +1056,65 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
     LEFT JOIN section_speakers ss ON m.id = ss.member_id
     GROUP BY m.id
     ORDER BY m.name ASC
-    ${limit ? `LIMIT ${limit}` : ''}
-    ${offset ? `OFFSET ${offset}` : ''}
   `;
   return db.prepare(sql).all() as Member[];
 }
 
-// Get all sections (for static path generation)
-export function getAllSections(): { id: string; sectionTitle: string }[] {
-  const sql = `SELECT id, section_title as sectionTitle FROM sections`;
-  return db.prepare(sql).all() as { id: string; sectionTitle: string }[];
+// Get ALL ministries (unscoped, for static path generation)
+export function getAllMinistries(): Ministry[] {
+  const sql = `
+    SELECT
+      m.id,
+      m.name,
+      m.acronym,
+      COUNT(sec.id) as sectionCount
+    FROM ministries m
+    LEFT JOIN sections sec ON m.id = sec.ministry_id
+    GROUP BY m.id
+    ORDER BY m.name ASC
+  `;
+  return db.prepare(sql).all() as Ministry[];
 }
 
-// Stats for home page
-export function getStats(): { sittingCount: number; memberCount: number; billCount: number; sectionCount: number } {
-  const sittingCount = (db.prepare('SELECT COUNT(*) as count FROM sittings').get() as { count: number }).count;
-  const memberCount = (db.prepare('SELECT COUNT(*) as count FROM members').get() as { count: number }).count;
-  const billCount = (db.prepare('SELECT COUNT(*) as count FROM bills').get() as { count: number }).count;
-  const sectionCount = (db.prepare('SELECT COUNT(*) as count FROM sections').get() as { count: number }).count;
+// Get latest parliament number
+export function getLatestParliament(): number {
+  const result = db.prepare('SELECT MAX(parliament) as parliament FROM sittings').get() as { parliament: number };
+  return result.parliament;
+}
 
-  return { sittingCount, memberCount, billCount, sectionCount };
+// Stats for home page (all scoped to latest parliament)
+export function getStats(): {
+  sittingCount: number; memberCount: number; billCount: number;
+  sectionCount: number; questionCount: number; motionCount: number;
+} {
+  const latestParl = getLatestParliament();
+  const sittingCount = (db.prepare('SELECT COUNT(*) as count FROM sittings WHERE parliament = ?').get(latestParl) as { count: number }).count;
+  const memberCount = getMemberCount();
+  const billCount = (db.prepare(`
+    SELECT COUNT(*) as count FROM bills b
+    JOIN sittings s ON b.first_reading_sitting_id = s.id
+    WHERE s.parliament = ?
+  `).get(latestParl) as { count: number }).count;
+  const sectionCount = (db.prepare(`
+    SELECT COUNT(*) as count FROM sections sec
+    JOIN sittings s ON sec.sitting_id = s.id
+    WHERE s.parliament = ?
+  `).get(latestParl) as { count: number }).count;
+  const questionCount = (db.prepare(`
+    SELECT COUNT(*) as count FROM sections sec
+    JOIN sittings s ON sec.sitting_id = s.id
+    WHERE sec.section_type IN ('OA', 'WA', 'WANA')
+      AND sec.section_type NOT IN ('BI', 'BP')
+      AND s.parliament = ?
+  `).get(latestParl) as { count: number }).count;
+  const motionCount = (db.prepare(`
+    SELECT COUNT(*) as count FROM sections sec
+    JOIN sittings s ON sec.sitting_id = s.id
+    WHERE sec.category IN ('motion', 'adjournment_motion')
+      AND s.parliament = ?
+  `).get(latestParl) as { count: number }).count;
+
+  return { sittingCount, memberCount, billCount, sectionCount, questionCount, motionCount };
 }
 
 // Get the most recent sitting for masthead info
@@ -961,13 +1136,14 @@ export function getLatestSitting(): Sitting | undefined {
   return db.prepare(sql).get() as Sitting | undefined;
 }
 
-// Get count of sittings in current year
+// Get count of sittings in current year (scoped to latest parliament)
 export function getSittingsThisYear(): number {
+  const latestParl = getLatestParliament();
   const currentYear = new Date().getFullYear();
   const result = db.prepare(`
     SELECT COUNT(*) as count FROM sittings
-    WHERE strftime('%Y', date) = ?
-  `).get(String(currentYear)) as { count: number };
+    WHERE strftime('%Y', date) = ? AND parliament = ?
+  `).get(String(currentYear), latestParl) as { count: number };
   return result.count;
 }
 

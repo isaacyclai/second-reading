@@ -6,7 +6,7 @@ import BillCard from "../../components/BillCard.astro";
 import Pagination from "../../components/Pagination.astro";
 import Tag from "../../components/Tag.astro";
 import {
-  getMinistries,
+  getAllMinistries,
   getMinistry,
   getMinistrySections,
   getMinistryBills,
@@ -14,7 +14,7 @@ import {
 import { slugify } from "../../lib/slugify";
 
 export async function getStaticPaths() {
-  const ministries = getMinistries();
+  const ministries = getAllMinistries();
   return ministries.map((ministry) => ({
     params: { slug: slugify(ministry.name, ministry.id) },
     props: { id: ministry.id },
