@@ -33,7 +33,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DESIGNATION_TO_MINISTRY = {
-    "Minister in the Prime Minister's Office": "PMO",
+    "Prime Minister": "PMO",
     "Minister for Culture, Community and Youth": "MCCY",
     "Minister for Defence": "MINDEF",
     "Minister for Digital Development and Information": "MDDI",
@@ -52,6 +52,25 @@ DESIGNATION_TO_MINISTRY = {
 }
 
 
+FULL_NAME_TO_MINISTRY = {
+    "Prime Minister's Office": "PMO",
+    "Ministry of Culture, Community and Youth": "MCCY",
+    "Ministry of Defence": "MINDEF",
+    "Ministry of Digital Development and Information": "MDDI",
+    "Ministry of Education": "MOE",
+    "Ministry of Finance": "MOF",
+    "Ministry of Foreign Affairs": "MFA",
+    "Ministry of Health": "MOH",
+    "Ministry of Home Affairs": "MHA",
+    "Ministry of Law": "MINLAW",
+    "Ministry of Manpower": "MOM",
+    "Ministry of National Development": "MND",
+    "Ministry of Social and Family Development": "MSF",
+    "Ministry of Sustainability and the Environment": "MSE",
+    "Ministry of Trade and Industry": "MTI",
+    "Ministry of Transport": "MOT",
+}
+
 def detect_ministry_from_designation(designation):
     """Extract ministry acronym from a ministerial designation."""
     if not designation:
@@ -68,15 +87,22 @@ def detect_ministry_from_content(content_plain):
     if not content_plain:
         return None
 
-    # Look in the first 1000 chars (the question preamble)
     preamble = content_plain[:1000]
 
+    # Check specific ministry designations first, PMO last so that
+    # "Prime Minister and Minister for Finance" matches MOF not PMO
+    pmo_match = False
     for designation, acronym in DESIGNATION_TO_MINISTRY.items():
         if designation in preamble:
-            return acronym
+            if acronym == "PMO":
+                pmo_match = True
+            else:
+                return acronym
+
+    if pmo_match:
+        return "PMO"
 
     return None
-
 
 def detect_ministry_from_speakers(speakers):
     """Detect ministry from speaker appointments."""
@@ -88,6 +114,12 @@ def detect_ministry_from_speakers(speakers):
                 return ministry
     return None
 
+def detect_ministry_from_title(title):
+    """Detect ministry from section title."""
+    for name, acronym in FULL_NAME_TO_MINISTRY.items():
+        if name in title:
+            return acronym
+    return None
 
 def detect_ministry(section):
     """Detect ministry for a section using content and speaker info."""
@@ -119,7 +151,9 @@ def process_section(sitting_id, idx, section, date_str):
         ministry_id = None
         ministry_acronym = None
     elif section.get("category") == "motion":
-        ministry_acronym = detect_ministry_from_content(section.get("content_plain", ""))
+        ministry_acronym = detect_ministry_from_title(section.get("title", ""))
+        if not ministry_acronym:
+            ministry_acronym = detect_ministry_from_content(section.get("content_plain", ""))
         ministry_id = (
             find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
         )
