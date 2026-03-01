@@ -282,21 +282,6 @@ class ParliamentSitting:
             section_id = section.get('sectionId')
             source_url = f"https://sprs.parl.gov.sg/search/sprs3topic?reportid={section_id}" if section_id else None
             
-            # Determine category
-            report_type = section.get('reportType', '')
-            
-            if 'clarification' in title.lower():
-                category = 'clarification'
-            elif report_type == 'Matter Raised On Adjournment Motion':
-                category = 'adjournment_motion'
-            elif section_type in QUESTION_SECTION_TYPES:
-                category = 'question'
-            elif section_type in BILL_TYPES:
-                category = 'bill'
-            elif section_type in STATEMENT_TYPES:
-                category = 'motion' # Renamed from statement to motion
-            else:
-                category = 'other'
             
             # MERGING LOGIC: Check if we already have a section with this title
             existing_index = next((i for i, s in enumerate(self.sections) if s['title'] == title), None)
