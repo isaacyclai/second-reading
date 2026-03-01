@@ -177,15 +177,27 @@ async def generate_member_summaries(only_blanks):
     
     conn = db.get_connection()
     cursor = conn.cursor()
+    # Only summarise members from the current (latest) parliament
+    current_parl_filter = '''
+        AND m.id IN (
+            SELECT DISTINCT sa.member_id FROM sitting_attendance sa
+            JOIN sittings s ON sa.sitting_id = s.id
+            WHERE s.parliament = (SELECT MAX(parliament) FROM sittings)
+        )
+    '''
     if only_blanks:
-        cursor.execute('''
+        cursor.execute(f'''
             SELECT DISTINCT m.id, m.name 
             FROM members m
             JOIN member_summaries ms ON m.id = ms.member_id
             WHERE ms.summary IS NULL
+            {current_parl_filter}
         ''')
     else:
-        cursor.execute('SELECT id, name FROM members')
+        cursor.execute(f'''
+            SELECT id, name FROM members m
+            WHERE 1=1 {current_parl_filter}
+        ''')
     members = [dict(row) for row in cursor.fetchall()]
     
     tasks = []
