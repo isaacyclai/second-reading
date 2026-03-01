@@ -980,7 +980,7 @@ export function getMinistryBills(ministryId: string): Bill[] {
 }
 
 // Get members with extended info (constituency, designation from latest attendance)
-// Scoped to latest parliament only
+// Scoped to latest parliament only — stats are also parliament-scoped
 export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
   const latestParl = getLatestParliament();
   const sql = `
@@ -988,9 +988,22 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
       m.id,
       m.name,
       ms.summary,
-      COUNT(DISTINCT ss.section_id) as sectionCount,
-      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id) as attendanceTotal,
-      (SELECT COUNT(*) FROM sitting_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
+      (
+        SELECT COUNT(DISTINCT ss2.section_id) FROM section_speakers ss2
+        JOIN sections sec ON ss2.section_id = sec.id
+        JOIN sittings sit ON sec.sitting_id = sit.id
+        WHERE ss2.member_id = m.id AND sit.parliament = ?
+      ) as sectionCount,
+      (
+        SELECT COUNT(*) FROM sitting_attendance sa2
+        JOIN sittings s2 ON sa2.sitting_id = s2.id
+        WHERE sa2.member_id = m.id AND s2.parliament = ?
+      ) as attendanceTotal,
+      (
+        SELECT COUNT(*) FROM sitting_attendance sa3
+        JOIN sittings s3 ON sa3.sitting_id = s3.id
+        WHERE sa3.member_id = m.id AND sa3.present = 1 AND s3.parliament = ?
+      ) as attendancePresent,
       (
         SELECT sa.constituency FROM sitting_attendance sa
         JOIN sittings s ON sa.sitting_id = s.id
@@ -1007,7 +1020,6 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
       ) as designation
     FROM members m
     LEFT JOIN member_summaries ms ON m.id = ms.member_id
-    LEFT JOIN section_speakers ss ON m.id = ss.member_id
     WHERE m.id IN (
       SELECT DISTINCT sa.member_id FROM sitting_attendance sa
       JOIN sittings s ON sa.sitting_id = s.id
@@ -1018,7 +1030,7 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
     ${limit ? `LIMIT ${limit}` : ''}
     ${offset ? `OFFSET ${offset}` : ''}
   `;
-  return db.prepare(sql).all(latestParl) as Member[];
+  return db.prepare(sql).all(latestParl, latestParl, latestParl, latestParl) as Member[];
 }
 
 // Get all sections (for static path generation)
