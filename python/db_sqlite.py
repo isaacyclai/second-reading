@@ -104,50 +104,56 @@ def find_ministry_by_acronym(acronym: str) -> str:
     return row['id'] if row else None
 
 
-def find_or_create_bill(title: str, ministry_id: str = None,
-                        first_reading_date: str = None,
-                        first_reading_sitting_id: str = None) -> str:
-    """Find existing bill or create new one. Returns bill ID."""
+def create_bill(title: str, ministry_id: str = None,
+                first_reading_date: str = None,
+                first_reading_sitting_id: str = None) -> str:
+    """Create a new bill record. Called for BI (first reading) sections.
+    Each first reading is a unique bill, even if the title matches an existing bill."""
     conn = get_connection()
     cursor = conn.cursor()
 
     title = title.strip()
-    # Try to find existing by title
+    bill_id = generate_id()
     cursor.execute(
-        'SELECT id, first_reading_date, ministry_id FROM bills WHERE title = ?',
+        '''INSERT INTO bills (id, title, ministry_id, first_reading_date, first_reading_sitting_id)
+           VALUES (?, ?, ?, ?, ?)''',
+        (bill_id, title, ministry_id, parse_date(first_reading_date), first_reading_sitting_id)
+    )
+    conn.commit()
+    return bill_id
+
+
+def find_bill_for_second_reading(title: str, ministry_id: str = None) -> str:
+    """Find the most recent bill with this title for a BP (second reading) section.
+    Returns the bill with the latest first_reading_date, or creates one if none exists."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    title = title.strip()
+    cursor.execute(
+        '''SELECT id FROM bills WHERE title = ?
+           ORDER BY first_reading_date DESC LIMIT 1''',
         (title,)
     )
     row = cursor.fetchone()
 
     if row:
         bill_id = row['id']
-        existing_ministry = row['ministry_id']
-        existing_first_reading = row['first_reading_date']
-
         # Update ministry if not set
-        if ministry_id and not existing_ministry:
+        if ministry_id:
             cursor.execute(
-                'UPDATE bills SET ministry_id = ? WHERE id = ?',
+                'UPDATE bills SET ministry_id = ? WHERE id = ? AND ministry_id IS NULL',
                 (ministry_id, bill_id)
             )
-
-        # Update first reading info if not set
-        if first_reading_date and not existing_first_reading:
-            cursor.execute(
-                '''UPDATE bills SET first_reading_date = ?, first_reading_sitting_id = ?
-                   WHERE id = ?''',
-                (parse_date(first_reading_date), first_reading_sitting_id, bill_id)
-            )
-
-        conn.commit()
+            conn.commit()
         return bill_id
 
-    # Create new bill
+    # No bill found — create one (BP without a preceding BI)
     bill_id = generate_id()
     cursor.execute(
-        '''INSERT INTO bills (id, title, ministry_id, first_reading_date, first_reading_sitting_id)
-           VALUES (?, ?, ?, ?, ?)''',
-        (bill_id, title, ministry_id, parse_date(first_reading_date), first_reading_sitting_id)
+        '''INSERT INTO bills (id, title, ministry_id)
+           VALUES (?, ?, ?)''',
+        (bill_id, title, ministry_id)
     )
     conn.commit()
     return bill_id

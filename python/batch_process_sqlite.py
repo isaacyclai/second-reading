@@ -14,7 +14,8 @@ from db_sqlite import (
     create_or_update_sitting,
     create_section,
     find_ministry_by_acronym,
-    find_or_create_bill,
+    create_bill,
+    find_bill_for_second_reading,
     find_or_create_member,
     get_bill_count,
     get_member_count,
@@ -167,15 +168,17 @@ def process_section(sitting_id, idx, section, date_str):
     section_type = section["section_type"]
 
     # Handle bill sections
-    if section_type in BILL_TYPES:
-        first_reading_date = date_str if section_type == "BI" else None
-        first_reading_sitting_id = sitting_id if section_type == "BI" else None
-
-        bill_id = find_or_create_bill(
+    if section_type == "BI":
+        bill_id = create_bill(
             title=section["title"],
             ministry_id=ministry_id,
-            first_reading_date=first_reading_date,
-            first_reading_sitting_id=first_reading_sitting_id,
+            first_reading_date=date_str,
+            first_reading_sitting_id=sitting_id,
+        )
+    elif section_type == "BP":
+        bill_id = find_bill_for_second_reading(
+            title=section["title"],
+            ministry_id=ministry_id,
         )
 
     # Create section
