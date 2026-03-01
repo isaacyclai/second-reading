@@ -214,9 +214,9 @@ class ParliamentSitting:
             # Determine category early for logic checks
             report_type = section.get('reportType', '')
             
-            if 'clarification' in title.lower():
+            if 'clarification' in title.lower() and section_type == 'OS':
                 category = 'clarification'
-            elif report_type == 'Matter Raised On Adjournment Motion':
+            elif report_type == 'Matter Raised On Adjournment Motion' and section_type == 'OS':
                 category = 'adjournment_motion'
             elif section_type in QUESTION_SECTION_TYPES:
                 category = 'question'
