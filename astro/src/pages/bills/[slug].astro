@@ -59,6 +59,13 @@ const getStatus = (): {
 };
 
 const status = getStatus();
+
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString("en-SG", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 ---
 
 <Layout title={bill.title} description={`Bill details: ${bill.title}`}>
@@ -153,40 +160,58 @@ const status = getStatus();
       )
     }
 
-    <!-- Second Reading Transcripts -->
+    <!-- First Reading Transcript -->
     {
-      secondReadings.length > 0 && (
-        <section data-pagefind-weight="1">
+      firstReadings.length > 0 && (
+        <section class="mb-8" data-pagefind-weight="1">
           <div
             class="flex items-center justify-between mb-4 border-t-2 border-ink pt-4"
             data-pagefind-ignore
           >
             <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
-              Transcript{secondReadings.length > 1 ? "s" : ""}
+              Transcripts
             </h2>
-            {secondReadings[0]?.sourceUrl && (
-              <a
-                href={secondReadings[0].sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="font-sans text-sm text-accent hover:text-accent-light no-underline"
-              >
-                View Original Hansard ↗
-              </a>
-            )}
           </div>
+
+          <h3
+            class="font-display text-base font-medium text-ink mb-4"
+            set:html={`First Reading <span class="font-sans text-sm text-ink-muted font-normal">(${fmtDate(firstReadings[0].sittingDate)})</span>`}
+          />
+          <TranscriptDialogue
+            contentHtml={firstReadings[0].contentHtml}
+            instanceId={`bill-${firstReadings[0].id}`}
+          />
+        </section>
+      )
+    }
+
+    {
+      firstReadings.length > 0 && secondReadings.length > 0 && (
+        <hr class="my-8 border-ink/20" />
+      )
+    }
+
+    <!-- Second Reading Transcripts -->
+    {
+      secondReadings.length > 0 && (
+        <section data-pagefind-weight="1">
+          {!firstReadings.length && (
+            <div
+              class="flex items-center justify-between mb-4 border-t-2 border-ink pt-4"
+              data-pagefind-ignore
+            >
+              <h2 class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
+                Transcripts
+              </h2>
+            </div>
+          )}
 
           {secondReadings.map((section, idx) => (
             <div class="mb-8">
-              {secondReadings.length > 1 && (
-                <h3 class="font-sans text-sm font-medium text-ink-soft mb-4">
-                  {new Date(section.sittingDate).toLocaleDateString("en-SG", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </h3>
-              )}
+              <h3
+                class="font-display text-base font-medium text-ink mb-4"
+                set:html={`Second Reading <span class="font-sans text-sm text-ink-muted font-normal">(${fmtDate(section.sittingDate)})</span>`}
+              />
               <TranscriptDialogue
                 contentHtml={section.contentHtml}
                 instanceId={`bill-${section.id}`}
