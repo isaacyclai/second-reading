@@ -54,7 +54,7 @@ async def generate_section_summaries_for_sitting(sitting_id, only_blanks):
         SELECT id, section_title, content_plain, category, section_type 
         FROM sections    
         WHERE sitting_id = ? 
-          AND length(content_plain) > 750
+          AND length(content_plain) > 1500
           AND category != 'bill' 
           AND section_type NOT IN ('BI', 'BP')
     '''
