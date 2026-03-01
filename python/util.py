@@ -21,6 +21,7 @@ SALUTATIONS = [
     "Miss",
     "Ms",
     "Mr",
+    "Er Dr"
 ]
 
 def parse_mp_name(mp_name_str: str) -> Tuple[str, Optional[str], Optional[str]]:

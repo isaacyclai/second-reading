@@ -117,8 +117,8 @@ export default function PaginatedList({
   // In date-filtered search mode: searchResults holds all items, slice for current page
   const currentItems = isSearchMode
     ? (searchHasDateFilter
-        ? searchResults.slice((page - 1) * pageSize, page * pageSize)
-        : searchResults)
+      ? searchResults.slice((page - 1) * pageSize, page * pageSize)
+      : searchResults)
     : isDateFilterMode
       ? filteredResults.slice((page - 1) * pageSize, page * pageSize)
       : items;
