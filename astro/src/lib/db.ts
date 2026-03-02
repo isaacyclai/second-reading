@@ -826,6 +826,39 @@ export function getMemberCurrentParliamentStats(memberId: string): CurrentParlia
   return { involvements, questions, motions, bills, attendancePresent, attendanceTotal };
 }
 
+// Get ministry breakdown stats for a member
+export interface MemberMinistryStats {
+  ministryId: string;
+  ministryName: string;
+  total: number;
+  questions: number;
+  motions: number;
+  bills: number;
+}
+
+export function getMemberMinistryStats(memberId: string): MemberMinistryStats[] {
+  const sql = `
+    SELECT
+      m.id as ministryId,
+      m.name as ministryName,
+      COUNT(DISTINCT sec.id) as total,
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('OA', 'WA', 'WANA') THEN sec.id END) as questions,
+      COUNT(DISTINCT CASE WHEN sec.category IN ('motion', 'adjournment_motion', 'statement') THEN sec.id END) as motions,
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.id END) as bills
+    FROM ministries m
+    LEFT JOIN (
+      SELECT sec.id, sec.section_type, sec.category, COALESCE(b.ministry_id, sec.ministry_id) as ministry_id
+      FROM sections sec
+      JOIN section_speakers ss ON sec.id = ss.section_id
+      LEFT JOIN bills b ON sec.bill_id = b.id
+      WHERE ss.member_id = ?
+    ) sec ON sec.ministry_id = m.id
+    GROUP BY m.id
+    ORDER BY total DESC, m.name ASC
+  `;
+  return db.prepare(sql).all(memberId) as MemberMinistryStats[];
+}
+
 // Get all sections for a bill
 export interface BillSection {
   id: string;

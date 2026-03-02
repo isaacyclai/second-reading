@@ -14,6 +14,7 @@ import {
   getMemberSections,
   getMemberAttendance,
   getMemberCurrentParliamentStats,
+  getMemberMinistryStats,
   getLatestParliament,
 } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
@@ -36,6 +37,7 @@ if (!member) {
 const sections = getMemberSections(id);
 const attendance = getMemberAttendance(id);
 const currentParlStats = getMemberCurrentParliamentStats(id);
+const ministryStats = getMemberMinistryStats(id);
 const latestParliament = getLatestParliament();
 
 // Categorize sections
@@ -269,6 +271,45 @@ const attendancePercent =
       )}
 
       <!-- Member Summary -->
+      {ministryStats.length > 0 && (
+        <details class="mb-8 border border-border rounded-lg overflow-hidden">
+          <summary class="px-4 py-3 bg-surface-alt cursor-pointer font-sans text-sm font-semibold text-ink hover:bg-warm transition-colors select-none">
+            Involvements by Ministry
+            <span class="font-normal text-ink-muted ml-1">({ministryStats.length} ministries)</span>
+          </summary>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-border bg-surface-alt/50">
+                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">Ministry</th>
+                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Total</th>
+                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Questions</th>
+                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Motions</th>
+                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Bills</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ministryStats.map((ms) => (
+                  <tr class="border-b border-border last:border-0 hover:bg-warm/50 transition-colors">
+                    <td class="px-4 py-3">
+                      <a
+                        href={`/ministries/${slugify(ms.ministryName, ms.ministryId)}`}
+                        class="font-sans text-sm text-accent hover:text-accent-light no-underline"
+                      >
+                        {ms.ministryName}
+                      </a>
+                    </td>
+                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.total}</td>
+                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.questions}</td>
+                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.motions}</td>
+                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.bills}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
       <div class="mb-8">
         <AISummaryCard
           title="Summary of Recent Topics"
