@@ -127,7 +127,7 @@ async def generate_bill_summaries_for_sitting(sitting_id, only_blanks):
             
         full_text = "\n\n".join(sections)
         
-        if len(full_text) < 500:
+        if len(full_text) < 1500:
             continue
         
         prompt = BILL_PROMPT.format(title=bill['title'], text=full_text[:20000])
