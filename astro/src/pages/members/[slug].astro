@@ -258,13 +258,14 @@ const attendancePercent =
           </div>
         </details>
       )}
-      <div class="mb-8">
-        <AISummaryCard
-          title="Summary of Recent Topics"
-          content={member.summary}
-          fallbackMessage="Summary of recent topics has not been generated yet."
-        />
-      </div>
+      {member.summary && (
+        <div class="mb-8">
+          <AISummaryCard
+            title="Summary of Recent Topics"
+            content={member.summary}
+          />
+        </div>
+      )}
 
       <!-- Attendance Components (both shown for comparison) -->
       {
