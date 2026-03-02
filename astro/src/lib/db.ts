@@ -826,6 +826,79 @@ export function getMemberCurrentParliamentStats(memberId: string): CurrentParlia
   return { involvements, questions, motions, bills, attendancePresent, attendanceTotal };
 }
 
+// Get stats for each parliament a member served in
+export interface ParliamentStats {
+  parliament: number;
+  involvements: number;
+  questions: number;
+  motions: number;
+  bills: number;
+  attendancePresent: number;
+  attendanceTotal: number;
+}
+
+export function getMemberParliamentStats(memberId: string): ParliamentStats[] {
+  // Get all parliaments this member attended
+  const parliaments = db.prepare(`
+    SELECT DISTINCT s.parliament
+    FROM sitting_attendance sa
+    JOIN sittings s ON sa.sitting_id = s.id
+    WHERE sa.member_id = ?
+    ORDER BY s.parliament DESC
+  `).all(memberId) as { parliament: number }[];
+
+  return parliaments.map(({ parliament }) => {
+    const involvements = (db.prepare(`
+      SELECT COUNT(DISTINCT ss.section_id) as count
+      FROM section_speakers ss
+      JOIN sections sec ON ss.section_id = sec.id
+      JOIN sittings sit ON sec.sitting_id = sit.id
+      WHERE ss.member_id = ? AND sit.parliament = ?
+    `).get(memberId, parliament) as { count: number }).count;
+
+    const questions = (db.prepare(`
+      SELECT COUNT(DISTINCT ss.section_id) as count
+      FROM section_speakers ss
+      JOIN sections sec ON ss.section_id = sec.id
+      JOIN sittings sit ON sec.sitting_id = sit.id
+      WHERE ss.member_id = ? AND sit.parliament = ?
+        AND sec.section_type IN ('OA', 'WA', 'WANA')
+    `).get(memberId, parliament) as { count: number }).count;
+
+    const motions = (db.prepare(`
+      SELECT COUNT(DISTINCT ss.section_id) as count
+      FROM section_speakers ss
+      JOIN sections sec ON ss.section_id = sec.id
+      JOIN sittings sit ON sec.sitting_id = sit.id
+      WHERE ss.member_id = ? AND sit.parliament = ?
+        AND sec.category IN ('motion', 'adjournment_motion', 'statement')
+    `).get(memberId, parliament) as { count: number }).count;
+
+    const bills = (db.prepare(`
+      SELECT COUNT(DISTINCT ss.section_id) as count
+      FROM section_speakers ss
+      JOIN sections sec ON ss.section_id = sec.id
+      JOIN sittings sit ON sec.sitting_id = sit.id
+      WHERE ss.member_id = ? AND sit.parliament = ?
+        AND sec.section_type IN ('BI', 'BP')
+    `).get(memberId, parliament) as { count: number }).count;
+
+    const attendanceTotal = (db.prepare(`
+      SELECT COUNT(*) as count FROM sitting_attendance sa
+      JOIN sittings s ON sa.sitting_id = s.id
+      WHERE sa.member_id = ? AND s.parliament = ?
+    `).get(memberId, parliament) as { count: number }).count;
+
+    const attendancePresent = (db.prepare(`
+      SELECT COUNT(*) as count FROM sitting_attendance sa
+      JOIN sittings s ON sa.sitting_id = s.id
+      WHERE sa.member_id = ? AND s.parliament = ? AND sa.present = 1
+    `).get(memberId, parliament) as { count: number }).count;
+
+    return { parliament, involvements, questions, motions, bills, attendancePresent, attendanceTotal };
+  });
+}
+
 // Get ministry breakdown stats for a member
 export interface MemberMinistryStats {
   ministryId: string;

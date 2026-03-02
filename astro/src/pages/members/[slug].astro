@@ -13,7 +13,7 @@ import {
   getMember,
   getMemberSections,
   getMemberAttendance,
-  getMemberCurrentParliamentStats,
+  getMemberParliamentStats,
   getMemberMinistryStats,
   getLatestParliament,
 } from "../../lib/db";
@@ -36,7 +36,7 @@ if (!member) {
 
 const sections = getMemberSections(id);
 const attendance = getMemberAttendance(id);
-const currentParlStats = getMemberCurrentParliamentStats(id);
+const parliamentStats = getMemberParliamentStats(id);
 const ministryStats = getMemberMinistryStats(id);
 const latestParliament = getLatestParliament();
 
@@ -118,157 +118,102 @@ const attendancePercent =
 
     <!-- Everything below excluded from search indexing -->
     <div data-pagefind-ignore>
-      {currentParlStats ? (
-        <!-- Combined stats table: labels once, two value rows -->
-        <div class="border border-border rounded-lg overflow-hidden mb-8">
-          <!-- Column headers -->
-          <div class="grid grid-cols-6 gap-0 bg-surface-alt border-b border-border">
-            <div class="px-4 py-2.5"></div>
-            <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-              Total <br> Involvements
-            </div>
-            <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-              Questions <br> Asked/Answered
-            </div>
-            <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-              Motions <br> Spoken On
-            </div>
-            <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-              Bills <br> Spoken On
-            </div>
-            <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-              Attendance
-            </div>
+      <!-- Parliament stats table -->
+      <div class="border border-border rounded-lg overflow-hidden mb-8">
+        <!-- Column headers -->
+        <div class="grid grid-cols-6 gap-0 bg-surface-alt border-b border-border">
+          <div class="px-4 py-2.5"></div>
+          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+            Total <br> Involvements
           </div>
-          <!-- Current Parliament row -->
-          <div class="grid grid-cols-6 gap-0 border-b border-border bg-amber-50/30">
-            <div class="px-4 py-4 flex items-center">
-              <span class="font-sans text-xs uppercase tracking-wide text-accent font-semibold">
-                Current Parliament
-              </span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{currentParlStats.involvements}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{currentParlStats.questions}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{currentParlStats.motions}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{currentParlStats.bills}</span>
-            </div>
-            <div class="px-4 py-4">
-              {currentParlStats.attendanceTotal > 0 ? (
-                <span
-                  class:list={[
-                    "font-display text-xl",
-                    Math.round((currentParlStats.attendancePresent / currentParlStats.attendanceTotal) * 100) >= 80
-                      ? "text-status-passed"
-                      : Math.round((currentParlStats.attendancePresent / currentParlStats.attendanceTotal) * 100) >= 50
-                        ? "text-status-reading"
-                        : "text-red-600",
-                  ]}
-                >
-                  {Math.round((currentParlStats.attendancePresent / currentParlStats.attendanceTotal) * 100)}%
-                </span>
-              ) : (
-                <span class="font-sans text-sm text-ink-muted">—</span>
-              )}
-            </div>
+          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+            Questions <br> Asked/Answered
           </div>
-          <!-- Overall row -->
-          <div class="grid grid-cols-6 gap-0">
-            <div class="px-4 py-4 flex items-center">
-              <span class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
-                Overall
-              </span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{sections.length}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{questions.length}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{motions.length}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{bills.length}</span>
-            </div>
-            <div class="px-4 py-4">
-              {attendancePercent !== null ? (
-                <span
-                  class:list={[
-                    "font-display text-xl",
-                    attendancePercent >= 80
-                      ? "text-status-passed"
-                      : attendancePercent >= 50
-                        ? "text-status-reading"
-                        : "text-red-600",
-                  ]}
-                >
-                  {attendancePercent}%
-                </span>
-              ) : (
-                <span class="font-sans text-sm text-ink-muted">—</span>
-              )}
-            </div>
+          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+            Motions <br> Spoken On
+          </div>
+          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+            Bills <br> Spoken On
+          </div>
+          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+            Attendance
           </div>
         </div>
-      ) : (
-        <!-- Single stats row for members not in current parliament -->
-        <div
-          class="grid grid-cols-2 md:grid-cols-5 gap-4 py-6 border-y border-border mb-8"
-        >
-          <div>
-            <div class="font-display text-2xl text-ink">{sections.length}</div>
-            <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-              Total <br> Involvements
-            </div>
-          </div>
-          <div>
-            <div class="font-display text-2xl text-ink">{questions.length}</div>
-            <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-              Questions <br> Asked/Answered
-            </div>
-          </div>
-          <div>
-            <div class="font-display text-2xl text-ink">{motions.length}</div>
-            <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-              Motions <br> Spoken On
-            </div>
-          </div>
-          <div>
-            <div class="font-display text-2xl text-ink">{bills.length}</div>
-            <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-              Bills <br> Spoken On
-            </div>
-          </div>
-          {
-            attendancePercent !== null && (
-              <div>
-                <div
-                  class:list={[
-                    "font-display text-2xl",
-                    attendancePercent >= 80
-                      ? "text-status-passed"
-                      : attendancePercent >= 50
-                        ? "text-status-reading"
-                        : "text-red-600",
-                  ]}
-                >
-                  {attendancePercent}%
-                </div>
-                <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-                  Attendance
-                </div>
+        {/* Parliament rows */}
+        {parliamentStats.map((ps) => {
+          const isCurrent = ps.parliament === latestParliament;
+          const attendPct = ps.attendanceTotal > 0 ? Math.round((ps.attendancePresent / ps.attendanceTotal) * 100) : null;
+          return (
+            <div class:list={["grid grid-cols-6 gap-0 border-b border-border", isCurrent && "bg-amber-50/30"]}>
+              <div class="px-4 py-4 flex items-center">
+                <span class:list={["font-sans text-xs uppercase tracking-wide font-semibold", isCurrent ? "text-accent" : "text-ink-muted"]}>
+                  {isCurrent ? `Current (${ps.parliament}th Parliament)` : `${ps.parliament}th Parliament`}
+                </span>
               </div>
-            )
-          }
+              <div class="px-4 py-4">
+                <span class="font-display text-xl text-ink">{ps.involvements}</span>
+              </div>
+              <div class="px-4 py-4">
+                <span class="font-display text-xl text-ink">{ps.questions}</span>
+              </div>
+              <div class="px-4 py-4">
+                <span class="font-display text-xl text-ink">{ps.motions}</span>
+              </div>
+              <div class="px-4 py-4">
+                <span class="font-display text-xl text-ink">{ps.bills}</span>
+              </div>
+              <div class="px-4 py-4">
+                {attendPct !== null ? (
+                  <span
+                    class:list={[
+                      "font-display text-xl",
+                      attendPct >= 80 ? "text-status-passed" : attendPct >= 50 ? "text-status-reading" : "text-red-600",
+                    ]}
+                  >
+                    {attendPct}%
+                  </span>
+                ) : (
+                  <span class="font-sans text-sm text-ink-muted">—</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {/* Overall row */}
+        <div class="grid grid-cols-6 gap-0">
+          <div class="px-4 py-4 flex items-center">
+            <span class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
+              Overall
+            </span>
+          </div>
+          <div class="px-4 py-4">
+            <span class="font-display text-xl text-ink">{sections.length}</span>
+          </div>
+          <div class="px-4 py-4">
+            <span class="font-display text-xl text-ink">{questions.length}</span>
+          </div>
+          <div class="px-4 py-4">
+            <span class="font-display text-xl text-ink">{motions.length}</span>
+          </div>
+          <div class="px-4 py-4">
+            <span class="font-display text-xl text-ink">{bills.length}</span>
+          </div>
+          <div class="px-4 py-4">
+            {attendancePercent !== null ? (
+              <span
+                class:list={[
+                  "font-display text-xl",
+                  attendancePercent >= 80 ? "text-status-passed" : attendancePercent >= 50 ? "text-status-reading" : "text-red-600",
+                ]}
+              >
+                {attendancePercent}%
+              </span>
+            ) : (
+              <span class="font-sans text-sm text-ink-muted">—</span>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
       <!-- Member Summary -->
       {ministryStats.length > 0 && (
