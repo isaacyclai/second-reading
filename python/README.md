@@ -1,66 +1,64 @@
-# Python scripts
-This directory contains scripts used for obtaining data from the hansard, ingesting it into the database, and generating the required summaries. In order to run these scripts, you must install dependencies inside this directory. Assuming you are currently in the root directory, this can be done as follows:
+# Python Scripts
+
+This directory contains scripts for obtaining data from the Hansard, ingesting it into the SQLite database, and generating AI summaries. To install dependencies:
+
 ```bash
 cd python
 uv sync
 ```
 
-## Main
-The two functions here are the main ones used in the data processing pipeline.
-- `batch_process.py` ingests parliament sitting data for a given date range (inclusive of both start and end).
-   ### Usage
-  ```bash
-  uv run batch_process.py START_DATE [END_DATE]
-  ```
-  ### Examples
-  ```bash
-  # Single date
-  uv run batch_process.py 14-01-2026
-  
-  # Range of dates
-  uv run batch_process.py 12-01-2026 14-01-2026
-  ```
+## Main Scripts
 
-- `generate_summaries.py` generates summaries for sections, bills, and MPs using Llama 3.1 via Groq's API. The `--only-blank` flag is used to indicate that only entries which don't have summaries yet should be generated. 
+### `batch_process_sqlite.py`
 
-   Note that the code contains mechanisms for rate limiting due to restrictions on Groq's free tier. If you are using a different provider with higher rate limits, you should change some of these settings in the script to make it run much faster.
-   ### Usage
-   ```bash
-   # For sittings
-   uv run generate_summaries.py --sittings START_DATE [END_DATE] [--only-blank]
-   # For MPs
-   uv run generate_summaries.py --members [--only-blank]
-   ```
-   ### Examples
-  ```bash
-  # Range of dates
-  uv run generate_summaries.py --sessions 12-01-2026 14-01-2026
-  
-  # MPs (based on last 20 contributions)
-  uv run generate_summaries.py --members
-  
-  # Only fill in missing summaries
-  uv run generate_summaries.py --sessions 12-01-2026 --only-blank
-  ```
+Ingests parliament sitting data for a given date range (inclusive of both start and end) into the SQLite database at `data/parliament.db`.
 
-## Recovery
-These two scripts are helpful for cleaning up the database, especially if mistakes were made in the ingestion process.
-- `cleanup_duplicates.py`: Identifies and removes duplicate sections (i.e. questions, bills, and motions) from the database. It identifies duplicates based on session ID, title, and section type, preserving the oldest or newest record as specified.
-   ### Usage
-   ```bash
-   uv run cleanup_duplicates.py START_DATE [END_DATE] [--keep-newest]
-   ```
-   ### Examples
-  ```bash
-  # Range of dates (default: keep oldest)
-  uv run cleanup_duplicates.py 12-01-2026 14-01-2026
-  
-  # Keep newest instead
-  uv run cleanup_duplicates.py 12-01-2026 14-01-2026 --keep-newest
-  ```
+#### Usage
+```bash
+uv run batch_process_sqlite.py START_DATE [END_DATE]
+```
 
-- `merge_bills.py`: Detects duplicate bills based on normalised titles (case-insensitive, trimmed). It merges them by moving associated sections to a master bill (the one with the most sections or oldest creation time) and deleting the duplicate bill records. This is useful because the same bill sometimes gets interrupted by other sections (e.g. a motion for time extension) or span across different sittings.
-   ### Usage
-  ```bash
-  uv run merge_bills.py
-  ```
+#### Examples
+```bash
+# Single date
+uv run batch_process_sqlite.py 14-01-2026
+
+# Range of dates
+uv run batch_process_sqlite.py 12-01-2026 14-01-2026
+```
+
+### `generate_summaries_sqlite.py`
+
+Generates AI summaries for sitting sections and MP profiles using Gemini. The `--only-blank` flag generates summaries only for entries that don't have one yet.
+
+#### Usage
+```bash
+# For sittings
+uv run generate_summaries_sqlite.py --sittings START_DATE [END_DATE] [--only-blank]
+
+# For MPs
+uv run generate_summaries_sqlite.py --members [--only-blank]
+```
+
+#### Examples
+```bash
+# Range of dates
+uv run generate_summaries_sqlite.py --sittings 12-01-2026 14-01-2026
+
+# MPs (based on last 20 contributions)
+uv run generate_summaries_sqlite.py --members
+
+# Only fill in missing summaries
+uv run generate_summaries_sqlite.py --sittings 12-01-2026 --only-blank
+```
+
+
+## Supporting Modules
+
+| File | Description |
+|------|-------------|
+| `db_sqlite.py` | Database connection and CRUD operations for SQLite |
+| `hansard_api.py` | Client for fetching data from the Hansard API |
+| `parliament_sitting.py` | Parsing and structuring of sitting data |
+| `prompts.py` | Prompt templates for AI summary generation |
+| `util.py` | Shared utility functions |

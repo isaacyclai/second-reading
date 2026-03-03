@@ -1,7 +1,7 @@
-# Scribe
-**Scribe** is a web app that aims to make it easier for the public to understand what goes on during Singapore's Parliament sittings. It aggregates data from the [Hansard](https://sprs.parl.gov.sg/search/#/home), which contains the official reports of parliamentary debates, and organises the data from each session into a more user-friendly format.
+# Second Reading
+**Second Reading** is a web app that aims to make it easier for the public to understand what goes on during Singapore's Parliament sittings. It aggregates data from the [Hansard](https://sprs.parl.gov.sg/search/#/home), which contains the official reports of parliamentary debates, and organises the data from each session into a more user-friendly format.
 
-NOTE: Currently, Scribe only contains data for sittings from the (current) 15th Parliament onwards (September 2025 - present).
+NOTE: Second Reading only contains data for sittings from the 13th Parliament onwards (January 2016 - present).
 
 
 ## Features
@@ -24,33 +24,26 @@ These are provided for:
 
 ## Tech Stack
 ### Frontend and Backend
-Scribe is written in TypeScript and built using Next.js, with styling done using Tailwind CSS. The database uses PostgreSQL and is hosted on Supabase. Finally, the summaries are generated using Llama 3.1 via Groq's API.
+Second Reading is written in Astro and uses SQLite for its database. The summaries are generated using Gemini 3 Flash.
 
 ### Data Processing
-Data is fetched from the Hansard API, processed, and then inserted into the database using the Python scripts found in the `/python` directory. For more details, please refer to the [`README.md`](/python) there.
+Data is fetched from the Hansard API, processed, and then inserted into the database using the Python scripts found in the `/python` directory. For more details, please refer to the [`README.md`](python/README.md) there.
 
 Note that the script only works for Hansard data for sittings from ~2012 onwards, as earlier sittings have their data stored in a different format.
 
 ## Setup
-If you wish to replicate Scribe independently, you can follow the steps below.
+If you wish to replicate Second Reading independently, you can follow the steps below.
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/isaacyclai/scribe.git
-    cd scribe
+    git clone https://github.com/isaacyclai/second-reading.git
+    cd second-reading
     ```
 
 1.  **Install frontend dependencies**
     ```bash
-    npm install
+    cd astro
+    bun install
     ```
-
-1.  **Setup environment**
-
-    Create an `.env.local` file with your database credentials:
-    ```env
-    DATABASE_URL=your_database_url
-    ```
-    If you are using Supabase, you will also need to add your Supabase URL and keys. These can be found by clicking "Connect" on the Supabase dashboard.
 
 1. **Install Python dependencies**
     
@@ -62,43 +55,32 @@ If you wish to replicate Scribe independently, you can follow the steps below.
 
 1. **Setup database**
 
-    Create an `.env` file with your database URL:
+    Then, run the following script from the `python/` directory. Dates should be in `DD-MM-YYYY` format.
     ```bash
-    DATABASE_URL=your_database_url
-    ```
-
-    Then, run the following script. Dates should be in `DD-MM-YYYY` format.
-    ```bash
-    uv run batch_process.py <start_date> <end_date>
+    uv run batch_process_sqlite.py <start_date> <end_date>
     ```
 
 1. **(Optional) Generate summaries**
     
-    Add your Groq API key in the `.env` file:
+    Add your Gemini API key in the `.env` file:
     ```bash
-    GROQ_API_KEY=your_groq_api_key
+    GEMINI_API_KEY=your_gemini_api_key
     ```
     To generate summaries for sessions and members, run the following.
     ```bash
-    uv run generate_summaries.py --sessions <start_date> <end_date>
-    uv run generate_summaries.py --members
+    uv run generate_summaries_sqlite.py --sittings <start_date> <end_date>
+    uv run generate_summaries_sqlite.py --members
     ```
 
 1.  **Run Development Server**
+
+    From the `astro/` directory:
     ```bash
-    npm run dev
+    bun run build
+    bun run dev
     ```
-    Open [http://localhost:3000](http://localhost:3000) to view the app.
+    Open [http://localhost:4321](http://localhost:4321) to view the app.
 
-## Project structure
-- `src/app`: Next.js App Router pages and API routes.
-- `src/components`: Reusable React components (MemberCard, Pagination, Filters).
-- `src/lib`: Utility functions and database connection.
-- `python`: Data ingestion and processing scripts.
-- `supabase`: Database schema and migrations.
-
-## Note on summary generation
-The choice to use Llama 3.1 via the Groq API was entirely due to its generous API limits (and my lack of credits for other providers' APIs). If you are using this code and would like to use some other API, simply paste your API key into the `.env` file and modify the first few lines of `generate_summaries.py` to set up the OpenAI client with the model and provider of your choice.
 
 ## Acknowledgements
 This project is inspired by the creators of [Telescope](https://telescope.gov.sg/) and [Pair Search](https://search.pair.gov.sg/).

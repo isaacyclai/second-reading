@@ -1,24 +1,25 @@
-# Astro site
+# Astro Frontend
 
-This Astro site is mostly static, with islands used for paginated content.
+The Second Reading frontend is built with [Astro](https://astro.build/) and styled with Tailwind CSS. It is mostly static, with islands used for paginated content and client-side search.
 
-## Local data
+## Prerequisites
 
-Run the batch processing script to generate local data:
+The SQLite database (`data/parliament.db`) must be generated first using the Python scripts in `/python`.
 
-```sh
-uv run python/batch_process_sqlite.py
-```
-
-## Search indexing (Pagefind)
-
-Pagefind requires a production build to create the search index before it
-can be used in dev mode.
+## Development
 
 ```sh
-bun run build
+cd astro
+bun install
+bun run build   # required for Pagefind search index
 bun run dev
 ```
+
+Open [http://localhost:4321](http://localhost:4321) to view the app.
+
+## Search Indexing (Pagefind)
+
+Pagefind requires a production build to create the search index before it can be used in dev mode. Run `bun run build` at least once before `bun run dev`.
 
 ## Deploy
 
