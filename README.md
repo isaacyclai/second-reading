@@ -24,10 +24,10 @@ These are provided for:
 
 ## Tech Stack
 ### Frontend and Backend
-Second Reading is written in Astro and uses SQLite for its database. The summaries are generated using Gemini 3 Flash.
+Second Reading is written in [Astro](https://astro.build/) and uses SQLite for its database. For more details, please refer to the `astro/` directory. The summaries are generated using Gemini 3 Flash.
 
 ### Data Processing
-Data is fetched from the Hansard API, processed, and then inserted into the database using the Python scripts found in the `/python` directory. For more details, please refer to the [`README.md`](python/README.md) there.
+Data is fetched from the Hansard API, processed, and then inserted into the database using the Python scripts found in the `python/` directory. For more details, please refer to the [`README.md`](python/README.md) there.
 
 Note that the script only works for Hansard data for sittings from ~2012 onwards, as earlier sittings have their data stored in a different format.
 
