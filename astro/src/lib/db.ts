@@ -895,7 +895,7 @@ export function getMemberParliamentStats(memberId: string): ParliamentStats[] {
     `).get(memberId, parliament) as { count: number }).count;
 
     const bills = (db.prepare(`
-      SELECT COUNT(DISTINCT ss.section_id) as count
+      SELECT COUNT(DISTINCT sec.bill_id) as count
       FROM section_speakers ss
       JOIN sections sec ON ss.section_id = sec.id
       JOIN sittings sit ON sec.sitting_id = sit.id
@@ -941,10 +941,10 @@ export function getMemberMinistryStats(memberId: string): MemberMinistryStats[] 
       COUNT(DISTINCT CASE WHEN sec.section_type = 'WA' THEN sec.id END) as writtenQuestions,
       COUNT(DISTINCT CASE WHEN sec.section_type = 'WANA' THEN sec.id END) as unansweredQuestions,
       COUNT(DISTINCT CASE WHEN sec.category IN ('motion', 'adjournment_motion', 'statement') THEN sec.id END) as motions,
-      COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.id END) as bills
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.bill_id END) as bills
     FROM ministries m
     LEFT JOIN (
-      SELECT sec.id, sec.section_type, sec.category, COALESCE(b.ministry_id, sec.ministry_id) as ministry_id
+      SELECT sec.id, sec.section_type, sec.category, sec.bill_id, COALESCE(b.ministry_id, sec.ministry_id) as ministry_id
       FROM sections sec
       JOIN section_speakers ss ON sec.id = ss.section_id
       LEFT JOIN bills b ON sec.bill_id = b.id
@@ -1108,7 +1108,7 @@ export function getMinistryParliamentStats(ministryId: string): MinistryParliame
       COUNT(DISTINCT CASE WHEN sec.section_type = 'WA' THEN sec.id END) as writtenQuestions,
       COUNT(DISTINCT CASE WHEN sec.section_type = 'WANA' THEN sec.id END) as unansweredQuestions,
       COUNT(DISTINCT CASE WHEN sec.category IN ('motion', 'adjournment_motion', 'statement') THEN sec.id END) as motions,
-      COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.id END) as bills
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.bill_id END) as bills
     FROM sections sec
     JOIN sittings sit ON sec.sitting_id = sit.id
     LEFT JOIN bills b ON sec.bill_id = b.id

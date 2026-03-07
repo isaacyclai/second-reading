@@ -49,9 +49,19 @@ const motions = sections.filter(
     (!s.category && s.sectionType === "OS"),
 );
 const clarifications = sections.filter((s) => s.category === "clarification");
-const bills = sections.filter(
+const billSections = sections.filter(
   (s) => s.sectionType === "BI" || s.sectionType === "BP",
 );
+// Deduplicate bills by billId, preferring 2nd reading (BP) over 1st reading (BI)
+const billMap = new Map<string, (typeof billSections)[0]>();
+for (const s of billSections) {
+  const key = (s as any).billId || s.id;
+  const existing = billMap.get(key);
+  if (!existing || (s.sectionType === "BP" && existing.sectionType === "BI")) {
+    billMap.set(key, s);
+  }
+}
+const bills = Array.from(billMap.values());
 const oralQuestions = sections.filter(
   (s) =>
     s.sectionType === "OA" &&
