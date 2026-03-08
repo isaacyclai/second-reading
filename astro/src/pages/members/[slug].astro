@@ -95,7 +95,7 @@ const getAttendanceTone = (attendancePct: number | null) => {
 const parliamentRows = parliamentStats.map((ps) => ({
   id: `parliament-${ps.parliament}`,
   label: `${ps.parliament}th Parliament`,
-  shortLabel: `${ps.parliament}th Parliament`,
+  shortLabel: `${ps.parliament}th`,
   isCurrent: ps.parliament === latestParliament,
   involvements: ps.involvements,
   oralQuestions: ps.oralQuestions,
@@ -124,6 +124,7 @@ const overallParliamentRow = {
 };
 
 const allParliamentRows = [...parliamentRows, overallParliamentRow];
+const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
 const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
 ---
 
@@ -283,83 +284,125 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
                 </tbody>
               </table>
             </div>
-            <div class="md:hidden space-y-3">
-              {
-                allParliamentRows.map((row) => (
-                  <article
-                    class:list={[
-                      "rounded-lg border border-border bg-surface p-4",
-                      row.isCurrent && "ring-1 ring-accent/35",
-                    ]}
-                  >
-                    <div class="flex items-center justify-between gap-2 mb-3">
-                      <h5 class="font-sans text-sm font-semibold text-ink">
-                        {row.shortLabel}
-                      </h5>
+            <div class="md:hidden" data-parliament-switcher>
+              <div
+                class="member-parliament-controls mb-3"
+                role="tablist"
+                aria-label="Parliament activity period"
+              >
+                {
+                  mobileParliamentRows.map((row, index) => (
+                    <button
+                      type="button"
+                      role="tab"
+                      class:list={[
+                        "member-parliament-mode-btn",
+                        index === 0 && "is-active",
+                      ]}
+                      data-parliament-target={row.id}
+                      aria-selected={index === 0 ? "true" : "false"}
+                      tabindex={index === 0 ? 0 : -1}
+                    >
+                      <span>{row.shortLabel}</span>
                       {
                         row.isCurrent && (
-                          <span class="font-sans text-[10px] uppercase tracking-wide text-accent">
-                            Current
-                          </span>
+                          <span class="member-parliament-mode-pill">[current]</span>
                         )
                       }
-                    </div>
-                    <dl class="grid grid-cols-2 gap-x-3 gap-y-2">
-                      <div class="flex items-baseline justify-between col-span-2 border-b border-border/70 pb-2 mb-1">
-                        <dt class="font-sans text-xs text-ink-muted">Total</dt>
-                        <dd class="font-display text-2xl text-ink">
-                          {row.involvements}
-                        </dd>
+                    </button>
+                  ))
+                }
+              </div>
+
+              <div class="space-y-3">
+                {
+                  mobileParliamentRows.map((row, index) => (
+                    <article
+                      class:list={[
+                        "member-parliament-panel rounded-lg border border-border bg-surface p-4",
+                        row.isCurrent && "ring-1 ring-accent/35",
+                        index !== 0 && "hidden",
+                      ]}
+                      data-parliament-panel={row.id}
+                      hidden={index !== 0}
+                      role="tabpanel"
+                    >
+                      <div class="flex items-center justify-between gap-2 mb-3">
+                        <h5 class="font-sans text-sm font-semibold text-ink">
+                          {row.label}
+                        </h5>
+                        {
+                          row.isCurrent && (
+                            <span class="font-sans text-[10px] uppercase tracking-wide text-accent">
+                              Current
+                            </span>
+                          )
+                        }
                       </div>
-                      <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">
-                          Oral Questions
-                        </dt>
-                        <dd class="font-display text-base text-ink">
-                          {row.oralQuestions}
-                        </dd>
-                      </div>
-                      <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">
-                          Oral Questions (Unanswered)
-                        </dt>
-                        <dd class="font-display text-base text-ink">
-                          {row.unansweredQuestions}
-                        </dd>
-                      </div>
-                      <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">
-                          Written Questions
-                        </dt>
-                        <dd class="font-display text-base text-ink">
-                          {row.writtenQuestions}
-                        </dd>
-                      </div>
-                      <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">Motions</dt>
-                        <dd class="font-display text-base text-ink">{row.motions}</dd>
-                      </div>
-                      <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">Bills</dt>
-                        <dd class="font-display text-base text-ink">{row.bills}</dd>
-                      </div>
-                      <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">Attendance</dt>
-                        <dd class:list={["font-display text-base", getAttendanceTone(row.attendancePct)]}>
-                          {row.attendancePct !== null ? `${row.attendancePct}%` : "—"}
-                        </dd>
-                      </div>
-                    </dl>
-                  </article>
-                ))
-              }
+                      <dl class="grid grid-cols-2 gap-x-3 gap-y-2">
+                        <div class="flex items-baseline justify-between col-span-2 border-b border-border/70 pb-2 mb-1">
+                          <dt class="font-sans text-xs text-ink-muted">Total</dt>
+                          <dd class="font-display text-2xl text-ink">
+                            {row.involvements}
+                          </dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <dt class="font-sans text-xs text-ink-muted">
+                            Oral Questions
+                          </dt>
+                          <dd class="font-display text-base text-ink">
+                            {row.oralQuestions}
+                          </dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <dt class="font-sans text-xs text-ink-muted">
+                            Oral Questions (Unanswered)
+                          </dt>
+                          <dd class="font-display text-base text-ink">
+                            {row.unansweredQuestions}
+                          </dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <dt class="font-sans text-xs text-ink-muted">
+                            Written Questions
+                          </dt>
+                          <dd class="font-display text-base text-ink">
+                            {row.writtenQuestions}
+                          </dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <dt class="font-sans text-xs text-ink-muted">Motions</dt>
+                          <dd class="font-display text-base text-ink">
+                            {row.motions}
+                          </dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <dt class="font-sans text-xs text-ink-muted">Bills</dt>
+                          <dd class="font-display text-base text-ink">{row.bills}</dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <dt class="font-sans text-xs text-ink-muted">Attendance</dt>
+                          <dd
+                            class:list={[
+                              "font-display text-base",
+                              getAttendanceTone(row.attendancePct),
+                            ]}
+                          >
+                            {row.attendancePct !== null ? `${row.attendancePct}%` : "—"}
+                          </dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ))
+                }
+              </div>
             </div>
           </div>
 
           <div>
             {
               ministryStats.length > 0 ? (
-                <details class="rounded-lg border border-border overflow-hidden">
+                <details class="member-ministry-details rounded-lg border border-border overflow-visible md:overflow-hidden">
                   <summary class="px-4 py-3 bg-surface-alt cursor-pointer font-sans text-sm font-semibold text-ink hover:bg-warm transition-colors select-none flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
                     <svg
                       class="w-4 h-4 text-ink-muted shrink-0"
@@ -792,6 +835,56 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
       </section>
     )
   }
+  <style is:global>
+    .member-parliament-controls {
+      display: inline-flex;
+      width: fit-content;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+
+    .member-parliament-controls::-webkit-scrollbar {
+      display: none;
+    }
+
+    .member-parliament-mode-btn {
+      border: 0;
+      border-right: 1px solid var(--border);
+      background: transparent;
+      color: var(--ink-muted);
+      padding: 6px 10px;
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .member-parliament-mode-btn:last-child {
+      border-right: 0;
+    }
+
+    .member-parliament-mode-btn.is-active {
+      background: var(--ink);
+      color: var(--page-bg);
+    }
+
+    .member-parliament-mode-pill {
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 10px;
+      line-height: 1;
+      padding: 2px 2px;
+    }
+
+  </style>
   <script>
     interface PagefindResult {
       id: string;
@@ -824,6 +917,58 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
         return pagefind;
       } catch {
         return null;
+      }
+    }
+
+    function initParliamentSwitcher() {
+      const switchers = Array.from(
+        document.querySelectorAll("[data-parliament-switcher]"),
+      ) as HTMLElement[];
+
+      for (const switcher of switchers) {
+        if (switcher.hasAttribute("data-parliament-switcher-initialized")) {
+          continue;
+        }
+        switcher.setAttribute("data-parliament-switcher-initialized", "true");
+
+        const buttons = Array.from(
+          switcher.querySelectorAll("[data-parliament-target]"),
+        ) as HTMLButtonElement[];
+        const panels = Array.from(
+          switcher.querySelectorAll("[data-parliament-panel]"),
+        ) as HTMLElement[];
+
+        if (buttons.length === 0 || panels.length === 0) continue;
+
+        const setActivePanel = (targetId: string) => {
+          for (const button of buttons) {
+            const isActive = button.dataset.parliamentTarget === targetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+            button.tabIndex = isActive ? 0 : -1;
+          }
+
+          for (const panel of panels) {
+            const isActive = panel.dataset.parliamentPanel === targetId;
+            panel.classList.toggle("hidden", !isActive);
+            panel.hidden = !isActive;
+          }
+        };
+
+        for (const button of buttons) {
+          button.addEventListener("click", () => {
+            const targetId = button.dataset.parliamentTarget;
+            if (!targetId) return;
+            setActivePanel(targetId);
+          });
+        }
+
+        const initialTarget =
+          buttons.find((button) => button.classList.contains("is-active"))
+            ?.dataset.parliamentTarget || buttons[0]?.dataset.parliamentTarget;
+        if (initialTarget) {
+          setActivePanel(initialTarget);
+        }
       }
     }
 
@@ -1011,7 +1156,12 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
       );
     }
 
-    initMemberSearch();
-    document.addEventListener("astro:after-swap", initMemberSearch);
+    function initMemberPage() {
+      initParliamentSwitcher();
+      initMemberSearch();
+    }
+
+    initMemberPage();
+    document.addEventListener("astro:after-swap", initMemberPage);
   </script>
 </Layout>
