@@ -80,7 +80,7 @@ uv run generate_summaries_sqlite.py --sittings 12-01-2026 --only-blank
 | `util.py` | Shared utility functions |
 
 ## Manual changes
-Below the manual changes that were made post-ingestion.
+Below are the manual changes that were made post-ingestion.
 
 ### Changes in ministry names
 - Before 8 July 2024, the Ministry of Digital Development and Information was known as the Ministry for Communications and Information.
