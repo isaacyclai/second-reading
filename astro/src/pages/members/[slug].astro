@@ -94,14 +94,8 @@ const getAttendanceTone = (attendancePct: number | null) => {
 
 const parliamentRows = parliamentStats.map((ps) => ({
   id: `parliament-${ps.parliament}`,
-  label:
-    ps.parliament === latestParliament
-      ? `Current (${ps.parliament}th Parliament)`
-      : `${ps.parliament}th Parliament`,
-  shortLabel:
-    ps.parliament === latestParliament
-      ? `Current (${ps.parliament}th)`
-      : `${ps.parliament}th`,
+  label: `${ps.parliament}th Parliament`,
+  shortLabel: `${ps.parliament}th Parliament`,
   isCurrent: ps.parliament === latestParliament,
   involvements: ps.involvements,
   oralQuestions: ps.oralQuestions,
@@ -213,13 +207,13 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
                       Total
                     </th>
                     <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
-                      Oral
+                      Oral Questions
                     </th>
                     <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
-                      Unanswered
+                      Oral Questions (Unanswered)
                     </th>
                     <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
-                      Written
+                      Written Questions
                     </th>
                     <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
                       Motions
@@ -318,21 +312,25 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
                         </dd>
                       </div>
                       <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">Oral</dt>
+                        <dt class="font-sans text-xs text-ink-muted">
+                          Oral Questions
+                        </dt>
                         <dd class="font-display text-base text-ink">
                           {row.oralQuestions}
                         </dd>
                       </div>
                       <div class="flex items-center justify-between">
                         <dt class="font-sans text-xs text-ink-muted">
-                          Unanswered
+                          Oral Questions (Unanswered)
                         </dt>
                         <dd class="font-display text-base text-ink">
                           {row.unansweredQuestions}
                         </dd>
                       </div>
                       <div class="flex items-center justify-between">
-                        <dt class="font-sans text-xs text-ink-muted">Written</dt>
+                        <dt class="font-sans text-xs text-ink-muted">
+                          Written Questions
+                        </dt>
                         <dd class="font-display text-base text-ink">
                           {row.writtenQuestions}
                         </dd>
@@ -394,13 +392,13 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
                               Total
                             </th>
                             <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
-                              Oral
+                              Oral Questions
                             </th>
                             <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
-                              Unanswered
+                              Oral Questions (Unanswered)
                             </th>
                             <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
-                              Written
+                              Written Questions
                             </th>
                             <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
                               Motions
@@ -472,21 +470,25 @@ const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
                             </div>
                             <dl class="grid grid-cols-2 gap-x-3 gap-y-2">
                               <div class="flex items-center justify-between">
-                                <dt class="font-sans text-xs text-ink-muted">Oral</dt>
+                                <dt class="font-sans text-xs text-ink-muted">
+                                  Oral Questions
+                                </dt>
                                 <dd class="font-display text-base text-ink">
                                   {row.oralQuestions}
                                 </dd>
                               </div>
                               <div class="flex items-center justify-between">
                                 <dt class="font-sans text-xs text-ink-muted">
-                                  Unanswered
+                                  Oral Questions (Unanswered)
                                 </dt>
                                 <dd class="font-display text-base text-ink">
                                   {row.unansweredQuestions}
                                 </dd>
                               </div>
                               <div class="flex items-center justify-between">
-                                <dt class="font-sans text-xs text-ink-muted">Written</dt>
+                                <dt class="font-sans text-xs text-ink-muted">
+                                  Written Questions
+                                </dt>
                                 <dd class="font-display text-base text-ink">
                                   {row.writtenQuestions}
                                 </dd>
