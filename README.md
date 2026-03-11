@@ -88,7 +88,7 @@ The repository includes:
 - `launchd/com.secondreading.daily.plist` (LaunchAgent template scheduled for 13:00 Asia/Singapore)
 
 ### Script defaults
-- Date window: current date and previous 2 dates (`DD-MM-YYYY`)
+- Date window: `today-14` to `today-5` (`DD-MM-YYYY`, Asia/Singapore)
 - Pipeline order: ingest -> dedupe (`--keep-newest`) -> sitting summaries (`--only-blank`)
 - Deploy policy: only when semantic data digest changes, and only on clean `main` git state
 
@@ -103,6 +103,7 @@ scripts/daily_pipeline.sh \
   [--force-deploy] \
   [--dry-run]
 ```
+`--lookback-days` overrides the lag-aware default and uses a recent window of `today-N` to `today`.
 
 ### Setup
 1. Sync dependencies and ensure deploy auth

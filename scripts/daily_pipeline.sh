@@ -10,6 +10,9 @@ export PATH
 
 TZ_REGION="Asia/Singapore"
 LOOKBACK_DAYS=2
+LOOKBACK_SET=0
+DEFAULT_START_OFFSET_DAYS=14
+DEFAULT_END_OFFSET_DAYS=5
 START_DATE=""
 END_DATE=""
 SKIP_SUMMARIES=0
@@ -40,7 +43,7 @@ Usage: scripts/daily_pipeline.sh [options]
 Options:
   --start-date DD-MM-YYYY  Optional start date override
   --end-date DD-MM-YYYY    Optional end date override (defaults to start date)
-  --lookback-days N        Lookback when start/end not supplied (default: 2)
+  --lookback-days N        Recent window override: today-N through today
   --skip-summaries         Skip sitting summaries
   --skip-deploy            Skip Astro build/deploy even when data changed
   --force-deploy           Force Astro build/deploy regardless of data digest
@@ -219,6 +222,7 @@ while [[ $# -gt 0 ]]; do
     --lookback-days)
       [[ $# -ge 2 ]] || fail "Missing value for --lookback-days"
       LOOKBACK_DAYS="$2"
+      LOOKBACK_SET=1
       shift 2
       ;;
     --skip-summaries)
@@ -260,8 +264,13 @@ if [[ -n "${START_DATE}" && -z "${END_DATE}" ]]; then
 fi
 
 if [[ -z "${START_DATE}" ]]; then
-  END_DATE="$(TZ="${TZ_REGION}" date '+%d-%m-%Y')"
-  START_DATE="$(TZ="${TZ_REGION}" date -v-"${LOOKBACK_DAYS}"d '+%d-%m-%Y')"
+  if [[ "${LOOKBACK_SET}" -eq 1 ]]; then
+    END_DATE="$(TZ="${TZ_REGION}" date '+%d-%m-%Y')"
+    START_DATE="$(TZ="${TZ_REGION}" date -v-"${LOOKBACK_DAYS}"d '+%d-%m-%Y')"
+  else
+    END_DATE="$(TZ="${TZ_REGION}" date -v-"${DEFAULT_END_OFFSET_DAYS}"d '+%d-%m-%Y')"
+    START_DATE="$(TZ="${TZ_REGION}" date -v-"${DEFAULT_START_OFFSET_DAYS}"d '+%d-%m-%Y')"
+  fi
 fi
 
 ISO_START="$(to_iso_date "${START_DATE}")"
