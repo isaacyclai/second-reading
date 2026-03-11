@@ -21,16 +21,6 @@ const recentMotions = getRecentMotions(2);
 const questionCount = stats.questionCount;
 const motionCount = stats.motionCount;
 
-// Format date for masthead
-const today = new Date();
-const dateFormatter = new Intl.DateTimeFormat("en-SG", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-const formattedDate = dateFormatter.format(today);
-
 // Format sitting date
 const formatSittingDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -84,7 +74,7 @@ const navLinks = [
     <header class="masthead">
       <div class="flex flex-col items-center md:items-start gap-0.5">
         <span class="masthead-location"><strong>Singapore</strong></span>
-        <span class="masthead-date">{formattedDate}</span>
+        <span class="masthead-date" data-masthead-date></span>
       </div>
 
       <div class="text-center">
@@ -404,4 +394,24 @@ const navLinks = [
       </div>
     </footer>
   </div>
+
+  <script is:inline>
+    const mastheadDateEl = document.querySelector("[data-masthead-date]");
+
+    if (mastheadDateEl) {
+      const mastheadDateFormatter = new Intl.DateTimeFormat("en-SG", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+
+      const renderMastheadDate = () => {
+        mastheadDateEl.textContent = mastheadDateFormatter.format(new Date());
+      };
+
+      renderMastheadDate();
+      window.setInterval(renderMastheadDate, 60000);
+    }
+  </script>
 </NewspaperLayout>
