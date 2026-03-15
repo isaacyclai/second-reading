@@ -133,8 +133,11 @@ def clean_html_for_display(html_content: str) -> str:
     if not html_content:
         return ""
     
+    # Convert relative URLs from the Hansard site to absolute URLs
+    clean = re.sub(r'href="/', 'href="https://sprs.parl.gov.sg/', html_content)
+    
     # Replace common HTML entities
-    clean = html_content.replace('&nbsp;', ' ')
+    clean = clean.replace('&nbsp;', ' ')
     clean = clean.replace('â€™', "'")
     clean = clean.replace('â€"', '—')
     clean = clean.replace('&amp;', '&')
