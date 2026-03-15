@@ -9,7 +9,7 @@
   <array>
     <string>/usr/bin/caffeinate</string>
     <string>-di</string>
-    <string>/Users/admin/scribe/scripts/daily_pipeline.sh</string>
+    <string>/Users/admin/second-reading/scripts/daily_pipeline.sh</string>
   </array>
 
   <key>StartCalendarInterval</key>
@@ -21,7 +21,7 @@
   </dict>
 
   <key>WorkingDirectory</key>
-  <string>/Users/admin/scribe</string>
+  <string>/Users/admin/second-reading</string>
 
   <key>StandardOutPath</key>
   <string>/Users/admin/Library/Logs/second-reading/launchd.out.log</string>

@@ -114,22 +114,22 @@ scripts/daily_pipeline.sh \
 ### Setup
 1. Sync dependencies and ensure deploy auth
    ```bash
-   cd /Users/admin/scribe/python && uv sync
-   cd /Users/admin/scribe/astro && bun install
+   cd /Users/admin/second-reading/python && uv sync
+   cd /Users/admin/second-reading/astro && bun install
    # If needed:
-   # cd /Users/admin/scribe/astro && wrangler login
+   # cd /Users/admin/second-reading/astro && wrangler login
    ```
 
 1. Create log directories
    ```bash
-   mkdir -p /Users/admin/scribe/logs/pipeline
+   mkdir -p /Users/admin/second-reading/logs/pipeline
    mkdir -p /Users/admin/Library/Logs/second-reading
    ```
 
 1. Install LaunchAgent
    ```bash
    mkdir -p /Users/admin/Library/LaunchAgents
-   cp /Users/admin/scribe/launchd/com.secondreading.daily.plist \
+   cp /Users/admin/second-reading/launchd/com.secondreading.daily.plist \
       /Users/admin/Library/LaunchAgents/com.secondreading.daily.plist
 
    launchctl bootstrap gui/$(id -u) /Users/admin/Library/LaunchAgents/com.secondreading.daily.plist
@@ -139,20 +139,20 @@ scripts/daily_pipeline.sh \
 ### Testing
 ```bash
 # Smoke tests
-/Users/admin/scribe/scripts/daily_pipeline.sh --dry-run
-/Users/admin/scribe/scripts/daily_pipeline.sh --dry-run --start-date 08-03-2026 --end-date 10-03-2026
+/Users/admin/second-reading/scripts/daily_pipeline.sh --dry-run
+/Users/admin/second-reading/scripts/daily_pipeline.sh --dry-run --start-date 08-03-2026 --end-date 10-03-2026
 
 # Functional run without deployment
-/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
+/Users/admin/second-reading/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
 
 # Idempotency / change-gate check
-/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
+/Users/admin/second-reading/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
 
 # Force deployment path
-/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --force-deploy
+/Users/admin/second-reading/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --force-deploy
 
 # launchd checks
-plutil -lint /Users/admin/scribe/launchd/com.secondreading.daily.plist
+plutil -lint /Users/admin/second-reading/launchd/com.secondreading.daily.plist
 launchctl kickstart -k gui/$(id -u)/com.secondreading.daily
 launchctl print gui/$(id -u)/com.secondreading.daily
 ```
