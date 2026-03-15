@@ -81,6 +81,81 @@ If you wish to replicate Second Reading independently, you can follow the steps 
     ```
     Open [http://localhost:4321](http://localhost:4321) to view the app.
 
+## Daily Automation (macOS launchd + caffeinate)
+
+The repository includes:
+- `scripts/daily_pipeline.sh` (daily ingest + dedupe + summaries + change-gated build/deploy)
+- `launchd/com.secondreading.daily.plist` (LaunchAgent template scheduled for 13:00 Asia/Singapore)
+
+### Script defaults
+- Date window: latest ingested sitting date in DB + 1 day, through `today` (`DD-MM-YYYY`, Asia/Singapore)
+  - If no sittings exist in DB yet, fallback window is `today-2` to `today`
+- Pipeline order: ingest -> dedupe (`--keep-newest`) -> sitting summaries (`--only-blank`)
+- Deploy policy: only when semantic data digest changes, and only on clean `main` git state
+
+### Script options
+```bash
+scripts/daily_pipeline.sh \
+  [--start-date DD-MM-YYYY] \
+  [--end-date DD-MM-YYYY] \
+  [--lookback-days N] \
+  [--skip-summaries] \
+  [--skip-deploy] \
+  [--force-deploy] \
+  [--dry-run]
+```
+`--lookback-days` overrides the incremental default and uses a recent window of `today-N` to `today`.
+
+### Current limitation
+- `batch_process_sqlite.py` is not fully idempotent for overlapping date re-ingestion. Re-running a date can create duplicate `sections` and `bills` rows.
+- `scripts/daily_pipeline.sh` now defaults to incremental non-overlapping ingestion (`max(sittings.date)+1` to `today`) to reduce this risk.
+- The dedupe step in the pipeline currently cleans duplicate sections only.
+
+### Setup
+1. Sync dependencies and ensure deploy auth
+   ```bash
+   cd /Users/admin/scribe/python && uv sync
+   cd /Users/admin/scribe/astro && bun install
+   # If needed:
+   # cd /Users/admin/scribe/astro && wrangler login
+   ```
+
+1. Create log directories
+   ```bash
+   mkdir -p /Users/admin/scribe/logs/pipeline
+   mkdir -p /Users/admin/Library/Logs/second-reading
+   ```
+
+1. Install LaunchAgent
+   ```bash
+   mkdir -p /Users/admin/Library/LaunchAgents
+   cp /Users/admin/scribe/launchd/com.secondreading.daily.plist \
+      /Users/admin/Library/LaunchAgents/com.secondreading.daily.plist
+
+   launchctl bootstrap gui/$(id -u) /Users/admin/Library/LaunchAgents/com.secondreading.daily.plist
+   launchctl enable gui/$(id -u)/com.secondreading.daily
+   ```
+
+### Testing
+```bash
+# Smoke tests
+/Users/admin/scribe/scripts/daily_pipeline.sh --dry-run
+/Users/admin/scribe/scripts/daily_pipeline.sh --dry-run --start-date 08-03-2026 --end-date 10-03-2026
+
+# Functional run without deployment
+/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
+
+# Idempotency / change-gate check
+/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
+
+# Force deployment path
+/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --force-deploy
+
+# launchd checks
+plutil -lint /Users/admin/scribe/launchd/com.secondreading.daily.plist
+launchctl kickstart -k gui/$(id -u)/com.secondreading.daily
+launchctl print gui/$(id -u)/com.secondreading.daily
+```
 
 ## Acknowledgements
 This project is inspired by the creators of [Telescope](https://telescope.gov.sg/) and [Pair Search](https://search.pair.gov.sg/).
